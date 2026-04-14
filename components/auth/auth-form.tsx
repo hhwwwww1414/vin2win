@@ -262,9 +262,6 @@ export function AuthForm({ mode }: { mode: Mode }) {
                 .
               </span>
             </label>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Пока это страницы-заглушки, но подтверждение обязательно для создания аккаунта.
-            </p>
           </div>
         ) : null}
 
