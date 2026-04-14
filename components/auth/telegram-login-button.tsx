@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 declare global {
   interface Window {
@@ -14,7 +14,12 @@ declare global {
 
 const TELEGRAM_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
-export function TelegramLoginButton({ nextPath }: { nextPath: string }) {
+type TelegramLoginButtonProps = {
+  nextPath: string;
+  disabled?: boolean;
+};
+
+export function TelegramLoginButton({ nextPath, disabled = false }: TelegramLoginButtonProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -22,9 +27,34 @@ export function TelegramLoginButton({ nextPath }: { nextPath: string }) {
   const isConfigured = Boolean(TELEGRAM_BOT_USERNAME);
 
   useEffect(() => {
-    if (!isConfigured || !containerRef.current) {
+    const container = containerRef.current;
+
+    if (!isConfigured || disabled || !container) {
+      if (container) {
+        container.innerHTML = '';
+      }
       return;
     }
+
+    let intervalId: number | null = null;
+
+    const applyWidgetFrameStyles = () => {
+      const iframe = container.querySelector('iframe');
+      if (!(iframe instanceof HTMLIFrameElement)) {
+        return false;
+      }
+
+      iframe.style.position = 'absolute';
+      iframe.style.inset = '0';
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      iframe.style.opacity = '0';
+      iframe.style.cursor = 'pointer';
+      iframe.style.zIndex = '20';
+      iframe.style.border = '0';
+      iframe.style.margin = '0';
+      return true;
+    };
 
     window.onVin2winTelegramAuth = async (user) => {
       setError(null);
@@ -62,58 +92,69 @@ export function TelegramLoginButton({ nextPath }: { nextPath: string }) {
     script.setAttribute('data-telegram-login', TELEGRAM_BOT_USERNAME!);
     script.setAttribute('data-size', 'large');
     script.setAttribute('data-userpic', 'false');
-    script.setAttribute('data-radius', '12');
+    script.setAttribute('data-radius', '20');
     script.setAttribute('data-request-access', 'write');
     script.setAttribute('data-lang', 'ru');
     script.setAttribute('data-onauth', 'window.onVin2winTelegramAuth(user)');
 
-    containerRef.current.innerHTML = '';
-    containerRef.current.appendChild(script);
+    container.innerHTML = '';
+    container.appendChild(script);
+
+    intervalId = window.setInterval(() => {
+      if (applyWidgetFrameStyles() && intervalId !== null) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+    }, 100);
 
     return () => {
       delete window.onVin2winTelegramAuth;
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+      container.innerHTML = '';
     };
-  }, [isConfigured, nextPath, router]);
+  }, [disabled, isConfigured, nextPath, router]);
 
   return (
-    <div data-testid="telegram-login-panel" className="mt-4 rounded-2xl border border-border/70 bg-background/50 p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <MessageCircle className="h-4 w-4 text-teal-accent" />
-        <span className="text-sm font-medium text-foreground">Войти через Telegram</span>
+    <div data-testid="telegram-login-panel" className="rounded-[24px] border border-border/70 bg-background/55 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] dark:bg-background/10">
+      <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <MessageCircle className="h-3.5 w-3.5 text-teal-accent" />
+        Telegram login
       </div>
 
-      {isConfigured ? (
-        <>
-          <div ref={containerRef} className="min-h-11" />
-          {loading ? <p className="mt-2 text-xs text-muted-foreground">Подтверждаем вход через Telegram...</p> : null}
-          {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="mt-3 w-full justify-center text-xs text-muted-foreground"
-            onClick={() => window.location.reload()}
-          >
-            Обновить Telegram-виджет
-          </Button>
-        </>
-      ) : (
-        <p className="text-sm leading-6 text-muted-foreground">
-          Telegram-авторизация появится здесь после подключения bot username в публичном окружении.
-        </p>
-      )}
+      <div className="relative">
+        <button
+          type="button"
+          disabled={disabled || !isConfigured}
+          className={cn(
+            'flex h-14 w-full items-center justify-center gap-3 rounded-[20px] border border-teal-accent/25 bg-[linear-gradient(135deg,#0f766e_0%,#159d93_45%,#56a9ea_100%)] px-5 text-base font-semibold text-white shadow-[0_18px_35px_rgba(21,157,147,0.24)] transition-[transform,opacity,box-shadow] hover:-translate-y-0.5 hover:opacity-95',
+            'disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0'
+          )}
+        >
+          <Send className="h-4 w-4" />
+          Войти через Telegram
+        </button>
 
-      <p className="mt-3 text-xs leading-5 text-muted-foreground">
-        Продолжая через Telegram, вы принимаете{' '}
-        <Link href="/privacy-policy" className="text-teal-accent transition-opacity hover:opacity-80">
-          политику конфиденциальности
-        </Link>{' '}
-        и{' '}
-        <Link href="/user-agreement" className="text-teal-accent transition-opacity hover:opacity-80">
-          пользовательское соглашение
-        </Link>
-        .
-      </p>
+        {isConfigured && !disabled ? <div ref={containerRef} className="absolute inset-0 overflow-hidden rounded-[20px]" /> : null}
+      </div>
+
+      {disabled ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Подтвердите согласие с документами, чтобы открыть Telegram login.</p> : null}
+      {loading ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Подтверждаем вход через Telegram...</p> : null}
+      {error ? <p className="mt-3 text-xs leading-5 text-destructive">{error}</p> : null}
+      {!isConfigured ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Добавьте `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` в публичное окружение и пересоберите приложение.</p> : null}
+
+      {isConfigured ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="mt-3 w-full justify-center text-xs text-muted-foreground"
+          onClick={() => window.location.reload()}
+        >
+          Обновить Telegram-виджет
+        </Button>
+      ) : null}
     </div>
   );
 }
