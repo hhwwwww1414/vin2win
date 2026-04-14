@@ -62,6 +62,7 @@ export async function attachQaGuards(page: Page, testInfo: TestInfo) {
     const errorText = request.failure()?.errorText ?? 'unknown failure';
     const isBenignImageAbort = /_next\/image/i.test(request.url()) && /ERR_ABORTED/i.test(errorText);
     const isBenignVideoAbort = /\.(mov|mp4|webm)(\?|$)/i.test(request.url()) && /ERR_ABORTED/i.test(errorText);
+    const isBenignBlobAbort = request.url().startsWith('blob:') && /ERR_ABORTED/i.test(errorText);
     const isBenignSessionAbort = /\/api\/auth\/session/i.test(request.url()) && /ERR_ABORTED/i.test(errorText);
     const isBenignRscAbort = /\?_rsc=/i.test(request.url()) && /ERR_ABORTED/i.test(errorText);
     const isBenignViewCounterAbort = /\/api\/listings\/[^/]+\/view/i.test(request.url()) && /ERR_ABORTED/i.test(errorText);
@@ -74,6 +75,7 @@ export async function attachQaGuards(page: Page, testInfo: TestInfo) {
     if (
       isBenignImageAbort ||
       isBenignVideoAbort ||
+      isBenignBlobAbort ||
       isBenignSessionAbort ||
       isBenignRscAbort ||
       isBenignViewCounterAbort ||

@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Filter, Gauge, Layers3, MapPin, RotateCcw, Save, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Sheet,
   SheetContent,
@@ -14,54 +15,11 @@ import {
 } from '@/components/ui/sheet';
 import { CAR_CATALOG, CAR_MAKES, getModelsForMake } from '@/lib/car-catalog';
 import { getCitiesForRegion, getRegionForCity, getRuRegionOptions } from '@/lib/ru-regions';
-import { hasActiveSaleSearchFilters } from '@/lib/sale-search';
+import { hasActiveSaleSearchFilters, SALE_SEARCH_SORT_OPTIONS } from '@/lib/sale-search';
 import type { SaleSearchFacets, SaleSearchFilters } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-const MILEAGE_PRESET_OPTIONS = [
-  { value: '', label: 'Любой пробег' },
-  { value: 'lte_10000', label: 'До 10 000 км' },
-  { value: 'lte_50000', label: 'До 50 000 км' },
-  { value: 'lte_100000', label: 'До 100 000 км' },
-  { value: 'lte_150000', label: 'До 150 000 км' },
-  { value: 'gte_200000', label: 'От 200 000 км' },
-] as const;
-
-function getMileagePresetValue(filters: SaleSearchFilters) {
-  if (filters.mileageMin === 200000 && !filters.mileageMax) {
-    return 'gte_200000';
-  }
-
-  switch (filters.mileageMax) {
-    case 10000:
-      return 'lte_10000';
-    case 50000:
-      return 'lte_50000';
-    case 100000:
-      return 'lte_100000';
-    case 150000:
-      return 'lte_150000';
-    default:
-      return '';
-  }
-}
-
-function applyMileagePreset(current: SaleSearchFilters, preset: string): SaleSearchFilters {
-  switch (preset) {
-    case 'lte_10000':
-      return { ...current, mileageMin: undefined, mileageMax: 10000 };
-    case 'lte_50000':
-      return { ...current, mileageMin: undefined, mileageMax: 50000 };
-    case 'lte_100000':
-      return { ...current, mileageMin: undefined, mileageMax: 100000 };
-    case 'lte_150000':
-      return { ...current, mileageMin: undefined, mileageMax: 150000 };
-    case 'gte_200000':
-      return { ...current, mileageMin: 200000, mileageMax: undefined };
-    default:
-      return { ...current, mileageMin: undefined, mileageMax: undefined };
-  }
-}
+const CLEAR_SELECT_VALUE = '__clear__';
 
 function prepareDraftFilters(filters: SaleSearchFilters): SaleSearchFilters {
   const inferredRegion = filters.region ?? getRegionForCity(filters.city[0]);
@@ -188,6 +146,10 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function textInputClassName() {
   return 'w-full rounded-xl border border-border/80 bg-background/75 px-3 py-2.5 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/60 focus:border-teal-accent/50 focus:ring-2 focus:ring-teal-accent/15 dark:bg-background/10';
+}
+
+function selectTriggerClassName() {
+  return cn(textInputClassName(), 'h-auto min-h-11 justify-between py-2.5 shadow-none');
 }
 
 function toggleArrayValue(current: string[], value: string) {
@@ -328,6 +290,9 @@ export function AdvancedFilters({
   const draftHasFilters = hasActiveSaleSearchFilters(draft);
   const isHeaderElevated = headerScrollTop > 4;
   const isHeaderCondensed = headerScrollTop > 72;
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: currentYear - 1990 + 2 }, (_, index) => currentYear + 1 - index);
+  const mileageOptions = Array.from({ length: 50 }, (_, index) => (index + 1) * 10000);
 
   useEffect(() => {
     if (!open) {
@@ -473,19 +438,21 @@ export function AdvancedFilters({
               </Field>
 
               <Field label="Сортировка">
-                <select
-                  className={textInputClassName()}
+                <Select
                   value={draft.sort}
-                  onChange={(event) => setDraft((current) => ({ ...current, sort: event.target.value as SaleSearchFilters['sort'] }))}
+                  onValueChange={(value) => setDraft((current) => ({ ...current, sort: value as SaleSearchFilters['sort'] }))}
                 >
-                  <option value="date">Сначала новые</option>
-                  <option value="price_asc">Цена по возрастанию</option>
-                  <option value="price_desc">Цена по убыванию</option>
-                  <option value="mileage">Пробег по возрастанию</option>
-                  <option value="year_desc">Год: новее</option>
-                  <option value="year_asc">Год: старше</option>
-                  <option value="views">По просмотрам</option>
-                </select>
+                  <SelectTrigger className={selectTriggerClassName()}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SALE_SEARCH_SORT_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
             </div>
           </SectionShell>
@@ -499,28 +466,50 @@ export function AdvancedFilters({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Год от">
-                <select
-                  className={textInputClassName()}
-                  value={String(draft.yearFrom ?? '')}
-                  onChange={(event) => setDraft((current) => ({ ...current, yearFrom: event.target.value ? Number(event.target.value) : undefined }))}
+                <Select
+                  value={draft.yearFrom ? String(draft.yearFrom) : CLEAR_SELECT_VALUE}
+                  onValueChange={(value) =>
+                    setDraft((current) => ({
+                      ...current,
+                      yearFrom: value === CLEAR_SELECT_VALUE ? undefined : Number(value),
+                    }))
+                  }
                 >
-                  <option value="">Любой</option>
-                  {Array.from({ length: new Date().getFullYear() - 1990 + 2 }, (_, i) => new Date().getFullYear() + 1 - i).map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className={selectTriggerClassName()}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={CLEAR_SELECT_VALUE}>Любой</SelectItem>
+                    {yearOptions.map((year) => (
+                      <SelectItem key={year} value={String(year)}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label="Год до">
-                <select
-                  className={textInputClassName()}
-                  value={String(draft.yearTo ?? '')}
-                  onChange={(event) => setDraft((current) => ({ ...current, yearTo: event.target.value ? Number(event.target.value) : undefined }))}
+                <Select
+                  value={draft.yearTo ? String(draft.yearTo) : CLEAR_SELECT_VALUE}
+                  onValueChange={(value) =>
+                    setDraft((current) => ({
+                      ...current,
+                      yearTo: value === CLEAR_SELECT_VALUE ? undefined : Number(value),
+                    }))
+                  }
                 >
-                  <option value="">Любой</option>
-                  {Array.from({ length: new Date().getFullYear() - 1990 + 2 }, (_, i) => new Date().getFullYear() + 1 - i).map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className={selectTriggerClassName()}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={CLEAR_SELECT_VALUE}>Любой</SelectItem>
+                    {yearOptions.map((year) => (
+                      <SelectItem key={year} value={String(year)}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label="Цена от">
                 <input
@@ -542,26 +531,48 @@ export function AdvancedFilters({
               </Field>
               <Field label="Пробег от / до">
                 <div className="grid grid-cols-2 gap-3">
-                  <select
-                    className={textInputClassName()}
-                    value={String(draft.mileageMin ?? '')}
-                    onChange={(event) => setDraft((current) => ({ ...current, mileageMin: event.target.value ? Number(event.target.value) : undefined }))}
+                  <Select
+                    value={draft.mileageMin ? String(draft.mileageMin) : CLEAR_SELECT_VALUE}
+                    onValueChange={(value) =>
+                      setDraft((current) => ({
+                        ...current,
+                        mileageMin: value === CLEAR_SELECT_VALUE ? undefined : Number(value),
+                      }))
+                    }
                   >
-                    <option value="">от 0 км</option>
-                    {Array.from({ length: 50 }, (_, i) => (i + 1) * 10000).map((v) => (
-                      <option key={v} value={v}>от {v.toLocaleString('ru-RU')} км</option>
-                    ))}
-                  </select>
-                  <select
-                    className={textInputClassName()}
-                    value={String(draft.mileageMax ?? '')}
-                    onChange={(event) => setDraft((current) => ({ ...current, mileageMax: event.target.value ? Number(event.target.value) : undefined }))}
+                    <SelectTrigger className={selectTriggerClassName()}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={CLEAR_SELECT_VALUE}>от 0 км</SelectItem>
+                      {mileageOptions.map((value) => (
+                        <SelectItem key={value} value={String(value)}>
+                          от {value.toLocaleString('ru-RU')} км
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={draft.mileageMax ? String(draft.mileageMax) : CLEAR_SELECT_VALUE}
+                    onValueChange={(value) =>
+                      setDraft((current) => ({
+                        ...current,
+                        mileageMax: value === CLEAR_SELECT_VALUE ? undefined : Number(value),
+                      }))
+                    }
                   >
-                    <option value="">до 500 000 км</option>
-                    {Array.from({ length: 50 }, (_, i) => (i + 1) * 10000).map((v) => (
-                      <option key={v} value={v}>до {v.toLocaleString('ru-RU')} км</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className={selectTriggerClassName()}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={CLEAR_SELECT_VALUE}>до 500 000 км</SelectItem>
+                      {mileageOptions.map((value) => (
+                        <SelectItem key={value} value={String(value)}>
+                          до {value.toLocaleString('ru-RU')} км
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </Field>
               <Field label="Мощность от / до">

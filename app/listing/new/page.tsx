@@ -30,7 +30,7 @@ type SubmissionMode = 'DRAFT' | 'PENDING';
 type FieldErrors = Record<string, string>;
 
 type PhotoItem = { file: File; url: string };
-type VideoItem = { file: File; name: string; size: string };
+type VideoItem = { file: File; name: string; size: string; url: string };
 type SessionUser = { name: string; phone?: string };
 
 type SaleData = {
@@ -465,6 +465,12 @@ function revokePhotos(photos: PhotoItem[]) {
   photos.forEach((photo) => URL.revokeObjectURL(photo.url));
 }
 
+function revokeVideoPreview(video: VideoItem | null) {
+  if (video) {
+    URL.revokeObjectURL(video.url);
+  }
+}
+
 function wantedRestrictions(data: WantedData) {
   return [
     data.notTaxi && 'Не такси',
@@ -791,6 +797,7 @@ export default function NewListingPage() {
 
   const resetAll = useCallback(() => {
     revokePhotos(photos);
+    revokeVideoPreview(videoFile);
     window.localStorage.removeItem(LISTING_DRAFT_STORAGE_KEY);
     setScenario(null);
     setStep(1);
@@ -806,7 +813,7 @@ export default function NewListingPage() {
     setSubmittedStatus(null);
     setFieldErrors({});
     setDraftNotice(null);
-  }, [photos]);
+  }, [photos, videoFile]);
 
   const addPhotos = useCallback((files: FileList | null) => {
     if (!files) {
@@ -899,8 +906,9 @@ export default function NewListingPage() {
 
     setMediaError(null);
     setDraftNotice(null);
-    setVideoFile({ file, name: file.name, size: fileSize(file.size) });
-  }, []);
+    revokeVideoPreview(videoFile);
+    setVideoFile({ file, name: file.name, size: fileSize(file.size), url: URL.createObjectURL(file) });
+  }, [videoFile]);
 
   const validateSaleStep = useCallback(
     (targetStep: SaleStep) => {
@@ -1062,6 +1070,7 @@ export default function NewListingPage() {
           }
 
           revokePhotos(photos);
+          revokeVideoPreview(videoFile);
           setPhotos([]);
           setVideoFile(null);
           setCreatedId(payload?.id ?? null);
@@ -1670,7 +1679,7 @@ export default function NewListingPage() {
               {photos.length ? (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {photos.map((photo, index) => (
-                    <div key={photo.url} className="group relative overflow-hidden rounded-lg border border-border bg-card">
+                    <div key={photo.url} className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-border bg-card">
                       <Image src={photo.url} alt={`Фото ${index + 1}`} fill unoptimized sizes="(min-width: 640px) 25vw, 50vw" className="object-cover" />
                       <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-1 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-2 py-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                         {index === 0 ? (
@@ -1742,22 +1751,30 @@ export default function NewListingPage() {
               />
 
               {videoFile ? (
-                <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/20 p-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-accent/15">
-                    <Video className="h-5 w-5 text-teal-accent" />
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="relative aspect-video bg-black">
+                    <video key={videoFile.url} src={videoFile.url} controls preload="metadata" className="h-full w-full bg-black object-contain" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{videoFile.name}</p>
-                    <p className="text-xs text-muted-foreground">{videoFile.size}</p>
+                  <div className="flex items-center gap-3 border-t border-border/70 bg-muted/20 p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-accent/15">
+                      <Video className="h-5 w-5 text-teal-accent" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{videoFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{videoFile.size}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        revokeVideoPreview(videoFile);
+                        setVideoFile(null);
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                      aria-label="Удалить видео"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setVideoFile(null)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                    aria-label="Удалить видео"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
                 </div>
               ) : (
                 <button
