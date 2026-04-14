@@ -61,12 +61,13 @@ test('advanced filters sheet stays usable', async ({ page }, testInfo) => {
   await assertClean();
 });
 
-test('wanted page keeps a strong hero and primary CTA', async ({ page }, testInfo) => {
+test('wanted page keeps a strong hero and routes request CTA into wanted flow', async ({ page }, testInfo) => {
   const assertClean = await attachQaGuards(page, testInfo);
 
   await page.goto('/wanted');
   await expect(page.locator('main h1').first()).toBeVisible();
-  await expect(page.getByRole('link', { name: /Создать запрос/i }).first()).toBeVisible();
+  await expect(page.locator('main a[href="/listing/new?scenario=wanted"]').first()).toBeVisible();
+  await expect(page.locator('main a[href="/listing/new"]')).toHaveCount(0);
 
   await testInfo.attach('wanted-page', {
     body: await page.screenshot({ fullPage: true }),
@@ -76,14 +77,53 @@ test('wanted page keeps a strong hero and primary CTA', async ({ page }, testInf
   await assertClean();
 });
 
-test('login page keeps auth surface and submit CTA', async ({ page }, testInfo) => {
+test('wanted creation gate preserves the wanted scenario through auth links', async ({ page }, testInfo) => {
+  const assertClean = await attachQaGuards(page, testInfo);
+
+  await page.goto('/listing/new?scenario=wanted');
+  await expect(page.locator('main').getByRole('link', { name: /^Войти$/i })).toHaveAttribute(
+    'href',
+    '/login?next=%2Flisting%2Fnew%3Fscenario%3Dwanted'
+  );
+  await expect(page.locator('main').getByRole('link', { name: /Зарегистрироваться/i })).toHaveAttribute(
+    'href',
+    '/register?next=%2Flisting%2Fnew%3Fscenario%3Dwanted'
+  );
+
+  await testInfo.attach('wanted-create-gate', {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: 'image/png',
+  });
+
+  await assertClean();
+});
+
+test('login page keeps auth surface, submit CTA and telegram entry', async ({ page }, testInfo) => {
   const assertClean = await attachQaGuards(page, testInfo);
 
   await page.goto('/login');
   await expect(page.locator('main h1').first()).toBeVisible();
   await expect(page.locator('main').getByRole('button', { name: /^Войти$/i })).toBeVisible();
+  await expect(page.locator('main').getByText(/Telegram/i).first()).toBeVisible();
 
   await testInfo.attach('login-page', {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: 'image/png',
+  });
+
+  await assertClean();
+});
+
+test('register page keeps legal consent and placeholder legal links', async ({ page }, testInfo) => {
+  const assertClean = await attachQaGuards(page, testInfo);
+
+  await page.goto('/register');
+  await expect(page.locator('main h1').first()).toBeVisible();
+  await expect(page.getByRole('checkbox')).toBeVisible();
+  await expect(page.locator('main a[href="/privacy-policy"]').first()).toBeVisible();
+  await expect(page.locator('main a[href="/user-agreement"]').first()).toBeVisible();
+
+  await testInfo.attach('register-page', {
     body: await page.screenshot({ fullPage: true }),
     contentType: 'image/png',
   });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle, FileText, MapPin, MessageCircle, Phone, Shield, TrendingDown, UserRound } from 'lucide-react';
+import { CheckCircle, FileText, MapPin, MessageCircle, Phone, Shield, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { SaleListing } from '@/lib/types';
 import { formatPrice } from '@/lib/marketplace-data';
@@ -200,21 +200,6 @@ export function DealBlock({ listing, className }: DealBlockProps) {
                 <p className={cn('mt-2 flex items-center gap-1.5 text-sm font-semibold', legalClean ? 'text-success' : 'text-foreground')}>
                   {legalClean ? <CheckCircle className="h-3.5 w-3.5" /> : null}
                   {legalClean ? 'Чисто' : 'Уточнить'}
-                </p>
-              </div>
-              {listing.kickback ? (
-                <div className="rounded-2xl border border-border/70 bg-background/65 px-3 py-3 dark:bg-background/10">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Откат</p>
-                  <p className="mt-2 text-sm font-semibold text-teal-accent">Есть возможность</p>
-                </div>
-              ) : null}
-              <div className="rounded-2xl border border-border/70 bg-background/65 px-3 py-3 dark:bg-background/10">
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  <UserRound className="h-3.5 w-3.5 text-teal-accent" />
-                  Контур сделки
-                </div>
-                <p className="mt-2 text-sm font-semibold text-foreground">
-                  {showPhone ? 'Контакт открыт' : 'Прямой выход на продавца'}
                 </p>
               </div>
             </div>

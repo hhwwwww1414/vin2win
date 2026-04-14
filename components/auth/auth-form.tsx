@@ -14,6 +14,8 @@ type Mode = 'login' | 'register';
 const inputClass =
   'w-full rounded-2xl border border-border/80 bg-background/75 px-4 py-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/60 focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30 dark:bg-background/10';
 
+const LEGAL_ACCEPTANCE_ERROR = 'Подтвердите согласие с политикой конфиденциальности и пользовательским соглашением.';
+
 function parseString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -25,6 +27,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fieldId = useId();
@@ -38,6 +41,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   const submit = async () => {
     setError(null);
+
+    if (isRegister && !acceptedLegal) {
+      setError(LEGAL_ACCEPTANCE_ERROR);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -53,6 +62,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
             phone,
             email,
             password,
+            acceptedLegal,
             nextPath,
           }),
         }
@@ -220,6 +230,44 @@ export function AuthForm({ mode }: { mode: Mode }) {
           />
         </label>
 
+        {isRegister ? (
+          <div
+            className={cn(
+              'rounded-2xl border border-border/70 bg-background/60 px-4 py-3 dark:bg-background/10',
+              error === LEGAL_ACCEPTANCE_ERROR && 'border-destructive/40 bg-destructive/5'
+            )}
+          >
+            <label htmlFor={`${fieldId}-legal`} className="flex items-start gap-3">
+              <input
+                id={`${fieldId}-legal`}
+                type="checkbox"
+                checked={acceptedLegal}
+                onChange={(event) => {
+                  setAcceptedLegal(event.target.checked);
+                  if (event.target.checked && error === LEGAL_ACCEPTANCE_ERROR) {
+                    setError(null);
+                  }
+                }}
+                className="mt-1 h-4 w-4 rounded border-border/80 text-teal-accent focus:ring-2 focus:ring-teal-accent/30"
+              />
+              <span className="text-sm leading-6 text-foreground">
+                Я принимаю{' '}
+                <Link href="/privacy-policy" className="font-medium text-teal-accent transition-opacity hover:opacity-80">
+                  политику конфиденциальности
+                </Link>{' '}
+                и{' '}
+                <Link href="/user-agreement" className="font-medium text-teal-accent transition-opacity hover:opacity-80">
+                  пользовательское соглашение
+                </Link>
+                .
+              </span>
+            </label>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Пока это страницы-заглушки, но подтверждение обязательно для создания аккаунта.
+            </p>
+          </div>
+        ) : null}
+
         {mode === 'login' ? (
           <div className="text-right">
             <Link
@@ -254,7 +302,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
 
-        <TelegramLoginButton nextPath={nextPath} />
+        {mode === 'login' ? <TelegramLoginButton nextPath={nextPath} /> : null}
       </div>
 
       <p className="mt-5 text-sm text-muted-foreground">

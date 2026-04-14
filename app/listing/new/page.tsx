@@ -513,10 +513,16 @@ function parseDraftPayload(raw: string | null): DraftPayload | null {
   }
 }
 
+function parseRequestedScenario(value: string | null): Scenario | null {
+  return value === 'sale' || value === 'wanted' ? value : null;
+}
+
 export default function NewListingPage() {
   const searchParams = useSearchParams();
   const duplicateId = searchParams.get('duplicate');
-  const [scenario, setScenario] = useState<Scenario | null>(duplicateId ? 'sale' : null);
+  const requestedScenario = parseRequestedScenario(searchParams.get('scenario'));
+  const creationPath = requestedScenario ? `/listing/new?scenario=${requestedScenario}` : '/listing/new';
+  const [scenario, setScenario] = useState<Scenario | null>(duplicateId ? 'sale' : requestedScenario);
   const [step, setStep] = useState<SaleStep>(1);
   const [sale, setSale] = useState<SaleData>(saleDefaults);
   const [wanted, setWanted] = useState<WantedData>(wantedDefaults);
@@ -663,7 +669,7 @@ export default function NewListingPage() {
   }, []);
 
   useEffect(() => {
-    if (duplicateId || authLoading || draftRestoredRef.current) {
+    if (duplicateId || requestedScenario || authLoading || draftRestoredRef.current) {
       return;
     }
 
@@ -679,7 +685,7 @@ export default function NewListingPage() {
     setSale(draft.sale);
     setWanted(draft.wanted);
     setDraftNotice('Черновик восстановлен из браузера. Локальные фото и видеофайл нужно загрузить заново.');
-  }, [authLoading, duplicateId]);
+  }, [authLoading, duplicateId, requestedScenario]);
 
   useEffect(() => {
     if (!duplicateId || duplicateLoadedRef.current || authLoading || !sessionUser) {
@@ -1169,13 +1175,13 @@ export default function NewListingPage() {
               </p>
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
-                  href="/login?next=%2Flisting%2Fnew"
+                  href={`/login?next=${encodeURIComponent(creationPath)}`}
                   className="rounded-xl bg-teal-dark px-6 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:opacity-95 dark:bg-teal-accent dark:text-[#09090B]"
                 >
                   Войти
                 </Link>
                 <Link
-                  href="/register?next=%2Flisting%2Fnew"
+                  href={`/register?next=${encodeURIComponent(creationPath)}`}
                   className="rounded-xl border border-border/80 bg-background/70 px-6 py-3 text-sm text-foreground transition-colors hover:border-teal-accent/35 hover:text-teal-accent dark:bg-background/10"
                 >
                   Зарегистрироваться

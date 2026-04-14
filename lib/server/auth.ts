@@ -73,6 +73,7 @@ export interface RegisterUserInput {
   email: string;
   password: string;
   phone?: string;
+  acceptedLegal: boolean;
 }
 
 export interface UpdateAdminUserSettingsInput {
@@ -401,6 +402,10 @@ export async function registerUser(input: RegisterUserInput): Promise<AuthUser> 
 
   if (!email.includes('@')) {
     throw new Error('Email address is invalid.');
+  }
+
+  if (!input.acceptedLegal) {
+    throw new Error('Подтвердите согласие с политикой конфиденциальности и пользовательским соглашением.');
   }
 
   const existing = await prisma.user.findUnique({

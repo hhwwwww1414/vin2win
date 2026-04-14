@@ -231,7 +231,7 @@ export function WantedPageClient({ initialListings }: { initialListings: WantedL
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <Link
-                  href="/listing/new"
+                  href="/listing/new?scenario=wanted"
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-dark px-4 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:opacity-95 dark:bg-teal-accent dark:text-[#09090B]"
                 >
                   <Plus className="h-4 w-4" />
@@ -280,7 +280,7 @@ export function WantedPageClient({ initialListings }: { initialListings: WantedL
                 </p>
                 <div className="mt-6">
                   <Link
-                    href="/listing/new"
+                    href="/listing/new?scenario=wanted"
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-dark px-4 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:opacity-95 dark:bg-teal-accent dark:text-[#09090B]"
                   >
                     <Plus className="h-4 w-4" />
@@ -304,7 +304,7 @@ export function WantedPageClient({ initialListings }: { initialListings: WantedL
                   </div>
                 ))}
                 <Link
-                  href="/listing/new"
+                  href="/listing/new?scenario=wanted"
                   className="inline-flex items-center justify-between rounded-2xl border border-border/70 bg-background/70 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-teal-accent/35 hover:text-teal-accent dark:bg-background/10"
                 >
                   <span>Перейти к созданию запроса</span>

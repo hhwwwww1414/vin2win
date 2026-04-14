@@ -7,6 +7,10 @@ function parseString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function parseBoolean(value: unknown): boolean {
+  return value === true;
+}
+
 export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as Record<string, unknown>;
@@ -14,10 +18,18 @@ export async function POST(request: Request) {
     const email = parseString(payload.email);
     const password = parseString(payload.password);
     const phone = parseString(payload.phone);
+    const acceptedLegal = parseBoolean(payload.acceptedLegal);
     const nextPath = resolveNextPath(parseString(payload.nextPath), '/account');
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email and password are required.' }, { status: 400 });
+    }
+
+    if (!acceptedLegal) {
+      return NextResponse.json(
+        { error: 'Подтвердите согласие с политикой конфиденциальности и пользовательским соглашением.' },
+        { status: 400 }
+      );
     }
 
     const user = await registerUser({
@@ -25,6 +37,7 @@ export async function POST(request: Request) {
       email,
       password,
       phone: phone || undefined,
+      acceptedLegal,
     });
 
     const response = NextResponse.json(
