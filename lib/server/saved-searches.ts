@@ -1,6 +1,7 @@
 import { AdminEntityType, UserNotificationType, type Prisma } from '@prisma/client';
 import { resolveRegionCitySelection } from '@/lib/ru-regions';
 import { cleanSaleSearchFiltersForPersistence, describeSaleSearch, normalizeSaleSearchName } from '@/lib/sale-search';
+import { extractEngineDisplacement } from '@/lib/listing-utils';
 import type { SaleListing, SaleSearchFilters, SavedSearchRecord } from '@/lib/types';
 import { createUserNotification } from '@/lib/server/admin-activity';
 import { prisma } from '@/lib/server/prisma';
@@ -57,6 +58,15 @@ export function doesSaleListingMatchSavedSearch(listing: SaleListing, filters: S
   }
 
   if (filters.mileageMax && listing.mileage > filters.mileageMax) {
+    return false;
+  }
+
+  const engineDisplacement = extractEngineDisplacement(listing);
+  if (filters.engineDisplacementMin && (!engineDisplacement || engineDisplacement < filters.engineDisplacementMin)) {
+    return false;
+  }
+
+  if (filters.engineDisplacementMax && (!engineDisplacement || engineDisplacement > filters.engineDisplacementMax)) {
     return false;
   }
 

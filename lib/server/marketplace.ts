@@ -16,6 +16,7 @@ import { prisma } from './prisma';
 import { getRegionsForCities, getRuRegionOptions, resolveRegionCitySelection } from '@/lib/ru-regions';
 import { createDefaultSaleSearchFilters } from '@/lib/sale-search';
 import { saleListings as saleListingFixtures, wantedListings as wantedListingFixtures } from '@/lib/marketplace-data';
+import { extractEngineDisplacement } from '@/lib/listing-utils';
 import type {
   SaleListing,
   SaleSearchFacets,
@@ -331,16 +332,6 @@ function pickSingleMediaUrl(media: ListingMedia[], kind: ListingMediaKind): stri
   return media.find((item) => item.kind === kind)?.publicUrl;
 }
 
-function inferEngineDisplacement(engine: string): number | undefined {
-  const match = engine.match(/(\d+(?:[.,]\d+)?)\s*л/i);
-  if (!match) {
-    return undefined;
-  }
-
-  const parsed = Number(match[1].replace(',', '.'));
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
 function mapSellerReview(record: SellerReviewRecord): SellerReview {
   return {
     id: record.id,
@@ -376,7 +367,10 @@ function mapSaleListing(record: SaleListingRecord): SaleListing {
     reportUrl: pickSingleMediaUrl(record.media, ListingMediaKind.REPORT) ?? record.reportUrlExternal ?? undefined,
     vin: record.vin ?? undefined,
     engine: record.engine,
-    engineDisplacementL: record.engineDisplacementL ?? inferEngineDisplacement(record.engine),
+    engineDisplacementL: extractEngineDisplacement({
+      engine: record.engine,
+      engineDisplacementL: record.engineDisplacementL ?? undefined,
+    }),
     power: record.power,
     transmission: record.transmission,
     drive: record.drive,
@@ -574,6 +568,15 @@ function buildPublishedSaleListingWhere(filters: SaleSearchFilters): Prisma.Sale
       mileage: {
         gte: filters.mileageMin,
         lte: filters.mileageMax,
+      },
+    });
+  }
+
+  if (filters.engineDisplacementMin || filters.engineDisplacementMax) {
+    andConditions.push({
+      engineDisplacementL: {
+        gte: filters.engineDisplacementMin,
+        lte: filters.engineDisplacementMax,
       },
     });
   }
@@ -853,6 +856,9 @@ function filterFixtureSaleListings(filters: SaleSearchFilters) {
     if (filters.priceMax && listing.price > filters.priceMax) return false;
     if (filters.mileageMin && listing.mileage < filters.mileageMin) return false;
     if (filters.mileageMax && listing.mileage > filters.mileageMax) return false;
+    const engineDisplacement = extractEngineDisplacement(listing);
+    if (filters.engineDisplacementMin && (!engineDisplacement || engineDisplacement < filters.engineDisplacementMin)) return false;
+    if (filters.engineDisplacementMax && (!engineDisplacement || engineDisplacement > filters.engineDisplacementMax)) return false;
     if (filters.powerMin && listing.power < filters.powerMin) return false;
     if (filters.powerMax && listing.power > filters.powerMax) return false;
     if (filters.paintCountMax !== undefined && listing.paintCount > filters.paintCountMax) return false;

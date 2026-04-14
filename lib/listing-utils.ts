@@ -19,10 +19,28 @@ export function formatEngineDisplacement(value: number) {
   })} л`;
 }
 
+export function extractEngineDisplacement(
+  listing: Pick<SaleListing, 'engine' | 'engineDisplacementL'>
+) {
+  if (listing.engineDisplacementL) {
+    return listing.engineDisplacementL;
+  }
+
+  const match = listing.engine.match(/(\d+(?:[.,]\d+)?)\s*л/i);
+  if (!match) {
+    return undefined;
+  }
+
+  const parsed = Number(match[1].replace(',', '.'));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 export function formatEngineSpec(
   listing: Pick<SaleListing, 'engine' | 'engineDisplacementL'>,
 ) {
-  if (!listing.engineDisplacementL) {
+  const engineDisplacement = extractEngineDisplacement(listing);
+
+  if (!engineDisplacement) {
     return listing.engine;
   }
 
@@ -30,7 +48,7 @@ export function formatEngineSpec(
     return listing.engine;
   }
 
-  return `${listing.engine} · ${formatEngineDisplacement(listing.engineDisplacementL)}`;
+  return `${listing.engine} · ${formatEngineDisplacement(engineDisplacement)}`;
 }
 
 export function formatPaintCountValue(count: number) {

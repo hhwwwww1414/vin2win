@@ -354,6 +354,7 @@ function HomeContent({
             (filters.priceMin ? 1 : 0) +
             (filters.priceMax ? 1 : 0) +
             (filters.mileageMin || filters.mileageMax ? 1 : 0) +
+            (filters.engineDisplacementMin || filters.engineDisplacementMax ? 1 : 0) +
             (filters.powerMin || filters.powerMax ? 1 : 0) +
             filters.bodyType.length +
             filters.transmission.length +

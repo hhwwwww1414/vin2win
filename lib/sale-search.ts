@@ -94,6 +94,15 @@ function parseOptionalPositiveInt(source: SearchParamSource, key: string): numbe
   return rounded > 0 ? rounded : undefined;
 }
 
+function parseOptionalPositiveFloat(source: SearchParamSource, key: string): number | undefined {
+  const parsed = parseOptionalNumber(source, key);
+  if (!parsed || parsed <= 0) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
 function parseBooleanParam(source: SearchParamSource, key: string): boolean | undefined {
   const raw = getSingleParam(source, key)?.toLowerCase();
   if (!raw) {
@@ -155,6 +164,8 @@ export function parseSaleSearchParams(source: SearchParamSource): SaleSearchFilt
   filters.priceMax = parseOptionalPositiveInt(source, 'priceMax');
   filters.mileageMin = parseOptionalPositiveInt(source, 'mileageMin');
   filters.mileageMax = parseOptionalPositiveInt(source, 'mileageMax');
+  filters.engineDisplacementMin = parseOptionalPositiveFloat(source, 'engineDisplacementMin');
+  filters.engineDisplacementMax = parseOptionalPositiveFloat(source, 'engineDisplacementMax');
   filters.powerMin = parseOptionalPositiveInt(source, 'powerMin');
   filters.powerMax = parseOptionalPositiveInt(source, 'powerMax');
   filters.paintCountMax = parseOptionalPositiveInt(source, 'paintCountMax');
@@ -245,6 +256,8 @@ export function buildSaleSearchParams(filters: Partial<SaleSearchFilters>): URLS
   if (filters.priceMax) params.set('priceMax', String(filters.priceMax));
   if (filters.mileageMin) params.set('mileageMin', String(filters.mileageMin));
   if (filters.mileageMax) params.set('mileageMax', String(filters.mileageMax));
+  if (filters.engineDisplacementMin) params.set('engineDisplacementMin', String(filters.engineDisplacementMin));
+  if (filters.engineDisplacementMax) params.set('engineDisplacementMax', String(filters.engineDisplacementMax));
   if (filters.powerMin) params.set('powerMin', String(filters.powerMin));
   if (filters.powerMax) params.set('powerMax', String(filters.powerMax));
   if (filters.paintCountMax !== undefined) params.set('paintCountMax', String(filters.paintCountMax));
@@ -308,6 +321,12 @@ export function describeSaleSearch(filters: Partial<SaleSearchFilters>): string 
   if (filters.mileageMin || filters.mileageMax) {
     parts.push(
       `пробег ${filters.mileageMin ? `от ${filters.mileageMin.toLocaleString('ru-RU')} км` : ''}${filters.mileageMin && filters.mileageMax ? ' ' : ''}${filters.mileageMax ? `до ${filters.mileageMax.toLocaleString('ru-RU')} км` : ''}`.trim(),
+    );
+  }
+
+  if (filters.engineDisplacementMin || filters.engineDisplacementMax) {
+    parts.push(
+      `объем ${filters.engineDisplacementMin ? `от ${filters.engineDisplacementMin.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} л` : ''}${filters.engineDisplacementMin && filters.engineDisplacementMax ? ' ' : ''}${filters.engineDisplacementMax ? `до ${filters.engineDisplacementMax.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} л` : ''}`.trim(),
     );
   }
 

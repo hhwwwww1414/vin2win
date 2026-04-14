@@ -7,9 +7,15 @@ import { useSearchParams } from 'next/navigation';
 import { MarketplaceHeader } from '@/components/marketplace/header';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
+import { ColorSwatchSelect } from '@/components/ui/color-swatch-select';
 import { CAR_CATALOG, CAR_MAKES, getModelsForMake } from '@/lib/car-catalog';
 import type { ListingStatusValue } from '@/lib/listing-status';
 import { formatEngineSpec } from '@/lib/listing-utils';
+import {
+  DEFAULT_VEHICLE_COLORS,
+  VEHICLE_ENGINE_DISPLACEMENT_OPTIONS,
+  formatEngineDisplacementOptionLabel,
+} from '@/lib/vehicle-metadata';
 import { cn } from '@/lib/utils';
 import {
   Car,
@@ -253,19 +259,8 @@ const saleDriveOptions = ['Передний', 'Задний', 'Полный'] as
 const saleSteeringOptions = ['Левый', 'Правый'] as const;
 /** Тип двигателя / топлива (значение сохраняется в поле `engine`). */
 const saleEngineTypeOptions = ['Бензин', 'Дизель', 'Гибрид', 'Электро', 'ГБО'] as const;
-const saleEngineDisplacementOptions = [
-  '1.0',
-  '1.2',
-  '1.5',
-  '1.6',
-  '1.8',
-  '2.0',
-  '2.5',
-  '2.8',
-  '3.0',
-  '4.5',
-  '6.2',
-] as const;
+const saleEngineDisplacementOptions = VEHICLE_ENGINE_DISPLACEMENT_OPTIONS;
+const saleColorOptions = DEFAULT_VEHICLE_COLORS;
 
 const SALE_ENGINE_TYPE_SET = new Set<string>(saleEngineTypeOptions);
 const SALE_ENGINE_DISPLACEMENT_SET = new Set<string>(saleEngineDisplacementOptions);
@@ -1419,7 +1414,7 @@ export default function NewListingPage() {
                 ) : null}
                 {saleEngineDisplacementOptions.map((option) => (
                   <option key={option} value={option}>
-                    {Number(option).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                    {formatEngineDisplacementOptionLabel(option)}
                   </option>
                 ))}
               </select>
@@ -1464,7 +1459,16 @@ export default function NewListingPage() {
             </Field>
 
             <Field label="Цвет">
-              <input className={withFieldErrorClass('sale.color')} value={sale.color} onChange={(event) => updateSale('color', event.target.value)} />
+              <ColorSwatchSelect
+                options={saleColorOptions}
+                value={sale.color}
+                onChange={(value) => updateSale('color', String(value))}
+                triggerLabel="Цвет"
+                emptyAriaLabel="Выбрать цвет"
+                placeholder="Выбрать цвет"
+                clearLabel="Не указан"
+                className={withFieldErrorClass('sale.color')}
+              />
             </Field>
 
             <Field label="Комплектация">

@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Filter, Gauge, Layers3, MapPin, RotateCcw, Save, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
+import { ColorSwatchSelect } from '@/components/ui/color-swatch-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Sheet,
@@ -16,6 +17,7 @@ import {
 import { CAR_CATALOG, CAR_MAKES, getModelsForMake } from '@/lib/car-catalog';
 import { getCitiesForRegion, getRegionForCity, getRuRegionOptions } from '@/lib/ru-regions';
 import { hasActiveSaleSearchFilters, SALE_SEARCH_SORT_OPTIONS } from '@/lib/sale-search';
+import { VEHICLE_ENGINE_DISPLACEMENT_OPTIONS, formatEngineDisplacementOptionLabel } from '@/lib/vehicle-metadata';
 import type { SaleSearchFacets, SaleSearchFilters } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -57,6 +59,7 @@ function countActiveFilters(filters: SaleSearchFilters) {
   if (filters.priceMin) count += 1;
   if (filters.priceMax) count += 1;
   if (filters.mileageMin || filters.mileageMax) count += 1;
+  if (filters.engineDisplacementMin || filters.engineDisplacementMax) count += 1;
   if (filters.powerMin) count += 1;
   if (filters.powerMax) count += 1;
   if (filters.ownersMax) count += 1;
@@ -98,6 +101,16 @@ function buildSummaryPills(filters: SaleSearchFilters) {
     const from = filters.mileageMin ? `от ${filters.mileageMin.toLocaleString('ru-RU')} км` : '';
     const to = filters.mileageMax ? `до ${filters.mileageMax.toLocaleString('ru-RU')} км` : '';
     items.push(`Пробег ${[from, to].filter(Boolean).join(' ')}`.trim());
+  }
+
+  if (filters.engineDisplacementMin || filters.engineDisplacementMax) {
+    const from = filters.engineDisplacementMin
+      ? `от ${formatEngineDisplacementOptionLabel(filters.engineDisplacementMin)} л`
+      : '';
+    const to = filters.engineDisplacementMax
+      ? `до ${formatEngineDisplacementOptionLabel(filters.engineDisplacementMax)} л`
+      : '';
+    items.push(`Объём ${[from, to].filter(Boolean).join(' ')}`.trim());
   }
 
   if (filters.ptsOriginal) items.push('ПТС оригинал');
@@ -293,6 +306,7 @@ export function AdvancedFilters({
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: currentYear - 1990 + 2 }, (_, index) => currentYear + 1 - index);
   const mileageOptions = Array.from({ length: 50 }, (_, index) => (index + 1) * 10000);
+  const engineDisplacementOptions = VEHICLE_ENGINE_DISPLACEMENT_OPTIONS;
 
   useEffect(() => {
     if (!open) {
@@ -460,7 +474,7 @@ export function AdvancedFilters({
           <SectionShell>
             <SectionTitle
               eyebrow="Диапазоны"
-              title="Цена, год, пробег и мощность"
+              title="Цена, год, пробег, объём и мощность"
               icon={<Gauge className="h-4 w-4" />}
             />
 
@@ -575,6 +589,52 @@ export function AdvancedFilters({
                   </Select>
                 </div>
               </Field>
+              <Field label="Объём двигателя от / до">
+                <div className="grid grid-cols-2 gap-3">
+                  <Select
+                    value={draft.engineDisplacementMin ? String(draft.engineDisplacementMin) : CLEAR_SELECT_VALUE}
+                    onValueChange={(value) =>
+                      setDraft((current) => ({
+                        ...current,
+                        engineDisplacementMin: value === CLEAR_SELECT_VALUE ? undefined : Number(value),
+                      }))
+                    }
+                  >
+                    <SelectTrigger className={selectTriggerClassName()}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={CLEAR_SELECT_VALUE}>от 0,1 л</SelectItem>
+                      {engineDisplacementOptions.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {formatEngineDisplacementOptionLabel(value)} л
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={draft.engineDisplacementMax ? String(draft.engineDisplacementMax) : CLEAR_SELECT_VALUE}
+                    onValueChange={(value) =>
+                      setDraft((current) => ({
+                        ...current,
+                        engineDisplacementMax: value === CLEAR_SELECT_VALUE ? undefined : Number(value),
+                      }))
+                    }
+                  >
+                    <SelectTrigger className={selectTriggerClassName()}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={CLEAR_SELECT_VALUE}>до 10,0 л</SelectItem>
+                      {engineDisplacementOptions.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {formatEngineDisplacementOptionLabel(value)} л
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </Field>
               <Field label="Мощность от / до">
                 <div className="grid grid-cols-2 gap-3">
                   <input
@@ -626,10 +686,13 @@ export function AdvancedFilters({
                 />
               </Field>
               <Field label="Цвет">
-                <ChipGroup
-                  values={facets.colors}
-                  active={draft.color}
-                  onToggle={(value) => setDraft((current) => ({ ...current, color: toggleArrayValue(current.color, value) }))}
+                <ColorSwatchSelect
+                  options={facets.colors}
+                  value={draft.color}
+                  onChange={(value) => setDraft((current) => ({ ...current, color: value as string[] }))}
+                  multiple
+                  triggerLabel="Цвет"
+                  placeholder="Любой"
                 />
               </Field>
             </div>

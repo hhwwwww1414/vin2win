@@ -42,6 +42,8 @@ export interface SaleSearchFilters {
   priceMax?: number;
   mileageMin?: number;
   mileageMax?: number;
+  engineDisplacementMin?: number;
+  engineDisplacementMax?: number;
   powerMin?: number;
   powerMax?: number;
   paintCountMax?: number;
