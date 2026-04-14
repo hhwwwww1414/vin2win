@@ -1,0 +1,76 @@
+# v0 / vercel
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+next.user-config.*
+
+# dependencies
+node_modules/
+
+# build outputs
+.next/
+out/
+dist/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# env files — содержат секреты, никогда не коммитить
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# prisma generated client (генерируется командой prisma generate)
+prisma/generated/
+
+# tests / coverage
+coverage/
+
+# caches / typescript build info
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# cursor IDE — локальные настройки редактора
+.cursor/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# storybook
+*storybook.log
+storybook-static
+.storybook/
+
+# deploy artifacts
+deploy.zip
+
+# 21st / Playwright local artifacts
+.an/
+playwright-report/
+test-results/
+.claude/
+.playwright-mcp/
+reports/
+tmp-*
+ACTION-PLAN.md
+FULL-AUDIT-REPORT.md
+qa-report.md
+local_inventory.json
+remote_inventory.tsv
+remote_next-env.d.ts
+remote_sha256.txt
+deploy-upgrade.tgz
+vin2win-canonical-*.tar

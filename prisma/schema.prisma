@@ -1,0 +1,385 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProfileType {
+  PERSON
+  COMPANY
+}
+
+enum SellerType {
+  OWNER
+  FLIP
+  BROKER
+  COMMISSION
+}
+
+enum ResourceStatus {
+  NOT_LISTED
+  ON_RESOURCES
+  PRE_RESOURCES
+}
+
+enum PtsType {
+  ORIGINAL
+  DUPLICATE
+  EPTS
+}
+
+enum AvtotekaStatus {
+  GREEN
+  YELLOW
+  RED
+  UNKNOWN
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+enum ListingMediaKind {
+  GALLERY
+  INTERIOR
+  VIDEO
+  REPORT
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum AdminEntityType {
+  SALE_LISTING
+  WANTED_LISTING
+  USER
+}
+
+enum AdminActionType {
+  STATUS_CHANGED
+  LISTING_DETAILS_UPDATED
+  NOTE_UPDATED
+  LISTING_DELETED
+  USER_ROLE_CHANGED
+  USER_ACCOUNT_ACTIVATED
+  USER_ACCOUNT_DEACTIVATED
+  USER_SESSIONS_REVOKED
+  SELLER_PROFILE_VERIFIED
+  SELLER_PROFILE_UNVERIFIED
+}
+
+enum UserNotificationType {
+  LISTING_STATUS_CHANGED
+  LISTING_CONTENT_UPDATED
+  MODERATION_NOTE_UPDATED
+  ACCOUNT_ROLE_CHANGED
+  ACCOUNT_STATUS_CHANGED
+  SELLER_PROFILE_CHANGED
+  NEW_LISTING_MATCH
+}
+
+enum NotificationChannel {
+  EMAIL
+  TELEGRAM
+  BROWSER_PUSH
+}
+
+enum SellerReviewStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String
+  name           String
+  phone          String?
+  telegramAuthId String?         @unique
+  telegramUsername String?
+  telegramAvatarUrl String?
+  role           UserRole        @default(USER)
+  isActive       Boolean         @default(true)
+  deactivatedAt  DateTime?
+  emailNotificationsEnabled Boolean @default(true)
+  telegramNotificationsEnabled Boolean @default(false)
+  browserPushEnabled Boolean @default(false)
+  telegramChatId String?
+  sellerProfile  SellerProfile?
+  sessions       Session[]
+  saleListings   SaleListing[]   @relation("SaleListingCreator")
+  wantedListings WantedListing[] @relation("WantedListingCreator")
+  favorites      Favorite[]
+  savedSearches  SavedSearch[]
+  notifications  UserNotification[]
+  pushSubscriptions PushSubscription[]
+  sellerReviews  SellerReview[]  @relation("SellerReviewAuthor")
+  adminActions   AdminActionLog[] @relation("AdminActionActor")
+  targetedAdminActions AdminActionLog[] @relation("AdminActionTarget")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([role, isActive, createdAt(sort: Desc)])
+  @@index([telegramChatId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  lastSeenAt DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model SellerProfile {
+  id             String          @id @default(cuid())
+  legacyId       String?         @unique
+  userId         String?         @unique
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name           String
+  profileType    ProfileType
+  verified       Boolean         @default(false)
+  onPlatformSince String
+  phone          String?
+  saleListings   SaleListing[]   @relation("SaleSeller")
+  wantedListings WantedListing[] @relation("WantedAuthor")
+  reviews        SellerReview[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model SaleListing {
+  id               String          @id @default(cuid())
+  legacyId         String?         @unique
+  status           ListingStatus   @default(PUBLISHED)
+  moderationNote   String?
+  make             String
+  model            String
+  generation       String?
+  year             Int
+  price            Int
+  priceInHand      Int?
+  priceOnResources Int?
+  city             String
+  vin              String?
+  engine           String
+  engineDisplacementL Float?
+  power            Int
+  transmission     String
+  drive            String
+  bodyType         String
+  mileage          Int
+  owners           Int
+  registrations    Int?
+  ptsType          PtsType?
+  ptsOriginal      Boolean         @default(true)
+  avtotekaStatus   AvtotekaStatus?
+  paintedElements  String[]
+  paintCount       Int
+  accident         Boolean?
+  taxi             Boolean?
+  carsharing       Boolean?
+  keysCount        Int?
+  wheelSet         Boolean         @default(false)
+  extraTires       Boolean         @default(false)
+  conditionNote    String?
+  needsInvestment  Boolean?
+  glassOriginal    Boolean?
+  trade            Boolean         @default(false)
+  kickback         Boolean?
+  resourceStatus   ResourceStatus  @default(NOT_LISTED)
+  sellerType       SellerType      @default(OWNER)
+  inspectionCity   String?
+  color            String
+  steering         String
+  trim             String?
+  description      String
+  viewCount        Int             @default(0)
+  videoUrlExternal String?
+  reportUrlExternal String?
+  sellerId         String
+  seller           SellerProfile   @relation("SaleSeller", fields: [sellerId], references: [id], onDelete: Restrict)
+  createdByUserId  String?
+  createdByUser    User?           @relation("SaleListingCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  favorites        Favorite[]
+  priceHistory     PriceHistory[]
+  media            ListingMedia[]
+  publishedAt      DateTime?
+  statusUpdatedAt  DateTime        @default(now())
+  createdAt        DateTime
+  updatedAt        DateTime        @updatedAt
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([createdByUserId, createdAt(sort: Desc)])
+  @@index([status, make, year])
+  @@index([status, city])
+  @@index([status, price])
+}
+
+model WantedListing {
+  id          String         @id @default(cuid())
+  legacyId    String?        @unique
+  status      ListingStatus  @default(PUBLISHED)
+  moderationNote String?
+  models      String[]
+  budgetMin   Int?
+  budgetMax   Int
+  yearFrom    Int?
+  mileageMax  Int?
+  engine      String?
+  transmission String?
+  drive       String?
+  ownersMax   Int?
+  paintAllowed Boolean       @default(false)
+  restrictions String[]
+  region      String?
+  comment     String?
+  contact     String
+  authorId    String
+  author      SellerProfile  @relation("WantedAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  createdByUserId String?
+  createdByUser User?        @relation("WantedListingCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  publishedAt DateTime?
+  statusUpdatedAt DateTime   @default(now())
+  createdAt   DateTime
+  updatedAt   DateTime       @updatedAt
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([createdByUserId, createdAt(sort: Desc)])
+}
+
+model ListingMedia {
+  id           String           @id @default(cuid())
+  saleListingId String
+  saleListing  SaleListing      @relation(fields: [saleListingId], references: [id], onDelete: Cascade)
+  kind         ListingMediaKind
+  storageKey   String
+  publicUrl    String
+  originalName String?
+  mimeType     String?
+  sizeBytes    Int?
+  sortOrder    Int              @default(0)
+  createdAt    DateTime         @default(now())
+
+  @@index([saleListingId, kind, sortOrder])
+}
+
+model Favorite {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  saleListingId String
+  saleListing   SaleListing @relation(fields: [saleListingId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([userId, saleListingId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model SavedSearch {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String?
+  filters       Json
+  notifyEnabled Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model PriceHistory {
+  id            String      @id @default(cuid())
+  saleListingId String
+  saleListing   SaleListing @relation(fields: [saleListingId], references: [id], onDelete: Cascade)
+  price         Int
+  createdAt     DateTime    @default(now())
+
+  @@index([saleListingId, createdAt(sort: Desc)])
+}
+
+model SellerReview {
+  id              String             @id @default(cuid())
+  sellerProfileId String
+  sellerProfile   SellerProfile      @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+  authorUserId    String
+  authorUser      User               @relation("SellerReviewAuthor", fields: [authorUserId], references: [id], onDelete: Cascade)
+  rating          Int
+  text            String
+  status          SellerReviewStatus @default(PENDING)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([sellerProfileId, authorUserId])
+  @@index([sellerProfileId, status, createdAt(sort: Desc)])
+  @@index([authorUserId, createdAt(sort: Desc)])
+}
+
+model UserNotification {
+  id         String               @id @default(cuid())
+  userId     String
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       UserNotificationType
+  entityType AdminEntityType?
+  entityId   String?
+  title      String
+  message    String
+  href       String?
+  isRead     Boolean              @default(false)
+  readAt     DateTime?
+  createdAt  DateTime             @default(now())
+
+  @@index([userId, isRead, createdAt(sort: Desc)])
+}
+
+model PushSubscription {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint       String   @unique
+  p256dh         String
+  auth           String
+  userAgent      String?
+  expirationTime DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastSuccessAt  DateTime?
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model AdminActionLog {
+  id           String          @id @default(cuid())
+  actorUserId  String?
+  actorUser    User?           @relation("AdminActionActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  targetUserId String?
+  targetUser   User?           @relation("AdminActionTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+  entityType   AdminEntityType
+  entityId     String
+  actionType   AdminActionType
+  title        String
+  description  String
+  createdAt    DateTime        @default(now())
+
+  @@index([entityType, entityId, createdAt(sort: Desc)])
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@index([targetUserId, createdAt(sort: Desc)])
+}

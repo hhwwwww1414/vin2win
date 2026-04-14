@@ -1,0 +1,208 @@
+'use client';
+
+import { useCallback, useSyncExternalStore } from 'react';
+import useEmblaCarousel from 'embla-carousel-react';
+import Image from 'next/image';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface ListingImageCarouselProps {
+  images: string[];
+  alt: string;
+  priority?: boolean;
+  size?: 'card' | 'compact';
+  className?: string;
+}
+
+export function ListingImageCarousel({
+  images,
+  alt,
+  priority = false,
+  size = 'card',
+  className,
+}: ListingImageCarouselProps) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    axis: 'x',
+    loop: false,
+    dragFree: false,
+    containScroll: 'trimSnaps',
+    align: 'start',
+  });
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!emblaApi) {
+        return () => {};
+      }
+
+      emblaApi.on('reInit', onStoreChange).on('select', onStoreChange);
+      return () => {
+        emblaApi.off('reInit', onStoreChange);
+        emblaApi.off('select', onStoreChange);
+      };
+    },
+    [emblaApi]
+  );
+
+  const selectedIndex = useSyncExternalStore(
+    subscribe,
+    () => emblaApi?.selectedScrollSnap() ?? 0,
+    () => 0
+  );
+  const canScrollPrev = useSyncExternalStore(
+    subscribe,
+    () => emblaApi?.canScrollPrev() ?? false,
+    () => false
+  );
+  const canScrollNext = useSyncExternalStore(
+    subscribe,
+    () => emblaApi?.canScrollNext() ?? false,
+    () => false
+  );
+
+  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+
+  const aspectClass = size === 'card' ? 'aspect-[4/3]' : 'aspect-[3/2] min-h-0';
+
+  if (!images.length) {
+    return (
+      <div
+        className={cn(
+          'flex items-center justify-center bg-muted text-muted-foreground dark:bg-surface-3',
+          size === 'compact' ? 'h-full w-full' : aspectClass,
+          className
+        )}
+      >
+        <span className="text-xs">Нет фото</span>
+      </div>
+    );
+  }
+
+  if (images.length === 1) {
+    return (
+      <div
+        className={cn(
+          'relative overflow-hidden bg-muted',
+          size === 'compact' ? 'h-full w-full' : aspectClass,
+          className
+        )}
+      >
+        <Image
+          src={images[0]}
+          alt={alt}
+          fill
+          className="object-cover"
+          sizes={size === 'card' ? '(max-width: 640px) 100vw, 280px' : '96px'}
+          priority={priority}
+        />
+      </div>
+    );
+  }
+
+  const isCompact = size === 'compact';
+  const arrowSize = isCompact ? 'h-6 w-6' : 'h-8 w-8';
+
+  return (
+    <div
+      className={cn(
+        'group relative overflow-hidden bg-muted',
+        size === 'compact' ? 'h-full w-full' : aspectClass,
+        className
+      )}
+    >
+      <div ref={emblaRef} className="h-full touch-pan-x overflow-hidden">
+        <div className="flex h-full">
+          {images.map((src, index) => (
+            <div key={src} className="relative h-full min-w-0 flex-[0_0_100%]">
+              <Image
+                src={src}
+                alt={`${alt} — фото ${index + 1}`}
+                fill
+                className="object-cover"
+                sizes={size === 'card' ? '(max-width: 640px) 100vw, 280px' : '96px'}
+                priority={priority && index === 0}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          className="pointer-events-auto absolute bottom-0 left-0 top-0 flex w-12 items-center justify-start bg-gradient-to-r from-black/40 to-transparent pl-1 opacity-0 transition-opacity group-hover:opacity-100"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              scrollPrev();
+            }}
+            disabled={!canScrollPrev}
+            className={cn(
+              'rounded-full bg-white/90 p-1 text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-accent disabled:cursor-not-allowed disabled:opacity-30 dark:bg-black/50',
+              arrowSize
+            )}
+            aria-label="Предыдущее фото"
+          >
+            <ChevronLeft className="h-full w-full" />
+          </button>
+        </div>
+        <div
+          className="pointer-events-auto absolute bottom-0 right-0 top-0 flex w-12 items-center justify-end bg-gradient-to-l from-black/40 to-transparent pr-1 opacity-0 transition-opacity group-hover:opacity-100"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              scrollNext();
+            }}
+            disabled={!canScrollNext}
+            className={cn(
+              'rounded-full bg-white/90 p-1 text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-accent disabled:cursor-not-allowed disabled:opacity-30 dark:bg-black/50',
+              arrowSize
+            )}
+            aria-label="Следующее фото"
+          >
+            <ChevronRight className="h-full w-full" />
+          </button>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          'absolute bottom-1.5 left-1/2 flex -translate-x-1/2 gap-1',
+          isCompact && 'max-w-full flex-wrap justify-center'
+        )}
+        onClick={(event) => event.stopPropagation()}
+      >
+        {images.length <= 5 ? (
+          images.map((_, index) => (
+            <button
+              key={`dot-${index}`}
+              type="button"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                emblaApi?.scrollTo(index);
+              }}
+              className={cn(
+                'rounded-full transition-all',
+                index === selectedIndex ? 'h-2 w-2 bg-white shadow' : 'h-1.5 w-1.5 bg-white/60 hover:bg-white/80'
+              )}
+              aria-label={`Фото ${index + 1}`}
+            />
+          ))
+        ) : (
+          <span className="rounded bg-black/60 px-2 py-0.5 text-[10px] text-white">
+            {selectedIndex + 1} / {images.length}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}

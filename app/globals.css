@@ -1,0 +1,344 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+@custom-variant reduced-motion (prefers-reduced-motion: reduce);
+
+:root {
+  --background: #F6F7F8;
+  --foreground: #0F1216;
+  --card: #FFFFFF;
+  --card-foreground: #0F1216;
+  --popover: #FFFFFF;
+  --primary: #2D5A5A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EEF1F3;
+  --muted: #E3E6E9;
+  --muted-foreground: #5E656D;
+  --accent: #81D8D0;
+  --accent-foreground: #0B1A1A;
+  --accent-hover: #9FE5DE;
+  --accent-strong: #63C7BE;
+  --accent-bg-soft: rgba(129, 216, 208, 0.14);
+  --accent-border-soft: rgba(129, 216, 208, 0.28);
+  --destructive: #C53030;
+  --border: #D1D5DA;
+  --input: #D1D5DA;
+  --ring: #81D8D0;
+  --teal-dark: #2D5A5A;
+  --teal-medium: #3D7A7A;
+  --teal-accent: #81D8D0;
+  --seafoam: #9FE5DE;
+  --surface-1: #FFFFFF;
+  --surface-2: #F6F7F8;
+  --surface-3: #EEF1F3;
+  --surface-elevated: #FFFFFF;
+  --surface-panel: #FFFFFF;
+  --surface-info: #E8F7F5;
+  --success: #2D7A4A;
+  --warning: #D4A017;
+  --status-good-bg: #ECFDF5;
+  --status-good-fg: #24734A;
+  --status-normal-bg: #EFF6FF;
+  --status-normal-fg: #2563CC;
+  --status-high-bg: #FFF7ED;
+  --status-high-fg: #B45309;
+  --radius: 0.5rem;
+  --radius-card: 1.25rem;
+  --radius-panel: 1.5rem;
+  --shadow-surface: 0 8px 24px rgba(15, 23, 42, 0.05);
+  --shadow-floating: 0 18px 40px rgba(15, 23, 42, 0.1);
+  --surface-soft: rgba(255, 255, 255, 0.78);
+  --surface-soft-strong: rgba(255, 255, 255, 0.92);
+}
+
+.dark {
+  --background: #0F1216;
+  --foreground: #F4F4F5;
+  --card: #15191E;
+  --card-foreground: #F4F4F5;
+  --popover: #15191E;
+  --primary: #81D8D0;
+  --primary-foreground: #0B1A1A;
+  --secondary: #1a1a1a;
+  --muted: #27272a;
+  --muted-foreground: #b4b8bd;
+  --accent: #81D8D0;
+  --accent-foreground: #0B1A1A;
+  --accent-hover: #9FE5DE;
+  --accent-strong: #63C7BE;
+  --accent-bg-soft: rgba(129, 216, 208, 0.14);
+  --accent-border-soft: rgba(129, 216, 208, 0.28);
+  --destructive: #E53E3E;
+  --border: #2a2e34;
+  --input: #2a2e34;
+  --ring: #81D8D0;
+  --teal-dark: #2D5A5A;
+  --teal-accent: #81D8D0;
+  --seafoam: #9FE5DE;
+  --surface-1: #131313;
+  --surface-2: #1a1a1a;
+  --surface-3: #222;
+  --surface-elevated: #1e2228;
+  --surface-panel: #181c20;
+  --surface-overlay: rgba(21, 25, 30, 0.96);
+  --surface-info: #1a2226;
+  --status-good-bg: rgba(45, 122, 74, 0.14);
+  --status-good-fg: #6EE7A4;
+  --status-normal-bg: rgba(37, 99, 204, 0.14);
+  --status-normal-fg: #7DB8F7;
+  --status-high-bg: rgba(180, 83, 9, 0.14);
+  --status-high-fg: #F6B87A;
+  --shadow-surface: 0 12px 30px rgba(0, 0, 0, 0.24);
+  --shadow-floating: 0 18px 40px rgba(0, 0, 0, 0.34);
+  --surface-soft: rgba(15, 18, 22, 0.74);
+  --surface-soft-strong: rgba(24, 28, 32, 0.9);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), 'Inter', system-ui, sans-serif;
+  --font-display: var(--font-display), var(--font-inter), 'Inter', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --color-teal-dark: var(--teal-dark);
+  --color-teal-medium: var(--teal-medium);
+  --color-teal-accent: var(--teal-accent);
+  --color-seafoam: var(--seafoam);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-bg-soft: var(--accent-bg-soft);
+  --color-accent-border-soft: var(--accent-border-soft);
+  --color-surface-info: var(--surface-info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-panel: var(--surface-panel);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+.font-display { font-family: var(--font-display); }
+
+@keyframes marketplace-badge-pulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 0 0 var(--badge-pulse-color, rgba(129, 216, 208, 0.22));
+  }
+  45% {
+    transform: translateY(-0.5px) scale(1.035);
+    box-shadow: 0 0 0 6px transparent;
+  }
+  70% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 0 1px transparent;
+  }
+}
+
+.status-badge-pulse {
+  animation: marketplace-badge-pulse 2.6s ease-in-out infinite;
+  will-change: transform, box-shadow;
+}
+
+.status-badge-pulse-attention {
+  --badge-pulse-color: rgba(129, 216, 208, 0.26);
+}
+
+.status-badge-pulse-success {
+  --badge-pulse-color: rgba(45, 122, 74, 0.22);
+}
+
+.dark .status-badge-pulse-success {
+  --badge-pulse-color: rgba(110, 231, 164, 0.18);
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Premium woven carbon — ink graphite / midnight navy (page background) */
+:root {
+  --carbon-color: #0d121a;
+  --carbon-color2: #141c26;
+  --carbon-slit: #05070a;
+}
+
+/* ─── Card Interactive Carbon System ─────────────────────────────────────────
+   Teal-tinted carbon weave for card pressed/active state.
+   Palette: #3FAFA5 (base) / #5FC2B9 (lighter) / #2E978E (slit/groove)
+
+   ARCHITECTURE
+   ─────────────────────────────────────────────────────────────────────────
+   .card-interactive       parent element (Link/button) — triggers :active
+   .card-interactive-subtle  same but lower intensity (compact / dense rows)
+   .card-press-carbon      absolutely-positioned overlay span inside the card
+                           z-index: 1 (above bg, below content z-index: 2)
+                           opacity: 0 by default
+                           transitions in on :active, out on release
+
+   Pure CSS — NO dependency on Tailwind group-active: variant generation.
+   This works reliably in Tailwind v4 CSS-first mode.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Background pattern ──────────────────────────────────────────────────── */
+.card-press-carbon {
+  background-color: #2a7470;
+  background-size: 16px 16px;
+  background-position:
+    0 8px, 8px 0,
+    0 8px, 8px 0,
+    0 0, 0 0, 0 0, 0 0, 0 0;
+  background-image:
+    /* Diagonal slit lines */
+    linear-gradient(45deg,  #195250 7%, transparent 7%, transparent 93%, #195250 93%),
+    linear-gradient(-45deg, #195250 7%, transparent 7%, transparent 93%, #195250 93%),
+    linear-gradient(-45deg, #195250 7%, transparent 7%, transparent 93%, #195250 93%),
+    linear-gradient(45deg,  #195250 7%, transparent 7%, transparent 93%, #195250 93%),
+    /* Cell interlacing */
+    linear-gradient(-45deg,
+      transparent 16%, #2E978E 16%, #3FAFA5 20%, transparent 20%,
+      transparent 80%, #2E978E 80%, #3FAFA5 84%, transparent 84%
+    ),
+    linear-gradient(45deg,
+      transparent 28%, #2E978E 28%, #5FC2B9 32%, transparent 32%,
+      transparent 68%, #2E978E 68%, #5FC2B9 72%, transparent 72%
+    ),
+    /* Depth shading */
+    linear-gradient(-135deg, #3FAFA5 8%, #2a7470 30%, transparent 30%, transparent 68%, #3FAFA5 68%, #2a7470 90%),
+    linear-gradient( 135deg, transparent 20%, #3FAFA5 20%, rgba(63,175,165,.55) 31%, #3FAFA5 63%, #2a7470 70%, transparent 78%),
+    linear-gradient(-135deg, transparent 20%, #3FAFA5 20%, #2a7470 38%, #3FAFA5 60%, #195250 78%, transparent 78%);
+  filter: contrast(1.04) saturate(0.72) brightness(0.56);
+}
+
+/* Light-mode: desaturate + brighten so overlay stays subtle on white cards */
+html:not(.dark) .card-press-carbon {
+  filter: contrast(0.85) saturate(0.35) brightness(2.8);
+}
+
+/* ── Active state activation — pure CSS, no Tailwind variant needed ───────── */
+/*
+   transition-duration: 0ms  →  snap-in is instant (visible within the short
+                                 :active window of a link click, ~80–150ms)
+   The fade-OUT uses duration-[220ms] set on the element via Tailwind,
+   so the overlay dissolves smoothly after the finger/mouse is released.
+*/
+
+/* Cards / WantedCards / form scenario cards — standard intensity */
+.card-interactive:active .card-press-carbon {
+  opacity: 0.10;          /* light mode — subtle teal tint */
+  transition-duration: 0ms;
+}
+.dark .card-interactive:active .card-press-carbon {
+  opacity: 0.20;          /* dark mode — clearly visible teal weave */
+  transition-duration: 0ms;
+}
+
+/* Compact/dense rows — subtler, readability first */
+.card-interactive-subtle:active .card-press-carbon {
+  opacity: 0.07;
+  transition-duration: 0ms;
+}
+.dark .card-interactive-subtle:active .card-press-carbon {
+  opacity: 0.14;
+  transition-duration: 0ms;
+}
+
+.carbon-fiber-center {
+  background-color: var(--carbon-color);
+  background-size: 32px 32px;
+  background-position:
+    0 16px,
+    16px 0,
+    0 16px,
+    16px 0,
+    0 0,
+    0 0,
+    0 0,
+    0 0,
+    0 0;
+  background-image:
+    /* Diagonal weave strands — carbon-color2 / slit */
+    linear-gradient(45deg, var(--carbon-slit) 7%, transparent 7%, transparent 93%, var(--carbon-slit) 93%),
+    linear-gradient(-45deg, var(--carbon-slit) 7%, transparent 7%, transparent 93%, var(--carbon-slit) 93%),
+    linear-gradient(-45deg, var(--carbon-slit) 7%, transparent 7%, transparent 93%, var(--carbon-slit) 93%),
+    linear-gradient(45deg, var(--carbon-slit) 7%, transparent 7%, transparent 93%, var(--carbon-slit) 93%),
+    /* Cross weave — soft interlacing */
+    linear-gradient(-45deg, transparent 16%, var(--carbon-slit) 16%, var(--carbon-color2) 20%, transparent 20%, transparent 80%, var(--carbon-slit) 80%, var(--carbon-color2) 84%, transparent 84%),
+    linear-gradient(45deg, transparent 28%, var(--carbon-slit) 28%, var(--carbon-color2) 32%, transparent 32%, transparent 68%, var(--carbon-slit) 68%, var(--carbon-color2) 72%, transparent 72%),
+    /* Depth layers — carbon-color2 для объёма */
+    linear-gradient(-135deg, var(--carbon-color2) 8%, var(--carbon-color) 30%, transparent 30%, transparent 68%, var(--carbon-color2) 68%, var(--carbon-color) 90%),
+    linear-gradient(135deg, transparent 20%, var(--carbon-color2) 20%, rgba(20, 28, 38, 0.6) 31%, var(--carbon-color2) 63%, var(--carbon-color) 70%, transparent 78%),
+    linear-gradient(-135deg, transparent 20%, var(--carbon-color2) 20%, var(--carbon-color) 38%, var(--carbon-color2) 60%, var(--carbon-slit) 78%, transparent 78%);
+  filter: contrast(1.03) saturate(0.88);
+}
+
+/* Listing detail carbon — graphite base with warm brass slits for premium vehicle cards. */
+.carbon-fiber-listing {
+  background-color: #121212;
+  background-size: 32px 32px;
+  background-position:
+    0 16px, 16px 0,
+    0 16px, 16px 0,
+    0 0, 0 0, 0 0, 0 0, 0 0;
+  background-image:
+    linear-gradient(45deg,  #C6A56B 7%, transparent 7%, transparent 93%, #C6A56B 93%),
+    linear-gradient(-45deg, #C6A56B 7%, transparent 7%, transparent 93%, #C6A56B 93%),
+    linear-gradient(-45deg, #C6A56B 7%, transparent 7%, transparent 93%, #C6A56B 93%),
+    linear-gradient(45deg,  #C6A56B 7%, transparent 7%, transparent 93%, #C6A56B 93%),
+    linear-gradient(-45deg,
+      transparent 16%, #C6A56B 16%, #1A1A1A 20%, transparent 20%,
+      transparent 80%, #C6A56B 80%, #1A1A1A 84%, transparent 84%),
+    linear-gradient(45deg,
+      transparent 28%, #C6A56B 28%, #1A1A1A 32%, transparent 32%,
+      transparent 68%, #C6A56B 68%, #1A1A1A 72%, transparent 72%),
+    linear-gradient(-135deg, #1A1A1A 8%,  #121212 30%, transparent 30%, transparent 68%, #1A1A1A 68%, #121212 90%),
+    linear-gradient(135deg,  transparent 20%, #1A1A1A 20%, rgba(198,165,107,0.16) 31%, #1A1A1A 63%, #121212 70%, transparent 78%),
+    linear-gradient(-135deg, transparent 20%, #1A1A1A 20%, #121212 38%, #1A1A1A 60%, #C6A56B 78%, transparent 78%);
+  filter: contrast(1.04) saturate(0.9);
+}
+
+html:not(.dark) .carbon-fiber-listing {
+  filter: contrast(0.85) saturate(0.35) brightness(2.8);
+}
+
+/* Typography scale */
+.text-display { @apply text-2xl font-bold tracking-tight; }
+.text-title { @apply text-base font-semibold; }
+.text-body { @apply text-sm leading-relaxed; }
+.text-meta { @apply text-xs text-muted-foreground; }
+.text-caption { @apply text-[11px] text-muted-foreground/80; }
+
+[data-sale-listing-detail="true"] footer:not([data-site-footer]) {
+  display: none;
+}
