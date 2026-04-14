@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MessageCircle, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 declare global {
@@ -24,10 +23,12 @@ export function TelegramLoginButton({ nextPath, disabled = false }: TelegramLogi
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isWidgetReady, setIsWidgetReady] = useState(false);
   const isConfigured = Boolean(TELEGRAM_BOT_USERNAME);
 
   useEffect(() => {
     const container = containerRef.current;
+    setIsWidgetReady(false);
 
     if (!isConfigured || disabled || !container) {
       if (container) {
@@ -53,6 +54,7 @@ export function TelegramLoginButton({ nextPath, disabled = false }: TelegramLogi
       iframe.style.zIndex = '20';
       iframe.style.border = '0';
       iframe.style.margin = '0';
+      setIsWidgetReady(true);
       return true;
     };
 
@@ -112,9 +114,12 @@ export function TelegramLoginButton({ nextPath, disabled = false }: TelegramLogi
       if (intervalId !== null) {
         window.clearInterval(intervalId);
       }
+      setIsWidgetReady(false);
       container.innerHTML = '';
     };
   }, [disabled, isConfigured, nextPath, router]);
+
+  const isInteractive = isConfigured && !disabled && isWidgetReady;
 
   return (
     <div data-testid="telegram-login-panel" className="rounded-[24px] border border-border/70 bg-background/55 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] dark:bg-background/10">
@@ -126,7 +131,7 @@ export function TelegramLoginButton({ nextPath, disabled = false }: TelegramLogi
       <div className="relative">
         <button
           type="button"
-          disabled={disabled || !isConfigured}
+          disabled={!isInteractive}
           className={cn(
             'flex h-14 w-full items-center justify-center gap-3 rounded-[20px] border border-teal-accent/25 bg-[linear-gradient(135deg,#0f766e_0%,#159d93_45%,#56a9ea_100%)] px-5 text-base font-semibold text-white shadow-[0_18px_35px_rgba(21,157,147,0.24)] transition-[transform,opacity,box-shadow] hover:-translate-y-0.5 hover:opacity-95',
             'disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0'
@@ -136,25 +141,22 @@ export function TelegramLoginButton({ nextPath, disabled = false }: TelegramLogi
           Войти через Telegram
         </button>
 
-        {isConfigured && !disabled ? <div ref={containerRef} className="absolute inset-0 overflow-hidden rounded-[20px]" /> : null}
+        {isConfigured && !disabled ? (
+          <div
+            ref={containerRef}
+            className={cn(
+              'absolute inset-0 overflow-hidden rounded-[20px] transition-opacity',
+              isWidgetReady ? 'opacity-100' : 'pointer-events-none opacity-0'
+            )}
+          />
+        ) : null}
       </div>
 
       {disabled ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Подтвердите согласие с документами, чтобы открыть Telegram login.</p> : null}
+      {!disabled && isConfigured && !isWidgetReady && !loading ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Подключаем Telegram widget...</p> : null}
       {loading ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Подтверждаем вход через Telegram...</p> : null}
       {error ? <p className="mt-3 text-xs leading-5 text-destructive">{error}</p> : null}
       {!isConfigured ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Добавьте `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` в публичное окружение и пересоберите приложение.</p> : null}
-
-      {isConfigured ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="mt-3 w-full justify-center text-xs text-muted-foreground"
-          onClick={() => window.location.reload()}
-        >
-          Обновить Telegram-виджет
-        </Button>
-      ) : null}
     </div>
   );
 }
