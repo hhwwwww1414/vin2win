@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { attachQaGuards } from './helpers';
+import { fillRequiredSalePassport, mockListingSession, openSaleWizard } from './listing-new-helpers';
 
 const photoFixturePath = path.resolve(process.cwd(), 'public/cars/cruiser/cruiser.jpg');
 const videoFixturePath = path.resolve(process.cwd(), 'public/cars/cruiser/cruiser.MOV');
@@ -9,33 +10,20 @@ test('listing/new keeps uploaded photo and video visible before submit', async (
   const detachGuards = await attachQaGuards(page, testInfo);
 
   try {
-    await page.route('**/api/auth/session', async (route) => {
-      await route.fulfill({
-        json: {
-          authenticated: true,
-          user: {
-            id: 'qa-user',
-            role: 'ADMIN',
-            name: 'QA User',
-            phone: '+7 999 000-00-00',
-          },
-        },
-      });
-    });
+    await mockListingSession(page);
     await page.route('**://images.unsplash.com/**', async (route) => {
       await route.fulfill({ status: 204, body: '' });
     });
 
-    await page.goto('/listing/new');
-    await page.getByRole('button', { name: /Продаю автомобиль/i }).click();
+    await openSaleWizard(page);
 
+    await fillRequiredSalePassport(page);
+    await page.getByRole('button', { name: 'Далее' }).click();
     await page.locator('label').filter({ hasText: 'Двигатель' }).locator('select').selectOption({ index: 1 });
     await page.locator('label').filter({ hasText: 'Пробег' }).locator('input').fill('32000');
     await page.getByRole('button', { name: 'Далее' }).click();
 
     await page.locator('label').filter({ hasText: 'Владельцев' }).locator('input').fill('1');
-    await page.getByRole('button', { name: 'Далее' }).click();
-
     await page.getByRole('button', { name: 'Далее' }).click();
 
     const fileInputs = page.locator('input[type="file"]');

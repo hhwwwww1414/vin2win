@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { attachQaGuards } from './helpers';
+import { fillRequiredSalePassport, mockListingSession, openSaleWizard } from './listing-new-helpers';
 
 test('listing/new exposes extended engine displacement options and swatch color picker', async ({
   page,
@@ -7,22 +8,16 @@ test('listing/new exposes extended engine displacement options and swatch color 
   const detachGuards = await attachQaGuards(page, testInfo);
 
   try {
-    await page.route('**/api/auth/session', async (route) => {
-      await route.fulfill({
-        json: {
-          authenticated: true,
-          user: {
-            id: 'qa-user',
-            role: 'ADMIN',
-            name: 'QA User',
-            phone: '+7 999 000-00-00',
-          },
-        },
-      });
-    });
+    await mockListingSession(page);
 
-    await page.goto('/listing/new');
-    await page.getByRole('button', { name: /Продаю автомобиль/i }).click();
+    await openSaleWizard(page);
+    await expect(page.getByRole('heading', { name: 'Паспорт и превью' })).toBeVisible();
+    await expect(page.locator('label').filter({ hasText: 'Марка' })).toBeVisible();
+    await expect(page.locator('label').filter({ hasText: 'Двигатель' })).toHaveCount(0);
+
+    await fillRequiredSalePassport(page);
+    await page.getByRole('button', { name: 'Далее' }).click();
+    await expect(page.getByRole('button', { name: 'Техника' })).toBeVisible();
 
     const displacementSelect = page.locator('label').filter({ hasText: 'Объём двигателя' }).locator('select');
     await expect(displacementSelect).toBeVisible();

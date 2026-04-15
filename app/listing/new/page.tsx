@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 
 type Scenario = 'sale' | 'wanted';
-type SaleStep = 1 | 2 | 3 | 4 | 5 | 6;
+type SaleStep = 1 | 2 | 3 | 4 | 5;
 type SubmissionMode = 'DRAFT' | 'PENDING';
 type FieldErrors = Record<string, string>;
 
@@ -110,6 +110,7 @@ type WantedData = {
 };
 
 type DraftPayload = {
+  version?: number;
   scenario: Scenario;
   step: SaleStep;
   sale: SaleData;
@@ -117,12 +118,11 @@ type DraftPayload = {
 };
 
 const saleSteps: { id: SaleStep; title: string }[] = [
-  { id: 1, title: 'Техника' },
-  { id: 2, title: 'История' },
-  { id: 3, title: 'Состояние' },
-  { id: 4, title: 'Фото' },
-  { id: 5, title: 'Сделка' },
-  { id: 6, title: 'Паспорт' },
+  { id: 1, title: 'Паспорт' },
+  { id: 2, title: 'Техника' },
+  { id: 3, title: 'История и состояние' },
+  { id: 4, title: 'Фото и описание' },
+  { id: 5, title: 'Сделка и контакты' },
 ];
 
 const saleStepMeta: Record<
@@ -136,24 +136,24 @@ const saleStepMeta: Record<
 > = {
   1: {
     eyebrow: 'Шаг 1',
+    title: 'Паспорт и превью',
+    description:
+      'Укажите марку, модель, год, город, цену и тип кузова. Это ядро объявления и данные для первого превью.',
+    checkpoints: ['Марка и модель', 'Год и город', 'Цена и кузов'],
+  },
+  2: {
+    eyebrow: 'Шаг 2',
     title: 'Технический профиль',
     description:
       'Укажите двигатель, пробег, коробку, привод и другие технические параметры автомобиля.',
     checkpoints: ['Двигатель', 'Пробег', 'Коробка и привод'],
   },
-  2: {
-    eyebrow: 'Шаг 2',
-    title: 'История и прозрачность',
-    description:
-      'Уточните количество владельцев, ПТС, окрасы и ограничения. Эти данные важны для покупателя.',
-    checkpoints: ['Владельцы', 'ПТС', 'Автотека и ограничения'],
-  },
   3: {
     eyebrow: 'Шаг 3',
-    title: 'Состояние автомобиля',
+    title: 'История и состояние',
     description:
-      'Укажите текущее состояние: что не требует вложений, а что нужно сделать.',
-    checkpoints: ['Техника', 'Стекла', 'Вложения'],
+      'Соберите историю владения, документы, проверки и текущее состояние автомобиля в одном смысловом блоке.',
+    checkpoints: ['Владельцы', 'ПТС и окрасы', 'Вложения'],
   },
   4: {
     eyebrow: 'Шаг 4',
@@ -168,13 +168,6 @@ const saleStepMeta: Record<
     description:
       'Добавьте контакты, тип продавца и условия сделки.',
     checkpoints: ['Контакт', 'Тип продавца', 'Условия сделки'],
-  },
-  6: {
-    eyebrow: 'Шаг 6',
-    title: 'Паспорт и превью',
-    description:
-      'Проверьте основные данные объявления и посмотрите, как оно будет выглядеть. Все поля можно отредактировать.',
-    checkpoints: ['Марка и модель', 'Год и город', 'Превью объявления'],
   },
 };
 
@@ -252,6 +245,7 @@ const MAX_LISTING_MEDIA_FILE_SIZE_BYTES = 300 * 1024 * 1024;
 const MAX_LISTING_MEDIA_FILE_SIZE_LABEL = '300 MB';
 const MAX_LISTING_PHOTO_COUNT = 20;
 const MAX_LISTING_YEAR = 2027;
+const LISTING_DRAFT_VERSION = 2;
 const LISTING_DRAFT_STORAGE_KEY = 'vin2win:new-listing-draft';
 
 const saleTransmissionOptions = ['АКПП', 'МКПП', 'Робот', 'Вариатор'] as const;
@@ -452,6 +446,34 @@ function joinCsv(values: string[]) {
   return values.join(', ');
 }
 
+function normalizeCurrentSaleStep(value: unknown): SaleStep {
+  return typeof value === 'number' && value >= 1 && value <= 5 ? (value as SaleStep) : 1;
+}
+
+function migrateLegacySaleStep(value: unknown): SaleStep {
+  if (typeof value !== 'number') {
+    return 1;
+  }
+
+  if (value === 6) {
+    return 1;
+  }
+
+  if (value === 1) {
+    return 2;
+  }
+
+  if (value === 2 || value === 3) {
+    return 3;
+  }
+
+  if (value === 4 || value === 5) {
+    return value;
+  }
+
+  return 1;
+}
+
 function fileSize(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
@@ -497,14 +519,19 @@ function parseDraftPayload(raw: string | null): DraftPayload | null {
   }
 
   try {
-    const payload = JSON.parse(raw) as Partial<DraftPayload>;
+    const payload = JSON.parse(raw) as Partial<DraftPayload> & { step?: unknown };
     if (!payload || (payload.scenario !== 'sale' && payload.scenario !== 'wanted')) {
       return null;
     }
 
+    const step =
+      payload.version === LISTING_DRAFT_VERSION
+        ? normalizeCurrentSaleStep(payload.step)
+        : migrateLegacySaleStep(payload.step);
+
     return {
       scenario: payload.scenario,
-      step: typeof payload.step === 'number' && payload.step >= 1 && payload.step <= 6 ? (payload.step as SaleStep) : 1,
+      step,
       sale: { ...saleDefaults, ...(payload.sale ?? {}) },
       wanted: { ...wantedDefaults, ...(payload.wanted ?? {}) },
     };
@@ -768,6 +795,7 @@ export default function NewListingPage() {
     }
 
     const payload: DraftPayload = {
+      version: LISTING_DRAFT_VERSION,
       scenario,
       step,
       sale,
@@ -916,11 +944,27 @@ export default function NewListingPage() {
       const nextErrors: FieldErrors = {};
 
       if (targetStep === 1) {
+        if (!sale.make.trim()) nextErrors['sale.make'] = 'Укажите марку.';
+        if (!sale.model.trim()) nextErrors['sale.model'] = 'Укажите модель.';
+        if (!sale.year.trim()) {
+          nextErrors['sale.year'] = 'Укажите год.';
+        } else {
+          const year = Number(sale.year);
+          if (!Number.isFinite(year) || year < 1900 || year > MAX_LISTING_YEAR) {
+            nextErrors['sale.year'] = `Год должен быть в диапазоне 1900–${MAX_LISTING_YEAR}.`;
+          }
+        }
+        if (!sale.city.trim()) nextErrors['sale.city'] = 'Укажите город.';
+        if (!sale.price.trim() || Number(sale.price) <= 0) nextErrors['sale.price'] = 'Укажите цену.';
+        if (!sale.bodyType.trim()) nextErrors['sale.bodyType'] = 'Выберите тип кузова.';
+      }
+
+      if (targetStep === 2) {
         if (!sale.engine.trim()) nextErrors['sale.engine'] = 'Укажите двигатель.';
         if (!sale.mileage.trim() || Number(sale.mileage) < 0) nextErrors['sale.mileage'] = 'Укажите пробег.';
       }
 
-      if (targetStep === 2) {
+      if (targetStep === 3) {
         if (!sale.owners.trim() || Number(sale.owners) < 1) nextErrors['sale.owners'] = 'Укажите владельцев.';
       }
 
@@ -937,29 +981,12 @@ export default function NewListingPage() {
         if (!sale.contact.trim()) nextErrors['sale.contact'] = 'Укажите контакт.';
       }
 
-      if (targetStep === 6) {
-        if (!sale.make.trim()) nextErrors['sale.make'] = 'Укажите марку.';
-        if (!sale.model.trim()) nextErrors['sale.model'] = 'Укажите модель.';
-        if (!sale.year.trim()) {
-          nextErrors['sale.year'] = 'Укажите год.';
-        } else {
-          const year = Number(sale.year);
-          if (!Number.isFinite(year) || year < 1900 || year > MAX_LISTING_YEAR) {
-            nextErrors['sale.year'] = `Год должен быть в диапазоне 1900–${MAX_LISTING_YEAR}.`;
-          }
-        }
-        if (!sale.city.trim()) nextErrors['sale.city'] = 'Укажите город.';
-        if (!sale.price.trim() || Number(sale.price) <= 0) nextErrors['sale.price'] = 'Укажите цену.';
-        if (!sale.bodyType.trim()) nextErrors['sale.bodyType'] = 'Выберите тип кузова.';
-      }
-
       const keysByStep: Record<SaleStep, string[]> = {
-        1: ['sale.engine', 'sale.mileage'],
-        2: ['sale.owners'],
-        3: ['sale.investmentNote'],
+        1: ['sale.make', 'sale.model', 'sale.year', 'sale.city', 'sale.price', 'sale.bodyType'],
+        2: ['sale.engine', 'sale.mileage'],
+        3: ['sale.owners', 'sale.investmentNote'],
         4: ['sale.description'],
         5: ['sale.sellerName', 'sale.contact'],
-        6: ['sale.make', 'sale.model', 'sale.year', 'sale.city', 'sale.price', 'sale.bodyType'],
       };
 
       updateFieldErrors(nextErrors, keysByStep[targetStep]);
@@ -983,7 +1010,7 @@ export default function NewListingPage() {
 
   const validateSaleBeforeSubmit = useCallback(
     (mode: SubmissionMode) => {
-      const stepsToCheck: SaleStep[] = [1, 2, 3, 4, 5, 6];
+      const stepsToCheck: SaleStep[] = [1, 2, 3, 4, 5];
       let valid = true;
 
       stepsToCheck.forEach((currentStep) => {
@@ -1024,7 +1051,7 @@ export default function NewListingPage() {
     }
 
     setSubmitError(null);
-    setStep((current) => Math.min(6, current + 1) as SaleStep);
+    setStep((current) => Math.min(5, current + 1) as SaleStep);
   }, [step, validateSaleStep]);
 
   const submit = useCallback(
@@ -1257,7 +1284,7 @@ export default function NewListingPage() {
 
   const saleStepContent = (
     <div className="space-y-5">
-      {step === 6 ? (
+      {step === 1 ? (
         <>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Марка" required error={fieldErrors['sale.make']}>
@@ -1387,7 +1414,7 @@ export default function NewListingPage() {
         </>
       ) : null}
 
-      {step === 1 ? (
+      {step === 2 ? (
         <>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Двигатель" required error={fieldErrors['sale.engine']}>
@@ -1489,7 +1516,8 @@ export default function NewListingPage() {
         </>
       ) : null}
 
-      {step === 2 ? (
+      {step === 3 ? (
+        <>
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Владельцев" required error={fieldErrors['sale.owners']}>
@@ -1571,8 +1599,7 @@ export default function NewListingPage() {
             <Toggle label="Нет ограничений" checked={sale.noRestrictions} onChange={(value) => updateSale('noRestrictions', value)} />
           </div>
         </div>
-      ) : null}
-      {step === 3 ? (
+
         <div className="space-y-4">
           <Toggle label="Техника в порядке" checked={sale.techOk} onChange={(value) => updateSale('techOk', value)} />
           <Toggle label="Оригинальные стекла" checked={sale.glassOriginal} onChange={(value) => updateSale('glassOriginal', value)} />
@@ -1587,6 +1614,7 @@ export default function NewListingPage() {
             </Field>
           ) : null}
         </div>
+        </>
       ) : null}
 
       {step === 5 ? (
@@ -1867,7 +1895,7 @@ export default function NewListingPage() {
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <span className="rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs font-medium text-muted-foreground dark:bg-background/10">
-                  6 шагов
+                  5 шагов
                 </span>
                 <span className="rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs font-medium text-muted-foreground dark:bg-background/10">
                   Фото и видео
@@ -1926,7 +1954,7 @@ export default function NewListingPage() {
             <SaleStepRoadmap step={step} onSelectStep={handleSelectSaleStep} />
 
             <div className="mb-6 hidden justify-center sm:flex">
-              <div className="grid w-full max-w-5xl gap-2 sm:grid-cols-2 lg:grid-cols-6">
+              <div className="grid w-full max-w-5xl gap-2 sm:grid-cols-2 lg:grid-cols-5">
                 {saleSteps.map((item) => (
                   <button
                     key={item.id}
@@ -2010,7 +2038,7 @@ export default function NewListingPage() {
                 Назад
               </Button>
 
-              {step < 6 ? (
+              {step < 5 ? (
                 <Button
                   size="sm"
                   disabled={isSubmitting}
@@ -2023,7 +2051,7 @@ export default function NewListingPage() {
               ) : (
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" disabled={isSubmitting} onClick={() => submit('DRAFT')}>
-                    {isSubmitting ? 'Сохраняем...' : 'Черновик'}
+                    {isSubmitting ? 'Сохраняем...' : 'Сохранить черновик'}
                   </Button>
                   <Button
                     size="sm"
@@ -2031,7 +2059,7 @@ export default function NewListingPage() {
                     className="bg-teal-dark text-white dark:bg-teal-accent dark:text-[#09090B]"
                     onClick={() => submit('PENDING')}
                   >
-                    {isSubmitting ? 'Сохраняем...' : 'На модерацию'}
+                    {isSubmitting ? 'Сохраняем...' : 'Отправить на модерацию'}
                   </Button>
                 </div>
               )}
