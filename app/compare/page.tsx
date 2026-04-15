@@ -8,6 +8,7 @@ import { formatMileage, formatPrice } from '@/lib/marketplace-data';
 import { formatEngineSpec, formatPaintCountValue, getAvtotekaStatusLabel, getListingTitle } from '@/lib/listing-utils';
 import { getSessionUser } from '@/lib/server/auth';
 import { getSaleListingsByIds } from '@/lib/server/marketplace';
+import { SALE_ROUTE } from '@/lib/routes';
 import type { SaleListing } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -196,13 +197,13 @@ export default async function ComparePage({
                   asChild
                   className="bg-teal-dark text-white hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam"
                 >
-                  <Link href="/">
+                  <Link href={SALE_ROUTE}>
                     Добавить карточки
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="border-border/80 bg-background/70 dark:bg-background/10">
-                  <Link href="/">Вернуться к ленте</Link>
+                  <Link href={SALE_ROUTE}>Вернуться к ленте</Link>
                 </Button>
               </div>
             </div>
@@ -246,7 +247,7 @@ export default async function ComparePage({
                     asChild
                     className="bg-teal-dark text-white hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam"
                   >
-                    <Link href="/">Перейти в ленту</Link>
+                    <Link href={SALE_ROUTE}>Перейти в ленту</Link>
                   </Button>
                 </div>
               </div>

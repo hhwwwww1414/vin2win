@@ -1,10 +1,11 @@
 import type { MetadataRoute } from 'next';
 import { ListingStatus } from '@prisma/client';
+import { SALE_ROUTE } from '@/lib/routes';
 import { prisma } from '@/lib/server/prisma';
 
 const SITE_URL =
   (process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') || 'https://vin2win.ru').replace('://www.', '://');
-const STATIC_ROUTES = ['/', '/wanted'] as const;
+const STATIC_ROUTES = ['/', SALE_ROUTE, '/wanted'] as const;
 
 export const revalidate = 3600;
 
@@ -46,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: toAbsoluteUrl(path),
       lastModified: now,
       changeFrequency: 'daily' as const,
-      priority: path === '/' ? 1 : 0.8,
+      priority: path === '/' ? 1 : path === SALE_ROUTE ? 0.9 : 0.8,
     })),
     ...saleListings.map((listing) => ({
       url: toAbsoluteUrl(`/listing/${listing.id}`),

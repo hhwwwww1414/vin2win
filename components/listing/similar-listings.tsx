@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { ListingCompactRow } from '@/components/marketplace/listing-compact-row';
+import { SALE_ROUTE } from '@/lib/routes';
 import type { SaleListing } from '@/lib/types';
 
 interface SimilarListingsProps {
@@ -44,7 +45,7 @@ export function SimilarListings({
               {listings.length} карточек
             </span>
             <Link
-              href="/"
+              href={SALE_ROUTE}
               className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-teal-accent/35 hover:text-teal-accent dark:bg-background/10"
             >
               Смотреть все

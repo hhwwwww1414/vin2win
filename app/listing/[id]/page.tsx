@@ -31,6 +31,7 @@ import {
 } from '@/lib/listing-utils';
 import { getSessionUser } from '@/lib/server/auth';
 import { getSaleListingById, getSimilarSaleListings } from '@/lib/server/marketplace';
+import { SALE_ROUTE } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
 interface ListingPageProps {
@@ -296,7 +297,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-muted-foreground"
                 aria-label="Хлебные крошки"
               >
-                <Link href="/" className="transition-colors hover:text-foreground">
+                <Link href={SALE_ROUTE} className="transition-colors hover:text-foreground">
                   В продаже
                 </Link>
                 <span>/</span>

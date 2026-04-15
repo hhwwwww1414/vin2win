@@ -109,7 +109,7 @@ export async function attachQaGuards(page: Page, testInfo: TestInfo) {
 }
 
 export async function getFirstListingPath(page: Page) {
-  await page.goto('/');
+  await page.goto('/sale');
 
   const href = await page.locator('a[href^="/listing/"]').evaluateAll((links) => {
     const candidate = links

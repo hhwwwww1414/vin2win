@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-for (const route of ['/', '/login', '/wanted']) {
+for (const route of ['/', '/sale', '/login', '/wanted']) {
   test(`a11y smoke for ${route}`, async ({ page }) => {
     await page.goto(route);
 

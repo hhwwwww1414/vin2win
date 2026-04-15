@@ -11,6 +11,7 @@ import { ColorSwatchSelect } from '@/components/ui/color-swatch-select';
 import { CAR_CATALOG, CAR_MAKES, getModelsForMake } from '@/lib/car-catalog';
 import type { ListingStatusValue } from '@/lib/listing-status';
 import { formatEngineSpec } from '@/lib/listing-utils';
+import { SALE_ROUTE } from '@/lib/routes';
 import {
   DEFAULT_VEHICLE_COLORS,
   VEHICLE_ENGINE_DISPLACEMENT_OPTIONS,
@@ -1222,7 +1223,13 @@ export default function NewListingPage() {
   }
 
   if (submitted) {
-    const href = createdId ? (scenario === 'sale' ? `/listing/${createdId}` : `/wanted/${createdId}`) : '/';
+    const href = createdId
+      ? scenario === 'sale'
+        ? `/listing/${createdId}`
+        : `/wanted/${createdId}`
+      : scenario === 'sale'
+        ? SALE_ROUTE
+        : '/wanted';
     const isDraft = submittedStatus === 'DRAFT';
 
     return (

@@ -52,7 +52,7 @@ test('advanced filters expose engine displacement range and swatch colors', asyn
       await route.fulfill({ status: 204, body: '' });
     });
 
-    await page.goto('/');
+    await page.goto('/sale');
     await page.getByRole('button', { name: /Расширенный поиск/i }).click();
 
     const engineField = page.locator('label').filter({ hasText: 'Объём двигателя от / до' });

@@ -50,7 +50,7 @@ test('advanced filters use themed dropdown surfaces in dark mode', async ({ page
     await page.route('**://images.unsplash.com/**', async (route) => {
       await route.fulfill({ status: 204, body: '' });
     });
-    await page.goto('/');
+    await page.goto('/sale');
 
     await page.getByRole('button', { name: /Расширенный поиск/i }).click();
     await expect(page.getByRole('heading', { name: 'Все фильтры' })).toBeVisible();

@@ -22,6 +22,7 @@ import {
 import { SALE_SEARCH_SORT_OPTIONS, buildSaleSearchParams, getSaleSearchCurrentStepLabel, getSaleSearchRequestParams, parseSaleSearchParams } from '@/lib/sale-search';
 import type { SaleSearchFacets, SaleSearchFilters, SaleSearchResult } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
+import { SALE_ROUTE } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
 type ViewMode = 'cards' | 'compact' | 'table';
@@ -72,6 +73,10 @@ function buildPageItems(currentPage: number, totalPages: number) {
   return items;
 }
 
+function buildSaleHref(queryString?: string) {
+  return queryString ? `${SALE_ROUTE}?${queryString}` : SALE_ROUTE;
+}
+
 function HomeContent({
   initialResult,
   initialQueryString,
@@ -96,7 +101,7 @@ function HomeContent({
   const requestParams = useMemo(() => getSaleSearchRequestParams(searchParams), [searchParams]);
   const requestQueryString = requestParams.toString();
   const viewMode = getViewMode(searchParams);
-  const loginHref = useMemo(() => `/login?next=${encodeURIComponent(`/${searchParams.toString() ? `?${searchParams.toString()}` : ''}`)}`, [searchParams]);
+  const loginHref = useMemo(() => `/login?next=${encodeURIComponent(buildSaleHref(searchParams.toString()))}`, [searchParams]);
 
   useEffect(() => {
     let active = true;
@@ -155,7 +160,7 @@ function HomeContent({
       }
 
       const query = params.toString();
-      router.replace(query ? `/?${query}` : '/', { scroll: false });
+      router.replace(buildSaleHref(query), { scroll: false });
     },
     [filters, router, viewMode]
   );
@@ -166,7 +171,7 @@ function HomeContent({
       params.set('view', viewMode);
     }
     const query = params.toString();
-    router.replace(query ? `/?${query}` : '/', { scroll: false });
+    router.replace(buildSaleHref(query), { scroll: false });
   }, [router, viewMode]);
 
   const handleSaveSearch = useCallback(async (nextFilters: typeof filters, name?: string) => {
@@ -176,7 +181,7 @@ function HomeContent({
         JSON.stringify({
           filters: nextFilters,
           name,
-          href: `/${searchParams.toString() ? `?${searchParams.toString()}` : ''}`,
+          href: buildSaleHref(searchParams.toString()),
         })
       );
       window.location.href = loginHref;

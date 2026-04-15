@@ -7,6 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Plus, LayoutGrid, List, Table, Menu, X, LogIn, LogOut, Shield, UserCircle2, Heart, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FAVORITES_CHANGED_EVENT } from '@/components/marketplace/favorite-toggle';
+import { SALE_ROUTE } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
 type ViewMode = 'cards' | 'compact' | 'table';
@@ -72,7 +73,7 @@ function ViewModeSwitcher({ compact = false }: { compact?: boolean }) {
   const searchParams = useSearchParams();
   const view = searchParams.get('view') ?? 'cards';
 
-  if (pathname !== '/') {
+  if (pathname !== SALE_ROUTE) {
     return null;
   }
 
@@ -85,7 +86,7 @@ function ViewModeSwitcher({ compact = false }: { compact?: boolean }) {
     }
 
     const qs = params.toString();
-    return qs ? `/?${qs}` : '/';
+    return qs ? `${SALE_ROUTE}?${qs}` : SALE_ROUTE;
   };
 
   return (
@@ -111,7 +112,12 @@ function ViewModeSwitcher({ compact = false }: { compact?: boolean }) {
 }
 
 const NAV_LINKS = [
-  { href: '/', label: 'В продаже', match: (pathname: string) => pathname === '/' },
+  {
+    href: SALE_ROUTE,
+    label: 'В продаже',
+    match: (pathname: string) =>
+      pathname === SALE_ROUTE || (/^\/listing\/[^/]+$/.test(pathname) && pathname !== '/listing/new'),
+  },
   { href: '/wanted', label: 'В подбор', match: (pathname: string) => pathname === '/wanted' || pathname.startsWith('/wanted/') },
 ] as const;
 

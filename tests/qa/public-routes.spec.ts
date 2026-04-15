@@ -7,11 +7,29 @@ test('home page smoke and visual structure', async ({ page }, testInfo) => {
 
   await page.goto('/');
   await expect(page.locator('main')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Профессиональный авторынок/i })).toBeVisible();
+  await expect(page.locator('main a[href="/sale"]').first()).toBeVisible();
+  await expect(page.locator('main a[href="/listing/new"]').first()).toBeVisible();
+  await expect(page.locator('section[aria-label="Быстрые фильтры"]')).toHaveCount(0);
+
+  await testInfo.attach('home-screenshot', {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: 'image/png',
+  });
+
+  await assertClean();
+});
+
+test('sale page keeps marketplace feed and quick filters', async ({ page }, testInfo) => {
+  const assertClean = await attachQaGuards(page, testInfo);
+
+  await page.goto('/sale');
+  await expect(page.locator('main')).toBeVisible();
   await expect(page.locator('h1').first()).toBeVisible();
   await expect(page.locator('section[aria-label="Быстрые фильтры"]')).toBeVisible();
   await expect(page.locator('main a[href^="/listing/"]').first()).toBeVisible();
 
-  await testInfo.attach('home-screenshot', {
+  await testInfo.attach('sale-screenshot', {
     body: await page.screenshot({ fullPage: true }),
     contentType: 'image/png',
   });
@@ -44,7 +62,7 @@ test('mobile menu keeps a valid tap target', async ({ page }, testInfo) => {
 test('advanced filters sheet stays usable', async ({ page }, testInfo) => {
   const assertClean = await attachQaGuards(page, testInfo);
 
-  await page.goto('/');
+  await page.goto('/sale');
   await page.getByRole('button', { name: /Расширенный поиск/i }).click();
 
   const dialog = page.locator('[data-slot="sheet-content"]').first();
@@ -142,7 +160,7 @@ test('home page basic accessibility stays healthy', async ({ page }) => {
 test('compact list mode keeps elevated price and split meta', async ({ page }, testInfo) => {
   const assertClean = await attachQaGuards(page, testInfo);
 
-  await page.goto('/?view=compact');
+  await page.goto('/sale?view=compact');
 
   const row = page.locator('[data-testid="listing-compact-row"]').first();
   await expect(row).toBeVisible();
@@ -160,7 +178,7 @@ test('compact list mode keeps elevated price and split meta', async ({ page }, t
 test('table mode keeps sticky data header and highlighted numeric columns', async ({ page }, testInfo) => {
   const assertClean = await attachQaGuards(page, testInfo);
 
-  await page.goto('/?view=table');
+  await page.goto('/sale?view=table');
 
   const table = page.locator('table').first();
   await expect(table).toBeVisible();

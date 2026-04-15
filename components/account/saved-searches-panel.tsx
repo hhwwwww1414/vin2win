@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Bell, BellOff, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { buildSaleSearchParams, describeSaleSearch } from '@/lib/sale-search';
+import { SALE_ROUTE } from '@/lib/routes';
 import type { SavedSearchRecord } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
@@ -88,7 +89,10 @@ export function SavedSearchesPanel({ items }: { items: SavedSearchRecord[] }) {
               <div key={item.id} className="rounded-[24px] border border-border/70 bg-background/60 p-4 shadow-[0_12px_28px_rgba(8,15,27,0.06)]">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
-                    <Link href={`/${query ? `?${query}` : ''}`} className="text-sm font-semibold text-foreground transition-colors hover:text-teal-accent">
+                    <Link
+                      href={query ? `${SALE_ROUTE}?${query}` : SALE_ROUTE}
+                      className="text-sm font-semibold text-foreground transition-colors hover:text-teal-accent"
+                    >
                       {item.name ?? 'Сохранённый поиск'}
                     </Link>
                     <p className="mt-1 text-sm text-muted-foreground">{describeSaleSearch(item.filters)}</p>

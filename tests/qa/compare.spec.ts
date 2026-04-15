@@ -4,7 +4,7 @@ import { attachQaGuards } from './helpers';
 test('compare tray opens a richer compare workspace', async ({ page }, testInfo) => {
   const assertClean = await attachQaGuards(page, testInfo);
 
-  await page.goto('/');
+  await page.goto('/sale');
 
   const compareButtons = page.locator('button[aria-label="Добавить к сравнению"]');
   await expect(compareButtons.first()).toBeVisible();
