@@ -63,8 +63,6 @@ export async function GET(
       wheelSet: listing.wheelSet,
       extraTires: listing.extraTires,
       glassOriginal: listing.glassOriginal ?? false,
-      trade: listing.trade,
-      kickback: listing.kickback ?? false,
       sellerType: listing.sellerType.toLowerCase(),
       resourceStatus: listing.resourceStatus.toLowerCase().replace(/_/g, '_'),
       description: listing.description,

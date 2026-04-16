@@ -200,8 +200,6 @@ model SaleListing {
   conditionNote    String?
   needsInvestment  Boolean?
   glassOriginal    Boolean?
-  trade            Boolean         @default(false)
-  kickback         Boolean?
   resourceStatus   ResourceStatus  @default(NOT_LISTED)
   sellerType       SellerType      @default(OWNER)
   inspectionCity   String?

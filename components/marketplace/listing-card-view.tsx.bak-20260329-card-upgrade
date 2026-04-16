@@ -185,11 +185,6 @@ export function ListingCardView({
                 В руки {formatPrice(listing.priceInHand)}
               </span>
             ) : null}
-            {listing.trade ? (
-              <span className="rounded-full border border-teal-accent/20 bg-[var(--accent-bg-soft)] px-2.5 py-1 text-xs font-medium text-teal-accent">
-                Торг
-              </span>
-            ) : null}
           </div>
 
           <div className="mt-4 rounded-[24px] border border-border/60 bg-gradient-to-br from-background/85 to-background/60 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] dark:from-background/10 dark:to-background/[0.04] dark:shadow-none">
@@ -236,11 +231,6 @@ export function ListingCardView({
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </span>
             </div>
-            {listing.kickback ? (
-              <span className="mt-3 inline-flex rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-[11px] font-medium text-foreground dark:bg-background/10">
-                Откат
-              </span>
-            ) : null}
           </div>
         </div>
 
@@ -252,12 +242,6 @@ export function ListingCardView({
             </div>
 
             <div className="space-y-2.5">
-              {listing.kickback ? (
-                <span className="inline-flex rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-[11px] font-medium text-foreground dark:bg-background/10">
-                  Откат
-                </span>
-              ) : null}
-
               <div className="rounded-2xl border border-teal-accent/20 bg-teal-accent/10 px-3 py-2.5 text-left">
                 <div className="inline-flex items-center justify-between gap-2 text-sm font-semibold text-foreground">
                   <span>Открыть</span>

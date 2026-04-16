@@ -45,6 +45,8 @@ const UTILITY_BUTTON_CLASSNAME =
   'border-border/70 bg-background/88 text-muted-foreground hover:border-teal-accent/20 hover:bg-background hover:text-foreground dark:bg-background/30';
 const MEDIA_STATUS_BADGE_CLASSNAME =
   'border shadow-[0_10px_24px_rgba(0,0,0,0.34)] backdrop-blur-md [text-shadow:0_1px_1px_rgba(0,0,0,0.42)]';
+const PRICE_STATUS_BADGE_CLASSNAME =
+  'inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold tabular-nums shadow-[0_10px_24px_rgba(0,0,0,0.18)] sm:text-[11px]';
 
 /** Badges that are already clearly visible in the main visual or spec rows */
 const STAT_DUPLICATE_BADGES = new Set(['без окрасов', '1 хоз', 'автотека зелёная', 'ориг. ПТС']);
@@ -431,12 +433,19 @@ function PriceColumn({
           {formatPrice(listing.price)}
         </p>
         {listing.priceInHand ? (
-          <p className="mt-1 text-[11px] text-success sm:text-[12px]">
-            В руки {formatPrice(listing.priceInHand)}
-          </p>
+          <div className="mt-2">
+            <span
+              className={cn(
+                PRICE_STATUS_BADGE_CLASSNAME,
+                'status-badge-pulse status-badge-pulse-success border-emerald-300/24 bg-emerald-950/80 text-emerald-50'
+              )}
+            >
+              В руки {formatPrice(listing.priceInHand)}
+            </span>
+          </div>
         ) : null}
         {listing.priceOnResources ? (
-          <p className="mt-1 text-[11px] text-muted-foreground sm:text-[12px]">
+          <p className={cn('text-[11px] text-muted-foreground sm:text-[12px]', listing.priceInHand ? 'mt-1.5' : 'mt-1')}>
             На ресурсах {formatPrice(listing.priceOnResources)}
           </p>
         ) : null}
@@ -445,10 +454,8 @@ function PriceColumn({
           <PriceFact label="Статус продавца" value={sellerLabel} />
         </div>
 
-        {(listing.trade || listing.kickback || !listing.needsInvestment) ? (
+        {!listing.needsInvestment ? (
           <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {listing.trade ? <InfoChip tone="accent">Торг</InfoChip> : null}
-            {listing.kickback ? <InfoChip tone="neutral">Откат</InfoChip> : null}
             {!listing.needsInvestment ? <InfoChip tone="success">Без вложений</InfoChip> : null}
           </div>
         ) : null}

@@ -152,33 +152,52 @@
 @keyframes marketplace-badge-pulse {
   0%, 100% {
     transform: translateY(0) scale(1);
-    box-shadow: 0 0 0 0 var(--badge-pulse-color, rgba(129, 216, 208, 0.22));
+    box-shadow:
+      0 0 0 0 var(--badge-pulse-color, rgba(129, 216, 208, 0.28)),
+      0 0 0 1px var(--badge-pulse-outline, rgba(255, 255, 255, 0.08)),
+      0 10px 24px var(--badge-pulse-glow, rgba(0, 0, 0, 0.22));
   }
-  45% {
-    transform: translateY(-0.5px) scale(1.035);
-    box-shadow: 0 0 0 6px transparent;
+  42% {
+    transform: translateY(-0.5px) scale(1.05);
+    box-shadow:
+      0 0 0 8px transparent,
+      0 0 0 1px var(--badge-pulse-outline, rgba(255, 255, 255, 0.08)),
+      0 14px 30px var(--badge-pulse-glow-strong, rgba(0, 0, 0, 0.3));
   }
-  70% {
+  68% {
     transform: translateY(0) scale(1);
-    box-shadow: 0 0 0 1px transparent;
+    box-shadow:
+      0 0 0 2px transparent,
+      0 0 0 1px var(--badge-pulse-outline, rgba(255, 255, 255, 0.08)),
+      0 10px 24px var(--badge-pulse-glow, rgba(0, 0, 0, 0.22));
   }
 }
 
 .status-badge-pulse {
   animation: marketplace-badge-pulse 2.6s ease-in-out infinite;
   will-change: transform, box-shadow;
+  transform-origin: center;
 }
 
 .status-badge-pulse-attention {
-  --badge-pulse-color: rgba(129, 216, 208, 0.26);
+  --badge-pulse-color: rgba(129, 216, 208, 0.34);
+  --badge-pulse-outline: rgba(255, 255, 255, 0.14);
+  --badge-pulse-glow: rgba(22, 163, 156, 0.16);
+  --badge-pulse-glow-strong: rgba(22, 163, 156, 0.28);
 }
 
 .status-badge-pulse-success {
-  --badge-pulse-color: rgba(45, 122, 74, 0.22);
+  --badge-pulse-color: rgba(45, 122, 74, 0.3);
+  --badge-pulse-outline: rgba(110, 231, 164, 0.14);
+  --badge-pulse-glow: rgba(22, 163, 74, 0.14);
+  --badge-pulse-glow-strong: rgba(22, 163, 74, 0.24);
 }
 
 .dark .status-badge-pulse-success {
-  --badge-pulse-color: rgba(110, 231, 164, 0.18);
+  --badge-pulse-color: rgba(110, 231, 164, 0.28);
+  --badge-pulse-outline: rgba(167, 243, 208, 0.16);
+  --badge-pulse-glow: rgba(16, 185, 129, 0.16);
+  --badge-pulse-glow-strong: rgba(16, 185, 129, 0.28);
 }
 
 .scrollbar-hide {

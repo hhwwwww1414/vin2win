@@ -264,8 +264,6 @@ export async function POST(request: Request) {
       glassOriginal: parseBoolean(payload.glassOriginal),
       noInvestment: parseBoolean(payload.noInvestment, true),
       investmentNote: parseOptionalString(payload.investmentNote),
-      trade: parseBoolean(payload.trade),
-      kickback: parseBoolean(payload.kickback),
       sellerType: normalizeSellerType(parseString(payload.sellerType)),
       resourceStatus: normalizeResourceStatus(parseString(payload.resourceStatus)),
       description,

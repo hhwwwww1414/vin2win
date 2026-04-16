@@ -78,8 +78,6 @@ type SaleData = {
   glassOriginal: boolean;
   noInvestment: boolean;
   investmentNote: string;
-  trade: boolean;
-  kickback: boolean;
   sellerType: string;
   resourceStatus: string;
   videoUrl: string;
@@ -210,8 +208,6 @@ const saleDefaults: SaleData = {
   glassOriginal: false,
   noInvestment: true,
   investmentNote: '',
-  trade: false,
-  kickback: false,
   sellerType: 'broker',
   resourceStatus: 'not_listed',
   videoUrl: '',
@@ -763,8 +759,6 @@ export default function NewListingPage() {
           wheelSet: Boolean(data.wheelSet),
           extraTires: Boolean(data.extraTires),
           glassOriginal: Boolean(data.glassOriginal),
-          trade: Boolean(data.trade),
-          kickback: Boolean(data.kickback),
           sellerType: normalizeSaleSellerType(String(data.sellerType ?? current.sellerType)),
           resourceStatus: String(data.resourceStatus ?? current.resourceStatus),
           description: String(data.description ?? ''),
@@ -1626,9 +1620,6 @@ export default function NewListingPage() {
 
       {step === 5 ? (
         <div className="space-y-4">
-          <Toggle label="Торг уместен" checked={sale.trade} onChange={(value) => updateSale('trade', value)} />
-          <Toggle label="Комиссия агентам" checked={sale.kickback} onChange={(value) => updateSale('kickback', value)} />
-
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Имя продавца" required error={fieldErrors['sale.sellerName']}>
               <input className={withFieldErrorClass('sale.sellerName')} value={sale.sellerName} onChange={(event) => updateSale('sellerName', event.target.value)} />

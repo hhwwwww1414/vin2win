@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -8,25 +7,25 @@ import {
   ClipboardCheck,
   Filter,
   GitCompareArrows,
-  LogIn,
   Search,
   ShieldCheck,
   Sparkles,
   UserRoundPlus,
 } from 'lucide-react';
+import { HomeHero } from '@/components/landing/home-hero';
 import { MarketplaceHeader } from '@/components/marketplace/header';
 import { Button } from '@/components/ui/button';
 import { SALE_ROUTE } from '@/lib/routes';
 
 export const metadata: Metadata = {
-  title: 'vin2win — профессиональный авторынок',
+  title: 'vin2win - профессиональный авторынок',
   description:
     'B2B-платформа для профессиональных продавцов, подборщиков и менеджеров: публикация объявлений, фильтры, сравнение и модерация без B2C-шума.',
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'vin2win — профессиональный авторынок',
+    title: 'vin2win - профессиональный авторынок',
     description:
       'B2B-платформа для профессиональных продавцов, подборщиков и менеджеров: публикация объявлений, фильтры, сравнение и модерация без B2C-шума.',
     url: '/',
@@ -51,17 +50,49 @@ const audiences = [
 ] as const;
 
 const steps = [
-  { title: 'Регистрация', description: 'Создайте аккаунт продавца или войдите в существующий профиль.', icon: UserRoundPlus },
-  { title: 'Паспорт объявления', description: 'Начните с марки, модели, года, города и цены.', icon: ClipboardCheck },
-  { title: 'Проверка', description: 'Заполните технику, историю, состояние, фото и контакты.', icon: ShieldCheck },
-  { title: 'Публикация', description: 'После модерации карточка появляется в профессиональной ленте.', icon: CheckCircle2 },
+  {
+    title: 'Регистрация',
+    description: 'Создайте аккаунт продавца или войдите в существующий профиль.',
+    icon: UserRoundPlus,
+  },
+  {
+    title: 'Паспорт объявления',
+    description: 'Начните с марки, модели, года, города и цены.',
+    icon: ClipboardCheck,
+  },
+  {
+    title: 'Проверка',
+    description: 'Заполните технику, историю, состояние, фото и контакты.',
+    icon: ShieldCheck,
+  },
+  {
+    title: 'Публикация',
+    description: 'После модерации карточка появляется в профессиональной ленте.',
+    icon: CheckCircle2,
+  },
 ] as const;
 
 const features = [
-  { title: 'Поиск и фильтры', description: 'Марка, модель, цена, пробег, год, кузов, история, статус на ресурсах.', icon: Filter },
-  { title: 'Сравнение', description: 'Shortlist из нескольких карточек с ценой, пробегом, окраской и техникой.', icon: GitCompareArrows },
-  { title: 'Избранное', description: 'Сохранение вариантов для повторной оценки и переговоров.', icon: Sparkles },
-  { title: 'Уведомления', description: 'События по объявлениям, модерации и важным изменениям аккаунта.', icon: BellRing },
+  {
+    title: 'Поиск и фильтры',
+    description: 'Марка, модель, цена, пробег, год, кузов, история и статусы на ресурсах.',
+    icon: Filter,
+  },
+  {
+    title: 'Сравнение',
+    description: 'Shortlist из нескольких карточек с ценой, пробегом, окраской и техникой.',
+    icon: GitCompareArrows,
+  },
+  {
+    title: 'Избранное',
+    description: 'Сохранение вариантов для повторной оценки и переговоров.',
+    icon: Sparkles,
+  },
+  {
+    title: 'Уведомления',
+    description: 'События по объявлениям, модерации и важным изменениям аккаунта.',
+    icon: BellRing,
+  },
 ] as const;
 
 export default function LandingPage() {
@@ -69,66 +100,7 @@ export default function LandingPage() {
     <div className="min-h-full">
       <MarketplaceHeader />
       <main id="page-main" className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="relative min-h-[620px] overflow-hidden rounded-[32px] border border-border/70 bg-card shadow-[var(--shadow-floating)]">
-          <Image
-            src="/cars/cruiser/cruiser.jpg"
-            alt="Премиальный автомобиль в карточке vin2win"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/88 to-background/20 dark:from-background dark:via-background/86 dark:to-background/18" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(129,216,208,0.2),transparent_28%),linear-gradient(180deg,transparent,rgba(0,0,0,0.14))]" />
-
-          <div className="relative flex min-h-[620px] max-w-3xl flex-col justify-center px-5 py-12 sm:px-8 lg:px-10">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-teal-accent/25 bg-[var(--accent-bg-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-accent">
-              <Sparkles className="h-3.5 w-3.5" />
-              B2B авторынок
-            </div>
-            <h1 className="mt-6 font-display text-[1.75rem] font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl lg:text-[4.8rem] lg:leading-[0.98]">
-              Профессиональный авторынок без лишнего шума
-            </h1>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-              vin2win помогает продавцам, подборщикам и менеджерам быстрее публиковать автомобили,
-              собирать структурированные карточки и работать с лентой предложений в одном интерфейсе.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button
-                asChild
-                size="lg"
-                className="rounded-xl bg-teal-dark px-6 text-white hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam"
-              >
-                <Link href="/register">
-                  Зарегистрироваться
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="rounded-xl border-border/80 bg-background/75 dark:bg-background/20">
-                <Link href="/listing/new">Подать объявление</Link>
-              </Button>
-              <Button asChild size="lg" variant="ghost" className="rounded-xl text-muted-foreground hover:text-foreground">
-                <Link href="/login">
-                  <LogIn className="h-4 w-4" />
-                  Войти
-                </Link>
-              </Button>
-            </div>
-
-            <div className="mt-10 grid max-w-2xl gap-3 sm:grid-cols-3">
-              {[
-                ['5', 'этапов объявления'],
-                ['24/7', 'доступ к ленте'],
-                ['B2B', 'фокус без B2C-шума'],
-              ].map(([value, label]) => (
-                <div key={label} className="border-l border-teal-accent/45 pl-4">
-                  <div className="font-display text-2xl font-bold text-foreground">{value}</div>
-                  <div className="mt-1 text-caption text-muted-foreground">{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <HomeHero />
 
         <section className="py-10 sm:py-12">
           <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -186,7 +158,7 @@ export default function LandingPage() {
             <p className="text-meta font-semibold uppercase tracking-[0.18em] text-teal-accent">Возможности</p>
             <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground">Инструменты уже встроены в продукт</h2>
             <p className="mt-3 text-body text-muted-foreground">
-              Лендинг не дублирует доску. Он ведёт к реальным маршрутам: каталогу, созданию объявления,
+              Лендинг не дублирует доску. Он ведет к реальным маршрутам: каталогу, созданию объявления,
               входу и регистрации.
             </p>
           </div>
@@ -231,7 +203,7 @@ export default function LandingPage() {
             </div>
             <h2 className="mt-5 font-display text-3xl font-bold tracking-tight text-foreground">Откройте каталог или начните с объявления</h2>
             <p className="mt-4 text-body text-muted-foreground">
-              Доска объявлений теперь находится отдельно, а главная страница объясняет продукт и ведёт к первым действиям.
+              Доска объявлений теперь находится отдельно, а главная страница объясняет продукт и ведет к первым действиям.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Button

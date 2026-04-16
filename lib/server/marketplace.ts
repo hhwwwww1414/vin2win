@@ -111,8 +111,6 @@ export interface CreateSaleListingInput {
   glassOriginal?: boolean;
   noInvestment?: boolean;
   investmentNote?: string;
-  trade: boolean;
-  kickback: boolean;
   sellerType: 'owner' | 'flip' | 'broker' | 'commission';
   resourceStatus: 'not_listed' | 'pre_resources' | 'on_resources';
   description: string;
@@ -392,8 +390,6 @@ function mapSaleListing(record: SaleListingRecord): SaleListing {
     conditionNote: record.conditionNote ?? undefined,
     needsInvestment: record.needsInvestment ?? undefined,
     glassOriginal: record.glassOriginal ?? undefined,
-    trade: record.trade,
-    kickback: record.kickback ?? undefined,
     resourceStatus: resourceStatusFromPrisma[record.resourceStatus],
     sellerType: sellerTypeFromPrisma[record.sellerType],
     inspectionCity: record.inspectionCity ?? undefined,
@@ -1500,8 +1496,6 @@ export async function createSaleListing(input: CreateSaleListingInput): Promise<
       conditionNote: input.investmentNote,
       needsInvestment: input.noInvestment === undefined ? undefined : !input.noInvestment,
       glassOriginal: input.glassOriginal,
-      trade: input.trade,
-      kickback: input.kickback,
       resourceStatus: resourceStatusToPrisma[input.resourceStatus],
       sellerType: sellerTypeToPrisma[input.sellerType],
       inspectionCity: input.city,

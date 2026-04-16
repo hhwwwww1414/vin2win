@@ -117,8 +117,6 @@ export interface SaleListing {
   conditionNote?: string;
   needsInvestment?: boolean;
   glassOriginal?: boolean;
-  trade: boolean;
-  kickback?: boolean;
   resourceStatus: ResourceStatus;
   sellerType: SellerType;
   inspectionCity?: string;
@@ -200,8 +198,6 @@ export interface DealMeta {
   price: number;
   priceInHand?: number;
   priceOnResources?: number;
-  trade: boolean;
-  kickback?: boolean;
   resourceStatus: ResourceStatus;
   sellerType: SellerType;
   legalClean: boolean;

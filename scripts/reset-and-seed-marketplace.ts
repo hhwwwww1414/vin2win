@@ -316,8 +316,6 @@ async function seedSaleListings() {
         conditionNote: listing.conditionNote,
         needsInvestment: listing.needsInvestment,
         glassOriginal: listing.glassOriginal,
-        trade: listing.trade,
-        kickback: listing.kickback,
         resourceStatus: mapResourceStatus(listing.resourceStatus),
         sellerType: mapSellerType(listing.sellerType),
         inspectionCity: listing.inspectionCity,
