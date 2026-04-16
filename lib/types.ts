@@ -88,12 +88,16 @@ export interface SaleListing {
   price: number;
   priceInHand?: number;
   priceOnResources?: number;
+  region?: string;
   city: string;
   images: string[];
   videoUrl?: string;
   interiorImages?: string[];
   reportUrl?: string;
   vin?: string;
+  plateNumber?: string;
+  plateRegion?: string;
+  plateUnregistered?: boolean;
   engine: string;
   engineDisplacementL?: number;
   power: number;

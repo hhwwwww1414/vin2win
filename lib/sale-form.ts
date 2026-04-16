@@ -8,7 +8,11 @@ export type SaleData = {
   generation: string;
   year: string;
   vin: string;
+  region: string;
   city: string;
+  plateNumber: string;
+  plateRegion: string;
+  plateUnregistered: boolean;
   price: string;
   priceInHand: string;
   priceOnResources: string;
@@ -47,7 +51,11 @@ export type EditableSaleListingPayload = {
   model?: string;
   generation?: string;
   year?: number | string;
+  region?: string;
   city?: string;
+  plateNumber?: string;
+  plateRegion?: string;
+  plateUnregistered?: boolean;
   price?: number | string;
   priceInHand?: number | string;
   priceOnResources?: number | string;
@@ -92,7 +100,11 @@ export const saleDefaults: SaleData = {
   generation: '',
   year: '',
   vin: '',
+  region: '',
   city: '',
+  plateNumber: '',
+  plateRegion: '',
+  plateUnregistered: false,
   price: '',
   priceInHand: '',
   priceOnResources: '',
@@ -143,7 +155,11 @@ export function mergeSaleFormWithEditableListing(
     model: String(data.model ?? current.model),
     generation: String(data.generation ?? current.generation),
     year: String(data.year ?? current.year),
+    region: String(data.region ?? current.region),
     city: String(data.city ?? current.city),
+    plateNumber: String(data.plateNumber ?? current.plateNumber),
+    plateRegion: String(data.plateRegion ?? current.plateRegion),
+    plateUnregistered: Boolean(data.plateUnregistered ?? current.plateUnregistered),
     price: String(data.price ?? current.price),
     priceInHand: String(data.priceInHand ?? ''),
     priceOnResources: String(data.priceOnResources ?? ''),

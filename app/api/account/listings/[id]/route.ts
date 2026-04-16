@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/server/auth';
 import { prisma } from '@/lib/server/prisma';
+import { getRegionForCity } from '@/lib/ru-regions';
 
 export async function GET(
   _request: Request,
@@ -36,6 +37,7 @@ export async function GET(
       model: listing.model,
       generation: listing.generation ?? '',
       year: listing.year,
+      region: getRegionForCity(listing.city) ?? '',
       city: listing.city,
       price: listing.price,
       priceInHand: listing.priceInHand ?? '',
@@ -70,6 +72,9 @@ export async function GET(
       sellerName: listing.seller?.name ?? '',
       contact: listing.seller?.phone ?? '',
       vin: listing.vin ?? '',
+      plateNumber: listing.plateNumber ?? '',
+      plateRegion: listing.plateRegion ?? '',
+      plateUnregistered: listing.plateUnregistered,
       videoUrl: listing.videoUrlExternal ?? '',
     });
   } catch (error) {

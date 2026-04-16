@@ -177,6 +177,9 @@ model SaleListing {
   priceOnResources Int?
   city             String
   vin              String?
+  plateNumber      String?
+  plateRegion      String?
+  plateUnregistered Boolean        @default(false)
   engine           String
   engineDisplacementL Float?
   power            Int

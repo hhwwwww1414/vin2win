@@ -13,7 +13,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { prisma } from './prisma';
-import { getRegionsForCities, getRuRegionOptions, resolveRegionCitySelection } from '@/lib/ru-regions';
+import { getRegionForCity, getRegionsForCities, getRuRegionOptions, resolveRegionCitySelection } from '@/lib/ru-regions';
 import { createDefaultSaleSearchFilters } from '@/lib/sale-search';
 import { saleListings as saleListingFixtures, wantedListings as wantedListingFixtures } from '@/lib/marketplace-data';
 import { extractEngineDisplacement } from '@/lib/listing-utils';
@@ -82,6 +82,9 @@ export interface CreateSaleListingInput {
   year: number;
   vin?: string;
   city: string;
+  plateNumber?: string;
+  plateRegion?: string;
+  plateUnregistered?: boolean;
   price: number;
   priceInHand?: number;
   priceOnResources?: number;
@@ -356,12 +359,16 @@ function mapSaleListing(record: SaleListingRecord): SaleListing {
     price: record.price,
     priceInHand: record.priceInHand ?? undefined,
     priceOnResources: record.priceOnResources ?? undefined,
+    region: getRegionForCity(record.city) ?? undefined,
     city: record.city,
     images,
     videoUrl: pickSingleMediaUrl(record.media, ListingMediaKind.VIDEO) ?? record.videoUrlExternal ?? undefined,
     interiorImages: interiorImages.length > 0 ? interiorImages : undefined,
     reportUrl: pickSingleMediaUrl(record.media, ListingMediaKind.REPORT) ?? record.reportUrlExternal ?? undefined,
     vin: record.vin ?? undefined,
+    plateNumber: record.plateNumber ?? undefined,
+    plateRegion: record.plateRegion ?? undefined,
+    plateUnregistered: record.plateUnregistered ? true : undefined,
     engine: record.engine,
     engineDisplacementL: extractEngineDisplacement({
       engine: record.engine,
@@ -1472,6 +1479,9 @@ export async function createSaleListing(input: CreateSaleListingInput): Promise<
       priceOnResources: input.priceOnResources,
       city: input.city,
       vin: input.vin,
+      plateNumber: input.plateNumber,
+      plateRegion: input.plateRegion,
+      plateUnregistered: input.plateUnregistered ?? false,
       engine: input.engine,
       engineDisplacementL: input.engineDisplacementL,
       power: input.power,

@@ -2,6 +2,13 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { ListingStatus } from '@prisma/client';
 import { NextResponse } from 'next/server';
+import {
+  buildRegistrationPlateValue,
+  isRegistrationPlateComplete,
+  normalizeRegistrationPlateRegion,
+  splitRegistrationPlateValue,
+} from '@/lib/registration-plate';
+import { getCitiesForRegion } from '@/lib/ru-regions';
 import { getSessionUser } from '@/lib/server/auth';
 import { createSaleListing } from '@/lib/server/marketplace';
 import { buildS3PublicUrl, uploadToS3 } from '@/lib/server/s3';
@@ -180,15 +187,28 @@ export async function POST(request: Request) {
     const contact = parseString(payload.contact);
     const make = parseString(payload.make);
     const model = parseString(payload.model);
+    const region = parseString(payload.region);
     const city = parseString(payload.city);
+    const plateNumber = buildRegistrationPlateValue(splitRegistrationPlateValue(parseOptionalString(payload.plateNumber)));
+    const plateRegion = normalizeRegistrationPlateRegion(parseOptionalString(payload.plateRegion));
+    const plateUnregistered = parseBoolean(payload.plateUnregistered);
     const bodyType = parseString(payload.bodyType);
     const engine = parseString(payload.engine);
     const transmission = parseString(payload.transmission);
     const drive = parseString(payload.drive);
     const description = parseString(payload.description);
 
-    if (!sellerName || !contact || !make || !model || !city || !bodyType || !engine || !transmission || !drive || !description) {
+    if (!sellerName || !contact || !make || !model || !region || !city || !bodyType || !engine || !transmission || !drive || !description) {
       return NextResponse.json({ error: 'Не заполнены обязательные поля.' }, { status: 400 });
+    }
+
+    const availableCities = getCitiesForRegion(region);
+    if (availableCities.length === 0 || !availableCities.includes(city)) {
+      return NextResponse.json({ error: 'Выберите город из выбранного региона.' }, { status: 400 });
+    }
+
+    if (!plateUnregistered && (plateNumber || plateRegion) && !isRegistrationPlateComplete(plateNumber, plateRegion)) {
+      return NextResponse.json({ error: 'Заполните госномер полностью или отметьте, что машина не стоит на учёте в ГАИ.' }, { status: 400 });
     }
 
     const galleryFiles = formData
@@ -235,6 +255,9 @@ export async function POST(request: Request) {
       year: parseNumber(payload.year),
       vin: parseOptionalString(payload.vin),
       city,
+      plateNumber: plateNumber || undefined,
+      plateRegion: plateRegion || undefined,
+      plateUnregistered,
       price: parseNumber(payload.price),
       priceInHand: parseOptionalNumber(payload.priceInHand),
       priceOnResources: parseOptionalNumber(payload.priceOnResources),

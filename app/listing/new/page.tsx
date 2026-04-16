@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { MarketplaceHeader } from '@/components/marketplace/header';
+import { RegistrationPlateField } from '@/components/listing/registration-plate-field';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { ColorSwatchSelect } from '@/components/ui/color-swatch-select';
@@ -17,6 +18,12 @@ import {
   type SaleData,
 } from '@/lib/sale-form';
 import { formatEngineSpec } from '@/lib/listing-utils';
+import {
+  hasAnyRegistrationPlateValue,
+  isRegistrationPlateComplete,
+  normalizeRegistrationPlateRegion,
+} from '@/lib/registration-plate';
+import { getCitiesForRegion, getRegionForCity, getRuRegionOptions } from '@/lib/ru-regions';
 import { SALE_ROUTE } from '@/lib/routes';
 import {
   DEFAULT_VEHICLE_COLORS,
@@ -140,7 +147,11 @@ const saleDefaults: SaleData = {
   generation: '',
   year: '',
   vin: '',
+  region: '',
   city: '',
+  plateNumber: '',
+  plateRegion: '',
+  plateUnregistered: false,
   price: '',
   priceInHand: '',
   priceOnResources: '',
@@ -212,6 +223,7 @@ const saleSteeringOptions = ['Левый', 'Правый'] as const;
 const saleEngineTypeOptions = ['Бензин', 'Дизель', 'Гибрид', 'Электро', 'ГБО'] as const;
 const saleEngineDisplacementOptions = VEHICLE_ENGINE_DISPLACEMENT_OPTIONS;
 const saleColorOptions = DEFAULT_VEHICLE_COLORS;
+const saleRegionOptions = getRuRegionOptions();
 
 const SALE_ENGINE_TYPE_SET = new Set<string>(saleEngineTypeOptions);
 const SALE_ENGINE_DISPLACEMENT_SET = new Set<string>(saleEngineDisplacementOptions);
@@ -527,6 +539,7 @@ export default function NewListingPage() {
   const duplicateLoadedRef = useRef(false);
   const draftRestoredRef = useRef(false);
   const saleModelOptions = getModelsForMake(sale.make);
+  const saleCityOptions = useMemo(() => getCitiesForRegion(sale.region), [sale.region]);
   const wantedModelOptions = useMemo(
     () =>
       normalizeUniqueList(
@@ -690,6 +703,7 @@ export default function NewListingPage() {
           const merged = mergeSaleFormWithEditableListing(current, data);
           return {
             ...merged,
+            region: merged.region || getRegionForCity(merged.city) || '',
             engine: normalizeDuplicateEngineType(merged.engine),
             engineDisplacementL: normalizeDuplicateEngineDisplacementL(merged.engineDisplacementL),
             sellerType: normalizeSaleSellerType(merged.sellerType),
@@ -882,6 +896,17 @@ export default function NewListingPage() {
         if (!sale.bodyType.trim()) nextErrors['sale.bodyType'] = 'Выберите тип кузова.';
       }
 
+      if (targetStep === 1) {
+        if (!sale.region.trim()) nextErrors['sale.region'] = 'Выберите область или край.';
+        if (
+          !sale.plateUnregistered &&
+          hasAnyRegistrationPlateValue(sale.plateNumber, sale.plateRegion) &&
+          !isRegistrationPlateComplete(sale.plateNumber, sale.plateRegion)
+        ) {
+          nextErrors['sale.plateNumber'] = 'Заполните госномер полностью или отметьте, что машина не стоит на учёте в ГАИ.';
+        }
+      }
+
       if (targetStep === 2) {
         if (!sale.engine.trim()) nextErrors['sale.engine'] = 'Укажите двигатель.';
         if (!sale.mileage.trim() || Number(sale.mileage) < 0) nextErrors['sale.mileage'] = 'Укажите пробег.';
@@ -905,7 +930,7 @@ export default function NewListingPage() {
       }
 
       const keysByStep: Record<SaleStep, string[]> = {
-        1: ['sale.make', 'sale.model', 'sale.year', 'sale.city', 'sale.price', 'sale.bodyType'],
+        1: ['sale.make', 'sale.model', 'sale.year', 'sale.region', 'sale.city', 'sale.plateNumber', 'sale.price', 'sale.bodyType'],
         2: ['sale.engine', 'sale.mileage'],
         3: ['sale.owners', 'sale.investmentNote'],
         4: ['sale.description'],
@@ -1275,8 +1300,38 @@ export default function NewListingPage() {
             <input className={withFieldErrorClass('sale.vin')} value={sale.vin} onChange={(event) => updateSale('vin', event.target.value.toUpperCase())} />
           </Field>
 
+          <Field label="Область / край" required error={fieldErrors['sale.region']}>
+            <Combobox
+              options={saleRegionOptions}
+              value={sale.region}
+              onChange={(value) => {
+                updateSale('region', value);
+                if (value !== sale.region) {
+                  updateSale('city', '');
+                }
+              }}
+              placeholder="Выберите регион"
+              searchPlaceholder="Найдите регион"
+              emptyLabel="Регион не найден"
+              clearable
+              allowCustom={false}
+              className={withFieldErrorClass('sale.region')}
+            />
+          </Field>
+
           <Field label="Город" required error={fieldErrors['sale.city']}>
-            <input className={withFieldErrorClass('sale.city')} value={sale.city} onChange={(event) => updateSale('city', event.target.value)} />
+            <Combobox
+              options={saleCityOptions}
+              value={sale.city}
+              onChange={(value) => updateSale('city', value)}
+              placeholder={sale.region ? 'Выберите город' : 'Сначала выберите регион'}
+              searchPlaceholder="Найдите город"
+              emptyLabel={sale.region ? 'Город не найден' : 'Выберите регион'}
+              clearable
+              allowCustom={false}
+              disabled={!sale.region}
+              className={withFieldErrorClass('sale.city')}
+            />
           </Field>
 
           <Field label="Цена" required error={fieldErrors['sale.price']}>
@@ -1297,6 +1352,25 @@ export default function NewListingPage() {
           </Field>
         </div>
 
+        <RegistrationPlateField
+          value={sale.plateNumber}
+          region={sale.plateRegion}
+          unregistered={sale.plateUnregistered}
+          error={fieldErrors['sale.plateNumber']}
+          onChange={(value) => {
+            clearError('sale.plateNumber');
+            updateSale('plateNumber', value);
+          }}
+          onRegionChange={(value) => {
+            clearError('sale.plateNumber');
+            updateSale('plateRegion', normalizeRegistrationPlateRegion(value));
+          }}
+          onUnregisteredChange={(value) => {
+            clearError('sale.plateNumber');
+            updateSale('plateUnregistered', value);
+          }}
+        />
+
         {/* Превью объявления */}
         <div className="mt-6 rounded-[20px] border border-teal-accent/30 bg-[var(--accent-bg-soft)] p-4">
           <h3 className="mb-3 text-sm font-semibold text-foreground">Превью объявления в ленте</h3>
@@ -1310,7 +1384,13 @@ export default function NewListingPage() {
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] text-muted-foreground">{sale.city || 'Город'}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {sale.city
+                    ? sale.region
+                      ? `${sale.region} • ${sale.city}`
+                      : sale.city
+                    : 'Регион и город'}
+                </p>
                 <h4 className="mt-1 text-lg font-semibold text-foreground">
                   {sale.make || 'Марка'} {sale.model || 'Модель'}{sale.year ? `, ${sale.year}` : ''}
                 </h4>
@@ -1910,15 +1990,9 @@ export default function NewListingPage() {
                   <Star className="h-3.5 w-3.5" />
                   {currentSaleStepMeta.eyebrow}
                 </div>
-                <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="max-w-2xl">
-                    <h2 className="text-2xl font-semibold tracking-tight text-foreground">{currentSaleStepMeta.title}</h2>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{currentSaleStepMeta.description}</p>
-                  </div>
-                  <div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-3 text-sm text-muted-foreground dark:bg-background/10">
-                    <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Статус</span>
-                    <span className="mt-1 block text-foreground">{saleDirty ? 'Есть несохранённые изменения' : 'Можно продолжить'}</span>
-                  </div>
+                <div className="mt-4 max-w-2xl">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground">{currentSaleStepMeta.title}</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{currentSaleStepMeta.description}</p>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {currentSaleStepMeta.checkpoints.map((checkpoint) => (

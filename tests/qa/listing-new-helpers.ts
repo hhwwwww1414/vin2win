@@ -36,7 +36,8 @@ export async function fillRequiredSalePassport(page: Page) {
   await selectComboboxValue(page, 'Марка', 'Toyota');
   await selectComboboxValue(page, 'Модель', 'Camry');
   await page.locator('label').filter({ hasText: 'Год' }).locator('select').selectOption('2024');
-  await page.locator('label').filter({ hasText: 'Город' }).locator('input').fill('Москва');
+  await selectComboboxValue(page, 'Область / край', 'Московская область');
+  await selectComboboxValue(page, 'Город', 'Москва');
   await page.locator('label').filter({ hasText: 'Цена' }).locator('input').fill('2500000');
   await page.locator('label').filter({ hasText: 'Тип кузова' }).locator('select').selectOption('Седан');
 }
