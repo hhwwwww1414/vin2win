@@ -93,51 +93,6 @@ const saleSteps: { id: SaleStep; title: string }[] = [
   { id: 5, title: 'Сделка и контакты' },
 ];
 
-const saleStepMeta: Record<
-  SaleStep,
-  {
-    eyebrow: string;
-    title: string;
-    description: string;
-    checkpoints: string[];
-  }
-> = {
-  1: {
-    eyebrow: 'Шаг 1',
-    title: 'Паспорт и превью',
-    description:
-      'Укажите марку, модель, год, город, цену и тип кузова. Это ядро объявления и данные для первого превью.',
-    checkpoints: ['Марка и модель', 'Год и город', 'Цена и кузов'],
-  },
-  2: {
-    eyebrow: 'Шаг 2',
-    title: 'Технический профиль',
-    description:
-      'Укажите двигатель, пробег, коробку, привод и другие технические параметры автомобиля.',
-    checkpoints: ['Двигатель', 'Пробег', 'Коробка и привод'],
-  },
-  3: {
-    eyebrow: 'Шаг 3',
-    title: 'История и состояние',
-    description:
-      'Соберите историю владения, документы, проверки и текущее состояние автомобиля в одном смысловом блоке.',
-    checkpoints: ['Владельцы', 'ПТС и окрасы', 'Вложения'],
-  },
-  4: {
-    eyebrow: 'Шаг 4',
-    title: 'Фото и описание',
-    description:
-      'Загрузите фотографии, выберите обложку и добавьте описание.',
-    checkpoints: ['Обложка', 'Фото и видео', 'Описание'],
-  },
-  5: {
-    eyebrow: 'Шаг 5',
-    title: 'Сделка и контакты',
-    description:
-      'Добавьте контакты, тип продавца и условия сделки.',
-    checkpoints: ['Контакт', 'Тип продавца', 'Условия сделки'],
-  },
-};
 
 const saleDefaults: SaleData = {
   sellerName: '',
@@ -1222,13 +1177,6 @@ export default function NewListingPage() {
     );
   }
 
-  const currentSaleStepMeta = saleStepMeta[step];
-  const saleSnapshot = [
-    sale.make && sale.model ? `${sale.make} ${sale.model}` : 'Выберите марку и модель',
-    sale.price ? `Цена ${formatRubleValue(sale.price)}` : 'Добавьте цену',
-    sale.city ? `Город ${sale.city}` : 'Укажите город',
-    photos.length ? `${photos.length}/${MAX_LISTING_PHOTO_COUNT} фото` : 'Загрузите галерею',
-  ];
   const wantedSnapshot = [
     wanted.authorName ? wanted.authorName : 'Укажите контактное лицо',
     splitCsv(wanted.models).length ? `${splitCsv(wanted.models).length} моделей в запросе` : 'Добавьте модели',
@@ -1980,48 +1928,6 @@ export default function NewListingPage() {
               </div>
             </div>
 
-            {false ? (
-              <div className="mb-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
-              <section className="relative overflow-hidden rounded-[28px] border border-border/70 bg-background/75 p-5 shadow-[0_16px_38px_rgba(8,15,27,0.08)]">
-                <div
-                  className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-accent/60 to-transparent"
-                  aria-hidden="true"
-                />
-                <div className="inline-flex items-center gap-2 rounded-full border border-teal-accent/20 bg-[var(--accent-bg-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-accent">
-                  <Star className="h-3.5 w-3.5" />
-                  {currentSaleStepMeta.eyebrow}
-                </div>
-                <div className="mt-4 max-w-2xl">
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground">{currentSaleStepMeta.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{currentSaleStepMeta.description}</p>
-                </div>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {currentSaleStepMeta.checkpoints.map((checkpoint) => (
-                    <span
-                      key={checkpoint}
-                      className="rounded-full border border-border/70 bg-card/70 px-3 py-1.5 text-xs font-medium text-muted-foreground dark:bg-background/10"
-                    >
-                      {checkpoint}
-                    </span>
-                  ))}
-                </div>
-              </section>
-
-              <aside className="rounded-[28px] border border-border/70 bg-background/65 p-5 shadow-[0_14px_32px_rgba(8,15,27,0.07)]">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Сводка</p>
-                <div className="mt-4 space-y-3">
-                  {saleSnapshot.map((item) => (
-                    <div
-                      key={item}
-                      className="rounded-2xl border border-border/70 bg-card/75 px-4 py-3 text-sm text-foreground dark:bg-background/10"
-                    >
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </aside>
-              </div>
-            ) : null}
 
             <div className="rounded-[28px] border border-border/70 bg-background/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
               {saleStepContent}
