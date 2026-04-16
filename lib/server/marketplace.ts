@@ -77,8 +77,11 @@ export interface CreateSaleListingInput {
   sellerName: string;
   contact: string;
   make: string;
+  catalogBrandId?: string;
   model: string;
+  catalogModelId?: string;
   generation?: string;
+  catalogGenerationId?: string;
   year: number;
   vin?: string;
   city: string;
@@ -89,15 +92,22 @@ export interface CreateSaleListingInput {
   priceInHand?: number;
   priceOnResources?: number;
   bodyType: string;
+  catalogBodyTypeId?: string;
   engine: string;
+  catalogFuelTypeId?: string;
   engineDisplacementL?: number;
+  catalogEngineId?: string;
   power: number;
   transmission: string;
+  catalogTransmissionId?: string;
   drive: string;
+  catalogDriveTypeId?: string;
+  catalogModificationId?: string;
   mileage: number;
   steering: string;
   color: string;
   trim?: string;
+  catalogTrimId?: string;
   owners: number;
   registrations?: number;
   keysCount?: number;
@@ -353,8 +363,11 @@ function mapSaleListing(record: SaleListingRecord): SaleListing {
     id: record.id,
     type: 'sale',
     make: record.make,
+    catalogBrandId: record.catalogBrandId ?? undefined,
     model: record.model,
+    catalogModelId: record.catalogModelId ?? undefined,
     generation: record.generation ?? undefined,
+    catalogGenerationId: record.catalogGenerationId ?? undefined,
     year: record.year,
     price: record.price,
     priceInHand: record.priceInHand ?? undefined,
@@ -370,14 +383,20 @@ function mapSaleListing(record: SaleListingRecord): SaleListing {
     plateRegion: record.plateRegion ?? undefined,
     plateUnregistered: record.plateUnregistered ? true : undefined,
     engine: record.engine,
+    catalogFuelTypeId: record.catalogFuelTypeId ?? undefined,
     engineDisplacementL: extractEngineDisplacement({
       engine: record.engine,
       engineDisplacementL: record.engineDisplacementL ?? undefined,
     }),
+    catalogEngineId: record.catalogEngineId ?? undefined,
     power: record.power,
     transmission: record.transmission,
+    catalogTransmissionId: record.catalogTransmissionId ?? undefined,
     drive: record.drive,
+    catalogDriveTypeId: record.catalogDriveTypeId ?? undefined,
     bodyType: record.bodyType,
+    catalogBodyTypeId: record.catalogBodyTypeId ?? undefined,
+    catalogModificationId: record.catalogModificationId ?? undefined,
     mileage: record.mileage,
     owners: record.owners,
     registrations: record.registrations ?? undefined,
@@ -401,6 +420,7 @@ function mapSaleListing(record: SaleListingRecord): SaleListing {
     color: record.color,
     steering: record.steering,
     trim: record.trim ?? undefined,
+    catalogTrimId: record.catalogTrimId ?? undefined,
     description: record.description,
     viewCount: record.viewCount,
     isFavorite: record.favorites ? record.favorites.length > 0 : undefined,
@@ -1471,8 +1491,11 @@ export async function createSaleListing(input: CreateSaleListingInput): Promise<
   const created = await prisma.saleListing.create({
     data: {
       make: input.make,
+      catalogBrandId: input.catalogBrandId,
       model: input.model,
+      catalogModelId: input.catalogModelId,
       generation: input.generation,
+      catalogGenerationId: input.catalogGenerationId,
       year: input.year,
       price: input.price,
       priceInHand: input.priceInHand,
@@ -1482,12 +1505,18 @@ export async function createSaleListing(input: CreateSaleListingInput): Promise<
       plateNumber: input.plateNumber,
       plateRegion: input.plateRegion,
       plateUnregistered: input.plateUnregistered ?? false,
+      bodyType: input.bodyType,
+      catalogBodyTypeId: input.catalogBodyTypeId,
       engine: input.engine,
+      catalogFuelTypeId: input.catalogFuelTypeId,
       engineDisplacementL: input.engineDisplacementL,
+      catalogEngineId: input.catalogEngineId,
       power: input.power,
       transmission: input.transmission,
+      catalogTransmissionId: input.catalogTransmissionId,
       drive: input.drive,
-      bodyType: input.bodyType,
+      catalogDriveTypeId: input.catalogDriveTypeId,
+      catalogModificationId: input.catalogModificationId,
       mileage: input.mileage,
       owners: input.owners,
       registrations: input.registrations,
@@ -1510,6 +1539,7 @@ export async function createSaleListing(input: CreateSaleListingInput): Promise<
       color: input.color,
       steering: input.steering,
       trim: input.trim,
+      catalogTrimId: input.catalogTrimId,
       description: input.description,
       videoUrlExternal: input.videoUrlExternal,
       sellerId: seller.id,

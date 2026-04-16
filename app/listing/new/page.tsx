@@ -9,7 +9,8 @@ import { RegistrationPlateField } from '@/components/listing/registration-plate-
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { ColorSwatchSelect } from '@/components/ui/color-swatch-select';
-import { CAR_CATALOG, CAR_MAKES, getModelsForMake } from '@/lib/car-catalog';
+import { CAR_CATALOG } from '@/lib/car-catalog';
+import { useVehicleCatalogForm } from '@/hooks/use-vehicle-catalog-form';
 import type { ListingStatusValue } from '@/lib/listing-status';
 import {
   buildSaleSubmissionPayload,
@@ -98,8 +99,11 @@ const saleDefaults: SaleData = {
   sellerName: '',
   contact: '',
   make: '',
+  catalogBrandId: '',
   model: '',
+  catalogModelId: '',
   generation: '',
+  catalogGenerationId: '',
   year: '',
   vin: '',
   region: '',
@@ -111,15 +115,22 @@ const saleDefaults: SaleData = {
   priceInHand: '',
   priceOnResources: '',
   bodyType: '',
+  catalogBodyTypeId: '',
   engine: '',
+  catalogFuelTypeId: '',
   engineDisplacementL: '',
+  catalogEngineId: '',
   power: '',
   transmission: 'АКПП',
+  catalogTransmissionId: '',
   drive: 'Передний',
+  catalogDriveTypeId: '',
   mileage: '',
   steering: 'Левый',
   color: '',
   trim: '',
+  catalogModificationId: '',
+  catalogTrimId: '',
   owners: '',
   registrations: '',
   keysCount: '2',
@@ -493,7 +504,6 @@ export default function NewListingPage() {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const duplicateLoadedRef = useRef(false);
   const draftRestoredRef = useRef(false);
-  const saleModelOptions = getModelsForMake(sale.make);
   const saleCityOptions = useMemo(() => getCitiesForRegion(sale.region), [sale.region]);
   const wantedModelOptions = useMemo(
     () =>
@@ -530,6 +540,60 @@ export default function NewListingPage() {
       return updated;
     });
   }, []);
+
+  const vehicleCatalog = useVehicleCatalogForm({
+    sale,
+    setSale,
+    clearError,
+  });
+
+  const saleBrandOptions = useMemo(
+    () => vehicleCatalog.brands.map((item) => item.label),
+    [vehicleCatalog.brands]
+  );
+  const saleModelOptions = useMemo(
+    () => vehicleCatalog.models.map((item) => item.label),
+    [vehicleCatalog.models]
+  );
+  const saleYearOptions = useMemo(
+    () =>
+      vehicleCatalog.years.length > 0
+        ? vehicleCatalog.years.map((item) => item.label)
+        : Array.from({ length: MAX_LISTING_YEAR - 1990 + 1 }, (_, index) => String(MAX_LISTING_YEAR - index)),
+    [vehicleCatalog.years]
+  );
+  const saleCatalogBodyOptions = useMemo(
+    () =>
+      vehicleCatalog.bodies.length > 0
+        ? vehicleCatalog.bodies.map((item) => item.label)
+        : [...saleBodyTypeOptions],
+    [vehicleCatalog.bodies]
+  );
+  const saleGenerationOptions = useMemo(
+    () => vehicleCatalog.generations.map((item) => item.label),
+    [vehicleCatalog.generations]
+  );
+  const saleFuelOptions = useMemo(
+    () =>
+      vehicleCatalog.fuelTypes.length > 0
+        ? vehicleCatalog.fuelTypes.map((item) => item.label)
+        : [...saleEngineTypeOptions],
+    [vehicleCatalog.fuelTypes]
+  );
+  const saleCatalogTransmissionOptions = useMemo(
+    () =>
+      vehicleCatalog.transmissions.length > 0
+        ? vehicleCatalog.transmissions.map((item) => item.label)
+        : [...saleTransmissionOptions],
+    [vehicleCatalog.transmissions]
+  );
+  const saleCatalogDriveOptions = useMemo(
+    () =>
+      vehicleCatalog.driveTypes.length > 0
+        ? vehicleCatalog.driveTypes.map((item) => item.label)
+        : [...saleDriveOptions],
+    [vehicleCatalog.driveTypes]
+  );
 
   const updateSale = useCallback(
     <K extends keyof SaleData,>(key: K, value: SaleData[K]) => {
@@ -1191,17 +1255,9 @@ export default function NewListingPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Марка" required error={fieldErrors['sale.make']}>
             <Combobox
-              options={CAR_MAKES}
+              options={saleBrandOptions}
               value={sale.make}
-              onChange={(value) => {
-                clearError('sale.make');
-                clearError('sale.model');
-                setSale((current) => ({
-                  ...current,
-                  make: value,
-                  model: current.make === value ? current.model : '',
-                }));
-              }}
+              onChange={vehicleCatalog.selectBrand}
               placeholder="Выберите марку"
               searchPlaceholder="Найдите марку"
               emptyLabel="Марка не найдена"
@@ -1215,7 +1271,7 @@ export default function NewListingPage() {
             <Combobox
               options={saleModelOptions}
               value={sale.model}
-              onChange={(value) => updateSale('model', value)}
+              onChange={vehicleCatalog.selectModel}
               placeholder="Выберите модель"
               searchPlaceholder={
                 sale.make ? `Найдите модель ${sale.make}` : 'Сначала выберите марку или введите модель'
@@ -1228,18 +1284,31 @@ export default function NewListingPage() {
           </Field>
 
           <Field label="Поколение">
-            <input className={withFieldErrorClass('sale.generation')} value={sale.generation} onChange={(event) => updateSale('generation', event.target.value)} />
+            {saleGenerationOptions.length > 0 ? (
+              <Combobox
+                options={saleGenerationOptions}
+                value={sale.generation}
+                onChange={vehicleCatalog.selectGeneration}
+                placeholder="Р’С‹Р±РµСЂРёС‚Рµ РїРѕРєРѕР»РµРЅРёРµ"
+                searchPlaceholder="РќР°Р№РґРёС‚Рµ РїРѕРєРѕР»РµРЅРёРµ"
+                emptyLabel="РџРѕРєРѕР»РµРЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ"
+                clearable
+                className={fieldErrors['sale.generation'] ? errorInputClass : undefined}
+              />
+            ) : (
+              <input className={withFieldErrorClass('sale.generation')} value={sale.generation} onChange={(event) => updateSale('generation', event.target.value)} />
+            )}
           </Field>
 
           <Field label="Год" required error={fieldErrors['sale.year']}>
             <select
               className={withFieldErrorClass('sale.year')}
               value={sale.year}
-              onChange={(event) => updateSale('year', event.target.value)}
+              onChange={(event) => vehicleCatalog.selectYear(event.target.value)}
             >
               <option value="" disabled>Выберите год</option>
-              {Array.from({ length: MAX_LISTING_YEAR - 1990 + 1 }, (_, i) => MAX_LISTING_YEAR - i).map((y) => (
-                <option key={y} value={String(y)}>{y}</option>
+              {saleYearOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
               ))}
             </select>
           </Field>
@@ -1287,11 +1356,11 @@ export default function NewListingPage() {
           </Field>
 
           <Field label="Тип кузова" required error={fieldErrors['sale.bodyType']}>
-            <select className={withFieldErrorClass('sale.bodyType')} value={sale.bodyType} onChange={(event) => updateSale('bodyType', event.target.value)}>
+            <select className={withFieldErrorClass('sale.bodyType')} value={sale.bodyType} onChange={(event) => vehicleCatalog.selectBodyType(event.target.value)}>
               <option value="" disabled>
                 Выберите тип кузова
               </option>
-              {saleBodyTypeOptions.map((option) => (
+              {saleCatalogBodyOptions.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
@@ -1299,6 +1368,12 @@ export default function NewListingPage() {
             </select>
           </Field>
         </div>
+
+        {vehicleCatalog.catalogError ? (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            Не удалось полностью загрузить автомобильный каталог. Форма остаётся доступной с ручным вводом.
+          </div>
+        ) : null}
 
         <RegistrationPlateField
           value={sale.plateNumber}
@@ -1378,13 +1453,13 @@ export default function NewListingPage() {
               <select
                 className={withFieldErrorClass('sale.engine')}
                 value={sale.engine}
-                onChange={(event) => updateSale('engine', event.target.value)}
+                onChange={(event) => vehicleCatalog.selectFuelType(event.target.value)}
               >
                 <option value="">Выберите тип</option>
-                {sale.engine && !SALE_ENGINE_TYPE_SET.has(sale.engine) ? (
+                {sale.engine && !saleFuelOptions.includes(sale.engine) ? (
                   <option value={sale.engine}>{sale.engine} (из объявления)</option>
                 ) : null}
-                {saleEngineTypeOptions.map((option) => (
+                {saleFuelOptions.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -1415,8 +1490,8 @@ export default function NewListingPage() {
             </Field>
 
             <Field label="Коробка">
-              <select className={withFieldErrorClass('sale.transmission')} value={sale.transmission} onChange={(event) => updateSale('transmission', event.target.value)}>
-                {saleTransmissionOptions.map((option) => (
+              <select className={withFieldErrorClass('sale.transmission')} value={sale.transmission} onChange={(event) => vehicleCatalog.selectTransmission(event.target.value)}>
+                {saleCatalogTransmissionOptions.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -1425,10 +1500,25 @@ export default function NewListingPage() {
             </Field>
 
             <Field label="Привод">
-              <select className={withFieldErrorClass('sale.drive')} value={sale.drive} onChange={(event) => updateSale('drive', event.target.value)}>
-                {saleDriveOptions.map((option) => (
+              <select className={withFieldErrorClass('sale.drive')} value={sale.drive} onChange={(event) => vehicleCatalog.selectDriveType(event.target.value)}>
+                {saleCatalogDriveOptions.map((option) => (
                   <option key={option} value={option}>
                     {option}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Модификация / комплектация">
+              <select
+                className={withFieldErrorClass('sale.catalogModificationId')}
+                value={sale.catalogModificationId}
+                onChange={(event) => vehicleCatalog.selectModification(event.target.value)}
+              >
+                <option value="">Выберите модификацию</option>
+                {vehicleCatalog.modifications.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
                   </option>
                 ))}
               </select>

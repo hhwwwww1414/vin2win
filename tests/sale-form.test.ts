@@ -22,6 +22,10 @@ test('buildSaleSubmissionPayload excludes removed ui-only flags and preserves re
       plateUnregistered: false,
       price: '4500000',
       bodyType: 'SUV',
+      catalogBrandId: 'brand-bmw',
+      catalogModelId: 'model-x5',
+      catalogFuelTypeId: 'fuel-gasoline',
+      catalogTransmissionId: 'transmission-automatic',
       engine: 'Бензин',
       transmission: 'АКПП',
       drive: 'Полный',
@@ -35,6 +39,10 @@ test('buildSaleSubmissionPayload excludes removed ui-only flags and preserves re
   assert.equal(payload.plateNumber, 'М192ММ');
   assert.equal(payload.plateRegion, '192');
   assert.equal(payload.plateUnregistered, false);
+  assert.equal(payload.catalogBrandId, 'brand-bmw');
+  assert.equal(payload.catalogModelId, 'model-x5');
+  assert.equal(payload.catalogFuelTypeId, 'fuel-gasoline');
+  assert.equal(payload.catalogTransmissionId, 'transmission-automatic');
   assert.ok(!('noRestrictions' in payload));
   assert.ok(!('techOk' in payload));
 });
@@ -43,6 +51,9 @@ test('mergeSaleFormWithEditableListing keeps vin, investment note, region and pl
   const merged = mergeSaleFormWithEditableListing(saleDefaults, {
     make: 'Audi',
     model: 'A6',
+    catalogBrandId: 'brand-audi',
+    catalogModelId: 'model-a6',
+    catalogGenerationId: 'generation-c8',
     year: 2021,
     region: 'Ленинградская область',
     city: 'Санкт-Петербург',
@@ -78,6 +89,9 @@ test('mergeSaleFormWithEditableListing keeps vin, investment note, region and pl
   });
 
   assert.equal(merged.vin, 'WAUZZZ4F1AN000001');
+  assert.equal(merged.catalogBrandId, 'brand-audi');
+  assert.equal(merged.catalogModelId, 'model-a6');
+  assert.equal(merged.catalogGenerationId, 'generation-c8');
   assert.equal(merged.region, 'Ленинградская область');
   assert.equal(merged.plateNumber, 'М192ММ');
   assert.equal(merged.plateRegion, '192');

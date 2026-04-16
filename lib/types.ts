@@ -82,8 +82,11 @@ export interface SaleListing {
   id: string;
   type: 'sale';
   make: string;
+  catalogBrandId?: string;
   model: string;
+  catalogModelId?: string;
   generation?: string;
+  catalogGenerationId?: string;
   year: number;
   price: number;
   priceInHand?: number;
@@ -99,11 +102,17 @@ export interface SaleListing {
   plateRegion?: string;
   plateUnregistered?: boolean;
   engine: string;
+  catalogFuelTypeId?: string;
   engineDisplacementL?: number;
+  catalogEngineId?: string;
   power: number;
   transmission: string;
+  catalogTransmissionId?: string;
   drive: string;
+  catalogDriveTypeId?: string;
   bodyType: string;
+  catalogBodyTypeId?: string;
+  catalogModificationId?: string;
   mileage: number;
   owners: number;
   registrations?: number;
@@ -127,6 +136,7 @@ export interface SaleListing {
   color: string;
   steering: string;
   trim?: string;
+  catalogTrimId?: string;
   description: string;
   viewCount: number;
   isFavorite?: boolean;

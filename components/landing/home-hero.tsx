@@ -3,8 +3,6 @@
 import Image from 'next/image';
 import SpotlightCursor from '@/components/spotlight-cursor';
 
-const heroLines = ['Продавай точнее.', 'Подбирай быстрее.'] as const;
-
 export function HomeHero() {
   return (
     <section
@@ -54,11 +52,12 @@ export function HomeHero() {
               id="home-hero-heading"
               className="mt-5 font-display text-[2.45rem] font-semibold leading-[0.94] tracking-[-0.05em] text-white sm:text-[3.55rem] lg:text-[4.55rem]"
             >
-              {heroLines.map((line) => (
-                <span key={line} className="block">
-                  {line}
-                </span>
-              ))}
+              <span className="block">
+                Продавай <span className="text-teal-accent">быстрее</span>
+              </span>
+              <span className="block">
+                Подбирай <span className="text-teal-accent">точнее</span>
+              </span>
             </h1>
             <p className="mt-5 max-w-[34rem] text-base leading-7 text-white/74 sm:text-lg sm:leading-8">
               Автомобили для профессиональных продавцов, подборщиков и менеджеров

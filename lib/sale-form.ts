@@ -5,7 +5,10 @@ export type SaleData = {
   contact: string;
   make: string;
   model: string;
+  catalogBrandId: string;
+  catalogModelId: string;
   generation: string;
+  catalogGenerationId: string;
   year: string;
   vin: string;
   region: string;
@@ -17,15 +20,22 @@ export type SaleData = {
   priceInHand: string;
   priceOnResources: string;
   bodyType: string;
+  catalogBodyTypeId: string;
   engine: string;
+  catalogFuelTypeId: string;
   engineDisplacementL: string;
+  catalogEngineId: string;
   power: string;
   transmission: string;
+  catalogTransmissionId: string;
   drive: string;
+  catalogDriveTypeId: string;
   mileage: string;
   steering: string;
   color: string;
   trim: string;
+  catalogModificationId: string;
+  catalogTrimId: string;
   owners: string;
   registrations: string;
   keysCount: string;
@@ -49,7 +59,10 @@ export type SaleData = {
 export type EditableSaleListingPayload = {
   make?: string;
   model?: string;
+  catalogBrandId?: string;
+  catalogModelId?: string;
   generation?: string;
+  catalogGenerationId?: string;
   year?: number | string;
   region?: string;
   city?: string;
@@ -60,15 +73,22 @@ export type EditableSaleListingPayload = {
   priceInHand?: number | string;
   priceOnResources?: number | string;
   bodyType?: string;
+  catalogBodyTypeId?: string;
   engine?: string;
+  catalogFuelTypeId?: string;
   engineDisplacementL?: number | string;
+  catalogEngineId?: string;
   power?: number | string;
   transmission?: string;
+  catalogTransmissionId?: string;
   drive?: string;
+  catalogDriveTypeId?: string;
   mileage?: number | string;
   steering?: string;
   color?: string;
   trim?: string;
+  catalogModificationId?: string;
+  catalogTrimId?: string;
   owners?: number | string;
   registrations?: number | string;
   keysCount?: number | string;
@@ -97,7 +117,10 @@ export const saleDefaults: SaleData = {
   contact: '',
   make: '',
   model: '',
+  catalogBrandId: '',
+  catalogModelId: '',
   generation: '',
+  catalogGenerationId: '',
   year: '',
   vin: '',
   region: '',
@@ -109,15 +132,22 @@ export const saleDefaults: SaleData = {
   priceInHand: '',
   priceOnResources: '',
   bodyType: '',
+  catalogBodyTypeId: '',
   engine: '',
+  catalogFuelTypeId: '',
   engineDisplacementL: '',
+  catalogEngineId: '',
   power: '',
-  transmission: 'АКПП',
-  drive: 'Передний',
+  transmission: 'РђРљРџРџ',
+  catalogTransmissionId: '',
+  drive: 'РџРµСЂРµРґРЅРёР№',
+  catalogDriveTypeId: '',
   mileage: '',
-  steering: 'Левый',
+  steering: 'Р›РµРІС‹Р№',
   color: '',
   trim: '',
+  catalogModificationId: '',
+  catalogTrimId: '',
   owners: '',
   registrations: '',
   keysCount: '2',
@@ -153,7 +183,10 @@ export function mergeSaleFormWithEditableListing(
     ...current,
     make: String(data.make ?? current.make),
     model: String(data.model ?? current.model),
+    catalogBrandId: String(data.catalogBrandId ?? current.catalogBrandId),
+    catalogModelId: String(data.catalogModelId ?? current.catalogModelId),
     generation: String(data.generation ?? current.generation),
+    catalogGenerationId: String(data.catalogGenerationId ?? current.catalogGenerationId),
     year: String(data.year ?? current.year),
     region: String(data.region ?? current.region),
     city: String(data.city ?? current.city),
@@ -164,15 +197,22 @@ export function mergeSaleFormWithEditableListing(
     priceInHand: String(data.priceInHand ?? ''),
     priceOnResources: String(data.priceOnResources ?? ''),
     bodyType: String(data.bodyType ?? current.bodyType),
+    catalogBodyTypeId: String(data.catalogBodyTypeId ?? current.catalogBodyTypeId),
     engine: String(data.engine ?? current.engine),
+    catalogFuelTypeId: String(data.catalogFuelTypeId ?? current.catalogFuelTypeId),
     engineDisplacementL: String(data.engineDisplacementL ?? ''),
+    catalogEngineId: String(data.catalogEngineId ?? current.catalogEngineId),
     power: String(data.power ?? current.power),
     transmission: String(data.transmission ?? current.transmission),
+    catalogTransmissionId: String(data.catalogTransmissionId ?? current.catalogTransmissionId),
     drive: String(data.drive ?? current.drive),
+    catalogDriveTypeId: String(data.catalogDriveTypeId ?? current.catalogDriveTypeId),
     mileage: String(data.mileage ?? current.mileage),
     steering: String(data.steering ?? current.steering),
     color: String(data.color ?? current.color),
     trim: String(data.trim ?? ''),
+    catalogModificationId: String(data.catalogModificationId ?? current.catalogModificationId),
+    catalogTrimId: String(data.catalogTrimId ?? current.catalogTrimId),
     owners: String(data.owners ?? current.owners),
     registrations: String(data.registrations ?? ''),
     keysCount: String(data.keysCount ?? current.keysCount),

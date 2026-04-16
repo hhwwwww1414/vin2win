@@ -100,130 +100,495 @@ enum SellerReviewStatus {
   REJECTED
 }
 
-model User {
-  id             String          @id @default(cuid())
-  email          String          @unique
-  passwordHash   String
+enum VehicleSourceCode {
+  OPEN_VEHICLE_DB
+  AUTOMOBILE_MODELS_SPECS
+  CAR_API
+  EPA_VEHICLES
+  MANUAL
+}
+
+enum VehicleImportStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  DRY_RUN
+}
+
+enum VehicleCatalogEntityType {
+  BRAND
+  MODEL
+  GENERATION
+  BODY_TYPE
+  FUEL_TYPE
+  ENGINE
+  TRANSMISSION
+  DRIVE_TYPE
+  MODIFICATION
+  TRIM
+}
+
+enum VehicleConfidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum VehicleSteeringSide {
+  LEFT
+  RIGHT
+  UNKNOWN
+}
+
+model VehicleCatalogSource {
+  id             String                    @id @default(cuid())
+  code           VehicleSourceCode         @unique
   name           String
-  phone          String?
-  telegramAuthId String?         @unique
-  telegramUsername String?
-  telegramAvatarUrl String?
-  role           UserRole        @default(USER)
-  isActive       Boolean         @default(true)
-  deactivatedAt  DateTime?
-  emailNotificationsEnabled Boolean @default(true)
-  telegramNotificationsEnabled Boolean @default(false)
-  browserPushEnabled Boolean @default(false)
-  telegramChatId String?
-  sellerProfile  SellerProfile?
-  sessions       Session[]
-  saleListings   SaleListing[]   @relation("SaleListingCreator")
-  wantedListings WantedListing[] @relation("WantedListingCreator")
-  favorites      Favorite[]
-  savedSearches  SavedSearch[]
-  notifications  UserNotification[]
-  pushSubscriptions PushSubscription[]
-  sellerReviews  SellerReview[]  @relation("SellerReviewAuthor")
-  adminActions   AdminActionLog[] @relation("AdminActionActor")
-  targetedAdminActions AdminActionLog[] @relation("AdminActionTarget")
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  market         String?
+  priority       Int                       @default(100)
+  importRuns     VehicleCatalogImportRun[]
+  rawRecords     VehicleCatalogRawRecord[]
+  sourceMappings VehicleSourceMapping[]
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+}
+
+model VehicleCatalogImportRun {
+  id         String                    @id @default(cuid())
+  sourceId   String
+  source     VehicleCatalogSource      @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  mode       String
+  status     VehicleImportStatus       @default(PENDING)
+  stats      Json?
+  error      String?
+  startedAt  DateTime                  @default(now())
+  finishedAt DateTime?
+  rawRecords VehicleCatalogRawRecord[]
+
+  @@index([sourceId, startedAt(sort: Desc)])
+  @@index([status, startedAt(sort: Desc)])
+}
+
+model VehicleCatalogRawRecord {
+  id                  String                  @id @default(cuid())
+  importRunId         String
+  importRun           VehicleCatalogImportRun @relation(fields: [importRunId], references: [id], onDelete: Cascade)
+  sourceId            String
+  source              VehicleCatalogSource    @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  recordType          String
+  externalId          String
+  checksum            String
+  brandName           String?
+  modelName           String?
+  productionStartYear Int?
+  productionEndYear   Int?
+  payload             Json
+  createdAt           DateTime                @default(now())
+
+  @@unique([sourceId, recordType, externalId, checksum])
+  @@index([importRunId, recordType])
+  @@index([sourceId, recordType])
+  @@index([brandName, modelName])
+}
+
+model VehicleBrand {
+  id             String              @id @default(cuid())
+  slug           String              @unique
+  normalizedName String              @unique
+  name           String
+  nameRu         String?
+  nameOriginal   String?
+  market         String?
+  lowConfidence  Boolean             @default(false)
+  models         VehicleModel[]
+  aliases        VehicleBrandAlias[]
+  saleListings   SaleListing[]       @relation("SaleListingCatalogBrand")
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+model VehicleBrandAlias {
+  id              String       @id @default(cuid())
+  brandId         String
+  brand           VehicleBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  alias           String
+  normalizedAlias String
+  language        String?
+  isPrimary       Boolean      @default(false)
+  market          String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([brandId, normalizedAlias])
+  @@index([normalizedAlias])
+}
+
+model VehicleModel {
+  id                  String              @id @default(cuid())
+  brandId             String
+  brand               VehicleBrand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  slug                String
+  normalizedName      String
+  name                String
+  nameRu              String?
+  nameOriginal        String?
+  productionStartYear Int?
+  productionEndYear   Int?
+  market              String?
+  lowConfidence       Boolean             @default(false)
+  aliases             VehicleModelAlias[]
+  generations         VehicleGeneration[]
+  trims               VehicleTrim[]
+  saleListings        SaleListing[]       @relation("SaleListingCatalogModel")
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@unique([brandId, slug])
+  @@index([brandId, normalizedName])
+}
+
+model VehicleModelAlias {
+  id              String       @id @default(cuid())
+  modelId         String
+  model           VehicleModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  alias           String
+  normalizedAlias String
+  language        String?
+  isPrimary       Boolean      @default(false)
+  market          String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([modelId, normalizedAlias])
+  @@index([normalizedAlias])
+}
+
+model VehicleBodyType {
+  id            String                @id @default(cuid())
+  code          String                @unique
+  slug          String                @unique
+  label         String
+  labelRu       String
+  labelEn       String?
+  sortOrder     Int                   @default(0)
+  generations   VehicleGeneration[]
+  modifications VehicleModification[]
+  saleListings  SaleListing[]         @relation("SaleListingCatalogBodyType")
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+}
+
+model VehicleFuelType {
+  id           String          @id @default(cuid())
+  code         String          @unique
+  slug         String          @unique
+  label        String
+  labelRu      String
+  labelEn      String?
+  sortOrder    Int             @default(0)
+  engines      VehicleEngine[]
+  saleListings SaleListing[]   @relation("SaleListingCatalogFuelType")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model VehicleTransmission {
+  id               String                @id @default(cuid())
+  code             String                @unique
+  slug             String                @unique
+  label            String
+  labelRu          String
+  labelEn          String?
+  transmissionType String?
+  gears            Int?
+  sortOrder        Int                   @default(0)
+  modifications    VehicleModification[]
+  saleListings     SaleListing[]         @relation("SaleListingCatalogTransmission")
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+}
+
+model VehicleDriveType {
+  id            String                @id @default(cuid())
+  code          String                @unique
+  slug          String                @unique
+  label         String
+  labelRu       String
+  labelEn       String?
+  sortOrder     Int                   @default(0)
+  modifications VehicleModification[]
+  saleListings  SaleListing[]         @relation("SaleListingCatalogDriveType")
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+}
+
+model VehicleGeneration {
+  id                  String                @id @default(cuid())
+  modelId             String
+  model               VehicleModel          @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  bodyTypeId          String?
+  bodyType            VehicleBodyType?      @relation(fields: [bodyTypeId], references: [id], onDelete: SetNull)
+  slug                String
+  label               String
+  labelRu             String
+  generationName      String?
+  generationCode      String?
+  restylingLabel      String?
+  isRestyling         Boolean               @default(false)
+  productionStartYear Int?
+  productionEndYear   Int?
+  steeringSide        VehicleSteeringSide   @default(UNKNOWN)
+  market              String?
+  lowConfidence       Boolean               @default(false)
+  modifications       VehicleModification[]
+  saleListings        SaleListing[]         @relation("SaleListingCatalogGeneration")
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@unique([modelId, slug])
+  @@index([modelId, productionStartYear, productionEndYear])
+  @@index([bodyTypeId, productionStartYear, productionEndYear])
+}
+
+model VehicleEngine {
+  id             String                @id @default(cuid())
+  fuelTypeId     String
+  fuelType       VehicleFuelType       @relation(fields: [fuelTypeId], references: [id], onDelete: Restrict)
+  slug           String                @unique
+  label          String
+  displacementCc Int?
+  displacementL  Float?
+  powerHp        Int?
+  cylinders      String?
+  engineCode     String?
+  aspiration     String?
+  layout         String?
+  evMotor        String?
+  market         String?
+  lowConfidence  Boolean               @default(false)
+  modifications  VehicleModification[]
+  saleListings   SaleListing[]         @relation("SaleListingCatalogEngine")
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([fuelTypeId, displacementL, powerHp])
+}
+
+model VehicleTrim {
+  id            String                @id @default(cuid())
+  modelId       String?
+  model         VehicleModel?         @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  slug          String                @unique
+  name          String
+  nameRu        String?
+  market        String?
+  lowConfidence Boolean               @default(false)
+  modifications VehicleModification[]
+  saleListings  SaleListing[]         @relation("SaleListingCatalogTrim")
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([modelId, name])
+}
+
+model VehicleModification {
+  id                  String               @id @default(cuid())
+  generationId        String
+  generation          VehicleGeneration    @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  bodyTypeId          String
+  bodyType            VehicleBodyType      @relation(fields: [bodyTypeId], references: [id], onDelete: Restrict)
+  engineId            String?
+  engine              VehicleEngine?       @relation(fields: [engineId], references: [id], onDelete: SetNull)
+  transmissionId      String?
+  transmission        VehicleTransmission? @relation(fields: [transmissionId], references: [id], onDelete: SetNull)
+  driveTypeId         String?
+  driveType           VehicleDriveType?    @relation(fields: [driveTypeId], references: [id], onDelete: SetNull)
+  trimId              String?
+  trim                VehicleTrim?         @relation(fields: [trimId], references: [id], onDelete: SetNull)
+  slug                String               @unique
+  name                String
+  label               String
+  productionStartYear Int?
+  productionEndYear   Int?
+  doors               Int?
+  seats               Int?
+  powerHp             Int?
+  engineVolumeL       Float?
+  steeringSide        VehicleSteeringSide  @default(UNKNOWN)
+  market              String?
+  lowConfidence       Boolean              @default(false)
+  saleListings        SaleListing[]        @relation("SaleListingCatalogModification")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([generationId, bodyTypeId, productionStartYear, productionEndYear])
+  @@index([generationId, engineId, driveTypeId, transmissionId])
+  @@index([bodyTypeId, engineId, driveTypeId, transmissionId])
+}
+
+model VehicleSourceMapping {
+  id               String                   @id @default(cuid())
+  sourceId         String
+  source           VehicleCatalogSource     @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  entityType       VehicleCatalogEntityType
+  entityId         String
+  externalId       String
+  externalParentId String?
+  sourceLabel      String?
+  confidence       VehicleConfidence        @default(HIGH)
+  payload          Json?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  @@unique([sourceId, entityType, externalId])
+  @@index([entityType, entityId])
+}
+
+model User {
+  id                           String             @id @default(cuid())
+  email                        String             @unique
+  passwordHash                 String
+  name                         String
+  phone                        String?
+  telegramAuthId               String?            @unique
+  telegramUsername             String?
+  telegramAvatarUrl            String?
+  role                         UserRole           @default(USER)
+  isActive                     Boolean            @default(true)
+  deactivatedAt                DateTime?
+  emailNotificationsEnabled    Boolean            @default(true)
+  telegramNotificationsEnabled Boolean            @default(false)
+  browserPushEnabled           Boolean            @default(false)
+  telegramChatId               String?
+  sellerProfile                SellerProfile?
+  sessions                     Session[]
+  saleListings                 SaleListing[]      @relation("SaleListingCreator")
+  wantedListings               WantedListing[]    @relation("WantedListingCreator")
+  favorites                    Favorite[]
+  savedSearches                SavedSearch[]
+  notifications                UserNotification[]
+  pushSubscriptions            PushSubscription[]
+  sellerReviews                SellerReview[]     @relation("SellerReviewAuthor")
+  adminActions                 AdminActionLog[]   @relation("AdminActionActor")
+  targetedAdminActions         AdminActionLog[]   @relation("AdminActionTarget")
+  createdAt                    DateTime           @default(now())
+  updatedAt                    DateTime           @updatedAt
 
   @@index([role, isActive, createdAt(sort: Desc)])
   @@index([telegramChatId])
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
   lastSeenAt DateTime @default(now())
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   @@index([userId, expiresAt])
 }
 
 model SellerProfile {
-  id             String          @id @default(cuid())
-  legacyId       String?         @unique
-  userId         String?         @unique
-  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
-  name           String
-  profileType    ProfileType
-  verified       Boolean         @default(false)
+  id              String          @id @default(cuid())
+  legacyId        String?         @unique
+  userId          String?         @unique
+  user            User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name            String
+  profileType     ProfileType
+  verified        Boolean         @default(false)
   onPlatformSince String
-  phone          String?
-  saleListings   SaleListing[]   @relation("SaleSeller")
-  wantedListings WantedListing[] @relation("WantedAuthor")
-  reviews        SellerReview[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  phone           String?
+  saleListings    SaleListing[]   @relation("SaleSeller")
+  wantedListings  WantedListing[] @relation("WantedAuthor")
+  reviews         SellerReview[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
 model SaleListing {
-  id               String          @id @default(cuid())
-  legacyId         String?         @unique
-  status           ListingStatus   @default(PUBLISHED)
-  moderationNote   String?
-  make             String
-  model            String
-  generation       String?
-  year             Int
-  price            Int
-  priceInHand      Int?
-  priceOnResources Int?
-  city             String
-  vin              String?
-  plateNumber      String?
-  plateRegion      String?
-  plateUnregistered Boolean        @default(false)
-  engine           String
-  engineDisplacementL Float?
-  power            Int
-  transmission     String
-  drive            String
-  bodyType         String
-  mileage          Int
-  owners           Int
-  registrations    Int?
-  ptsType          PtsType?
-  ptsOriginal      Boolean         @default(true)
-  avtotekaStatus   AvtotekaStatus?
-  paintedElements  String[]
-  paintCount       Int
-  accident         Boolean?
-  taxi             Boolean?
-  carsharing       Boolean?
-  keysCount        Int?
-  wheelSet         Boolean         @default(false)
-  extraTires       Boolean         @default(false)
-  conditionNote    String?
-  needsInvestment  Boolean?
-  glassOriginal    Boolean?
-  resourceStatus   ResourceStatus  @default(NOT_LISTED)
-  sellerType       SellerType      @default(OWNER)
-  inspectionCity   String?
-  color            String
-  steering         String
-  trim             String?
-  description      String
-  viewCount        Int             @default(0)
-  videoUrlExternal String?
-  reportUrlExternal String?
-  sellerId         String
-  seller           SellerProfile   @relation("SaleSeller", fields: [sellerId], references: [id], onDelete: Restrict)
-  createdByUserId  String?
-  createdByUser    User?           @relation("SaleListingCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  favorites        Favorite[]
-  priceHistory     PriceHistory[]
-  media            ListingMedia[]
-  publishedAt      DateTime?
-  statusUpdatedAt  DateTime        @default(now())
-  createdAt        DateTime
-  updatedAt        DateTime        @updatedAt
+  id                    String               @id @default(cuid())
+  legacyId              String?              @unique
+  status                ListingStatus        @default(PUBLISHED)
+  moderationNote        String?
+  make                  String
+  model                 String
+  catalogBrandId        String?
+  catalogBrand          VehicleBrand?        @relation("SaleListingCatalogBrand", fields: [catalogBrandId], references: [id], onDelete: SetNull)
+  catalogModelId        String?
+  catalogModel          VehicleModel?        @relation("SaleListingCatalogModel", fields: [catalogModelId], references: [id], onDelete: SetNull)
+  generation            String?
+  catalogGenerationId   String?
+  catalogGeneration     VehicleGeneration?   @relation("SaleListingCatalogGeneration", fields: [catalogGenerationId], references: [id], onDelete: SetNull)
+  year                  Int
+  price                 Int
+  priceInHand           Int?
+  priceOnResources      Int?
+  city                  String
+  vin                   String?
+  plateNumber           String?
+  plateRegion           String?
+  plateUnregistered     Boolean              @default(false)
+  bodyType              String
+  catalogBodyTypeId     String?
+  catalogBodyType       VehicleBodyType?     @relation("SaleListingCatalogBodyType", fields: [catalogBodyTypeId], references: [id], onDelete: SetNull)
+  engine                String
+  catalogFuelTypeId     String?
+  catalogFuelType       VehicleFuelType?     @relation("SaleListingCatalogFuelType", fields: [catalogFuelTypeId], references: [id], onDelete: SetNull)
+  engineDisplacementL   Float?
+  catalogEngineId       String?
+  catalogEngine         VehicleEngine?       @relation("SaleListingCatalogEngine", fields: [catalogEngineId], references: [id], onDelete: SetNull)
+  power                 Int
+  transmission          String
+  catalogTransmissionId String?
+  catalogTransmission   VehicleTransmission? @relation("SaleListingCatalogTransmission", fields: [catalogTransmissionId], references: [id], onDelete: SetNull)
+  drive                 String
+  catalogDriveTypeId    String?
+  catalogDriveType      VehicleDriveType?    @relation("SaleListingCatalogDriveType", fields: [catalogDriveTypeId], references: [id], onDelete: SetNull)
+  catalogModificationId String?
+  catalogModification   VehicleModification? @relation("SaleListingCatalogModification", fields: [catalogModificationId], references: [id], onDelete: SetNull)
+  mileage               Int
+  owners                Int
+  registrations         Int?
+  ptsType               PtsType?
+  ptsOriginal           Boolean              @default(true)
+  avtotekaStatus        AvtotekaStatus?
+  paintedElements       String[]
+  paintCount            Int
+  accident              Boolean?
+  taxi                  Boolean?
+  carsharing            Boolean?
+  keysCount             Int?
+  wheelSet              Boolean              @default(false)
+  extraTires            Boolean              @default(false)
+  conditionNote         String?
+  needsInvestment       Boolean?
+  glassOriginal         Boolean?
+  resourceStatus        ResourceStatus       @default(NOT_LISTED)
+  sellerType            SellerType           @default(OWNER)
+  inspectionCity        String?
+  color                 String
+  steering              String
+  trim                  String?
+  catalogTrimId         String?
+  catalogTrim           VehicleTrim?         @relation("SaleListingCatalogTrim", fields: [catalogTrimId], references: [id], onDelete: SetNull)
+  description           String
+  viewCount             Int                  @default(0)
+  videoUrlExternal      String?
+  reportUrlExternal     String?
+  sellerId              String
+  seller                SellerProfile        @relation("SaleSeller", fields: [sellerId], references: [id], onDelete: Restrict)
+  createdByUserId       String?
+  createdByUser         User?                @relation("SaleListingCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  favorites             Favorite[]
+  priceHistory          PriceHistory[]
+  media                 ListingMedia[]
+  publishedAt           DateTime?
+  statusUpdatedAt       DateTime             @default(now())
+  createdAt             DateTime
+  updatedAt             DateTime             @updatedAt
 
   @@index([status, createdAt(sort: Desc)])
   @@index([status, publishedAt(sort: Desc)])
@@ -231,35 +596,37 @@ model SaleListing {
   @@index([status, make, year])
   @@index([status, city])
   @@index([status, price])
+  @@index([catalogBrandId, catalogModelId, year])
+  @@index([catalogGenerationId, catalogModificationId])
 }
 
 model WantedListing {
-  id          String         @id @default(cuid())
-  legacyId    String?        @unique
-  status      ListingStatus  @default(PUBLISHED)
-  moderationNote String?
-  models      String[]
-  budgetMin   Int?
-  budgetMax   Int
-  yearFrom    Int?
-  mileageMax  Int?
-  engine      String?
-  transmission String?
-  drive       String?
-  ownersMax   Int?
-  paintAllowed Boolean       @default(false)
-  restrictions String[]
-  region      String?
-  comment     String?
-  contact     String
-  authorId    String
-  author      SellerProfile  @relation("WantedAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  id              String        @id @default(cuid())
+  legacyId        String?       @unique
+  status          ListingStatus @default(PUBLISHED)
+  moderationNote  String?
+  models          String[]
+  budgetMin       Int?
+  budgetMax       Int
+  yearFrom        Int?
+  mileageMax      Int?
+  engine          String?
+  transmission    String?
+  drive           String?
+  ownersMax       Int?
+  paintAllowed    Boolean       @default(false)
+  restrictions    String[]
+  region          String?
+  comment         String?
+  contact         String
+  authorId        String
+  author          SellerProfile @relation("WantedAuthor", fields: [authorId], references: [id], onDelete: Restrict)
   createdByUserId String?
-  createdByUser User?        @relation("WantedListingCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  publishedAt DateTime?
-  statusUpdatedAt DateTime   @default(now())
-  createdAt   DateTime
-  updatedAt   DateTime       @updatedAt
+  createdByUser   User?         @relation("WantedListingCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  publishedAt     DateTime?
+  statusUpdatedAt DateTime      @default(now())
+  createdAt       DateTime
+  updatedAt       DateTime      @updatedAt
 
   @@index([status, createdAt(sort: Desc)])
   @@index([status, publishedAt(sort: Desc)])
@@ -267,17 +634,17 @@ model WantedListing {
 }
 
 model ListingMedia {
-  id           String           @id @default(cuid())
+  id            String           @id @default(cuid())
   saleListingId String
-  saleListing  SaleListing      @relation(fields: [saleListingId], references: [id], onDelete: Cascade)
-  kind         ListingMediaKind
-  storageKey   String
-  publicUrl    String
-  originalName String?
-  mimeType     String?
-  sizeBytes    Int?
-  sortOrder    Int              @default(0)
-  createdAt    DateTime         @default(now())
+  saleListing   SaleListing      @relation(fields: [saleListingId], references: [id], onDelete: Cascade)
+  kind          ListingMediaKind
+  storageKey    String
+  publicUrl     String
+  originalName  String?
+  mimeType      String?
+  sizeBytes     Int?
+  sortOrder     Int              @default(0)
+  createdAt     DateTime         @default(now())
 
   @@index([saleListingId, kind, sortOrder])
 }
@@ -352,16 +719,16 @@ model UserNotification {
 }
 
 model PushSubscription {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  endpoint       String   @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint       String    @unique
   p256dh         String
   auth           String
   userAgent      String?
   expirationTime DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   lastSuccessAt  DateTime?
 
   @@index([userId, createdAt(sort: Desc)])

@@ -74,3 +74,10 @@ remote_next-env.d.ts
 remote_sha256.txt
 deploy-upgrade.tgz
 vin2win-canonical-*.tar
+
+# local data / media — не коммитить в репо
+sale/
+vehicles.csv
+vendor/
+main.png
+.superpowers/
