@@ -257,8 +257,6 @@ export async function POST(request: Request) {
       taxi: !parseBoolean(payload.notTaxi, true),
       carsharing: !parseBoolean(payload.notCarsharing, true),
       avtotekaStatus: parseBoolean(payload.avtotekaGreen) ? 'green' : undefined,
-      noRestrictions: parseBoolean(payload.noRestrictions),
-      techOk: parseBoolean(payload.techOk, true),
       wheelSet: parseBoolean(payload.wheelSet),
       extraTires: parseBoolean(payload.extraTires),
       glassOriginal: parseBoolean(payload.glassOriginal),

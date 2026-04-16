@@ -60,6 +60,7 @@ export async function GET(
       carsharing: listing.carsharing ?? false,
       avtotekaStatus: listing.avtotekaStatus?.toLowerCase() ?? '',
       needsInvestment: listing.needsInvestment ?? false,
+      conditionNote: listing.conditionNote ?? '',
       wheelSet: listing.wheelSet,
       extraTires: listing.extraTires,
       glassOriginal: listing.glassOriginal ?? false,

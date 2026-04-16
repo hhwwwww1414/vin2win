@@ -104,8 +104,6 @@ export interface CreateSaleListingInput {
   taxi: boolean;
   carsharing: boolean;
   avtotekaStatus?: 'green' | 'yellow' | 'red' | 'unknown';
-  noRestrictions?: boolean;
-  techOk?: boolean;
   wheelSet: boolean;
   extraTires: boolean;
   glassOriginal?: boolean;

@@ -10,6 +10,12 @@ import { Combobox } from '@/components/ui/combobox';
 import { ColorSwatchSelect } from '@/components/ui/color-swatch-select';
 import { CAR_CATALOG, CAR_MAKES, getModelsForMake } from '@/lib/car-catalog';
 import type { ListingStatusValue } from '@/lib/listing-status';
+import {
+  buildSaleSubmissionPayload,
+  mergeSaleFormWithEditableListing,
+  type EditableSaleListingPayload,
+  type SaleData,
+} from '@/lib/sale-form';
 import { formatEngineSpec } from '@/lib/listing-utils';
 import { SALE_ROUTE } from '@/lib/routes';
 import {
@@ -39,50 +45,6 @@ type FieldErrors = Record<string, string>;
 type PhotoItem = { file: File; url: string };
 type VideoItem = { file: File; name: string; size: string; url: string };
 type SessionUser = { name: string; phone?: string };
-
-type SaleData = {
-  sellerName: string;
-  contact: string;
-  make: string;
-  model: string;
-  generation: string;
-  year: string;
-  vin: string;
-  city: string;
-  price: string;
-  priceInHand: string;
-  priceOnResources: string;
-  bodyType: string;
-  engine: string;
-  engineDisplacementL: string;
-  power: string;
-  transmission: string;
-  drive: string;
-  mileage: string;
-  steering: string;
-  color: string;
-  trim: string;
-  owners: string;
-  registrations: string;
-  keysCount: string;
-  ptsType: string;
-  paintCount: string;
-  paintedElements: string;
-  notTaxi: boolean;
-  notCarsharing: boolean;
-  avtotekaGreen: boolean;
-  noRestrictions: boolean;
-  techOk: boolean;
-  wheelSet: boolean;
-  extraTires: boolean;
-  glassOriginal: boolean;
-  noInvestment: boolean;
-  investmentNote: string;
-  sellerType: string;
-  resourceStatus: string;
-  videoUrl: string;
-  description: string;
-};
 
 type WantedData = {
   authorName: string;
@@ -201,8 +163,6 @@ const saleDefaults: SaleData = {
   notTaxi: true,
   notCarsharing: true,
   avtotekaGreen: false,
-  noRestrictions: false,
-  techOk: true,
   wheelSet: false,
   extraTires: false,
   glassOriginal: false,
@@ -725,48 +685,16 @@ export default function NewListingPage() {
           return;
         }
 
-        const data = (await response.json()) as Record<string, unknown>;
-        setSale((current) => ({
-          ...current,
-          make: String(data.make ?? current.make),
-          model: String(data.model ?? current.model),
-          generation: String(data.generation ?? current.generation),
-          year: String(data.year ?? current.year),
-          city: String(data.city ?? current.city),
-          price: String(data.price ?? current.price),
-          priceInHand: String(data.priceInHand ?? ''),
-          priceOnResources: String(data.priceOnResources ?? ''),
-          bodyType: String(data.bodyType ?? current.bodyType),
-          engine: normalizeDuplicateEngineType(String(data.engine ?? current.engine)),
-          engineDisplacementL: normalizeDuplicateEngineDisplacementL(data.engineDisplacementL ?? ''),
-          power: String(data.power ?? current.power),
-          transmission: String(data.transmission ?? current.transmission),
-          drive: String(data.drive ?? current.drive),
-          mileage: String(data.mileage ?? current.mileage),
-          steering: String(data.steering ?? current.steering),
-          color: String(data.color ?? current.color),
-          trim: String(data.trim ?? ''),
-          owners: String(data.owners ?? current.owners),
-          registrations: String(data.registrations ?? ''),
-          keysCount: String(data.keysCount ?? current.keysCount),
-          ptsType: String(data.ptsType ?? current.ptsType),
-          paintCount: String(data.paintCount ?? current.paintCount),
-          paintedElements: String(data.paintedElements ?? ''),
-          notTaxi: !data.taxi,
-          notCarsharing: !data.carsharing,
-          avtotekaGreen: data.avtotekaStatus === 'green',
-          noInvestment: !data.needsInvestment,
-          wheelSet: Boolean(data.wheelSet),
-          extraTires: Boolean(data.extraTires),
-          glassOriginal: Boolean(data.glassOriginal),
-          sellerType: normalizeSaleSellerType(String(data.sellerType ?? current.sellerType)),
-          resourceStatus: String(data.resourceStatus ?? current.resourceStatus),
-          description: String(data.description ?? ''),
-          sellerName: String(data.sellerName ?? current.sellerName),
-          contact: String(data.contact ?? current.contact),
-          vin: '',
-          videoUrl: String(data.videoUrl ?? ''),
-        }));
+        const data = (await response.json()) as EditableSaleListingPayload;
+        setSale((current) => {
+          const merged = mergeSaleFormWithEditableListing(current, data);
+          return {
+            ...merged,
+            engine: normalizeDuplicateEngineType(merged.engine),
+            engineDisplacementL: normalizeDuplicateEngineDisplacementL(merged.engineDisplacementL),
+            sellerType: normalizeSaleSellerType(merged.sellerType),
+          };
+        });
         setScenario('sale');
         setDraftNotice('Данные объявления подставлены в форму. Фото и видео нужно выбрать заново.');
       } catch {
@@ -1077,7 +1005,7 @@ export default function NewListingPage() {
       try {
         if (scenario === 'sale') {
           const body = new FormData();
-          body.append('payload', JSON.stringify({ ...sale, initialStatus: mode }));
+          body.append('payload', JSON.stringify(buildSaleSubmissionPayload(sale, mode)));
           photos.forEach((photo) => body.append('photos', photo.file));
           if (videoFile) {
             body.append('video', videoFile.file);
@@ -1597,12 +1525,10 @@ export default function NewListingPage() {
             <Toggle label="Не такси" checked={sale.notTaxi} onChange={(value) => updateSale('notTaxi', value)} />
             <Toggle label="Не каршеринг" checked={sale.notCarsharing} onChange={(value) => updateSale('notCarsharing', value)} />
             <Toggle label="Зеленая автотека" checked={sale.avtotekaGreen} onChange={(value) => updateSale('avtotekaGreen', value)} />
-            <Toggle label="Нет ограничений" checked={sale.noRestrictions} onChange={(value) => updateSale('noRestrictions', value)} />
           </div>
         </div>
 
         <div className="space-y-4">
-          <Toggle label="Техника в порядке" checked={sale.techOk} onChange={(value) => updateSale('techOk', value)} />
           <Toggle label="Оригинальные стекла" checked={sale.glassOriginal} onChange={(value) => updateSale('glassOriginal', value)} />
           <Toggle label="Без вложений" checked={sale.noInvestment} onChange={(value) => updateSale('noInvestment', value)} />
           {!sale.noInvestment ? (
