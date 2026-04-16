@@ -44,11 +44,6 @@ type SaleListingPageRecord = NonNullable<Awaited<ReturnType<typeof getSaleListin
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') || 'https://vin2win.ru';
 
-const RESOURCE_STATUS_LABELS: Record<string, string> = {
-  not_listed: 'Не на ресурсах',
-  on_resources: 'На ресурсах',
-  pre_resources: 'До ресурсов',
-};
 
 function buildListingTitle(listing: Awaited<ReturnType<typeof getSaleListingById>>) {
   if (!listing) {
@@ -67,17 +62,6 @@ function buildListingDescription(listing: Awaited<ReturnType<typeof getSaleListi
     0,
     190
   );
-}
-
-function getContactHref(contact: string): string {
-  const trimmed = contact.trim();
-  if (trimmed.startsWith('tg/@')) {
-    return `https://t.me/${trimmed.slice(4)}`;
-  }
-  if (trimmed.startsWith('@')) {
-    return `https://t.me/${trimmed.slice(1)}`;
-  }
-  return `tel:${trimmed.replace(/\D/g, '')}`;
 }
 
 function getAvtotekaTone(status: SaleListingPageRecord['avtotekaStatus']) {
@@ -204,7 +188,6 @@ export default async function ListingPage({ params }: ListingPageProps) {
     sessionUser ? { userId: sessionUser.id, role: sessionUser.role } : undefined
   );
   const loginHref = `/login?next=${encodeURIComponent(`/listing/${listing.id}`)}`;
-  const resourceStatusLabel = RESOURCE_STATUS_LABELS[listing.resourceStatus] ?? listing.resourceStatus;
   const paintLabel = formatPaintCountValue(listing.paintCount);
   const avtotekaLabel = getAvtotekaStatusLabel(listing.avtotekaStatus);
   const avtotekaTone = getAvtotekaTone(listing.avtotekaStatus);

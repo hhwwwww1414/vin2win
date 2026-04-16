@@ -28,9 +28,12 @@ export function VehicleGallery({ vehicle }: VehicleGalleryProps) {
   const lightboxVideoRef = useRef<HTMLVideoElement>(null);
   const touchStartX = useRef<number | null>(null);
 
-  const galleryImages = vehicle.images.filter(Boolean);
-  const fallbackImage = vehicle.imageUrl.trim() ? vehicle.imageUrl : null;
-  const images = galleryImages.length > 0 ? galleryImages : fallbackImage ? [fallbackImage] : [];
+  const images = useMemo(() => {
+    const galleryImages = vehicle.images.filter(Boolean);
+    const fallbackImage = vehicle.imageUrl.trim() ? vehicle.imageUrl : null;
+
+    return galleryImages.length > 0 ? galleryImages : fallbackImage ? [fallbackImage] : [];
+  }, [vehicle.imageUrl, vehicle.images]);
   const slides = useMemo<GallerySlide[]>(
     () => [
       ...(vehicle.videoUrl
