@@ -1980,7 +1980,8 @@ export default function NewListingPage() {
               </div>
             </div>
 
-            <div className="mb-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
+            {false ? (
+              <div className="mb-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
               <section className="relative overflow-hidden rounded-[28px] border border-border/70 bg-background/75 p-5 shadow-[0_16px_38px_rgba(8,15,27,0.08)]">
                 <div
                   className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-accent/60 to-transparent"
@@ -2019,7 +2020,8 @@ export default function NewListingPage() {
                   ))}
                 </div>
               </aside>
-            </div>
+              </div>
+            ) : null}
 
             <div className="rounded-[28px] border border-border/70 bg-background/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
               {saleStepContent}
