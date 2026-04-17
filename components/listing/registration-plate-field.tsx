@@ -62,7 +62,7 @@ function PlateSegmentInput({
       onKeyDown={onKeyDown}
       onChange={(event) => onChange(event.target.value)}
       className={cn(
-        'min-w-0 border-0 bg-transparent text-center text-[1.95rem] font-medium leading-none tracking-[-0.04em] text-black outline-none placeholder:text-black/36 disabled:cursor-not-allowed disabled:text-black/22 disabled:placeholder:text-black/18 sm:text-[2.35rem]',
+        'min-w-0 border-0 bg-transparent text-center text-[1.45rem] font-medium leading-none tracking-[-0.04em] text-black outline-none placeholder:text-black/36 disabled:cursor-not-allowed disabled:text-black/22 disabled:placeholder:text-black/18 sm:text-[1.7rem]',
         className
       )}
     />
@@ -160,12 +160,12 @@ export function RegistrationPlateField({
         </span>
         <div
           className={cn(
-            'overflow-hidden rounded-[30px] border border-black/5 bg-[#f3f0eb] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.76)] transition-[box-shadow,transform] focus-within:-translate-y-px focus-within:shadow-[0_16px_38px_rgba(0,0,0,0.16)] sm:px-5 sm:py-4',
+            'overflow-hidden rounded-[24px] border border-black/5 bg-[#f3f0eb] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.76)] transition-[box-shadow,transform] focus-within:-translate-y-px focus-within:shadow-[0_14px_30px_rgba(0,0,0,0.14)] sm:px-4 sm:py-3',
             error && 'ring-2 ring-destructive/30'
           )}
         >
-          <div className="grid min-h-[82px] grid-cols-[minmax(0,1fr)_94px] items-center gap-3 sm:min-h-[88px] sm:grid-cols-[minmax(0,1fr)_108px] sm:gap-4">
-            <div className="flex min-w-0 items-center justify-center gap-1.5 sm:gap-2">
+          <div className="grid min-h-[66px] grid-cols-[minmax(0,1fr)_78px] items-center gap-2.5 sm:min-h-[72px] sm:grid-cols-[minmax(0,1fr)_86px] sm:gap-3">
+            <div className="flex min-w-0 items-center justify-center gap-1 sm:gap-1.5">
               <PlateSegmentInput
                 value={parts.prefix}
                 placeholder="О"
@@ -201,7 +201,7 @@ export function RegistrationPlateField({
               />
             </div>
 
-            <div className="flex h-full min-w-0 flex-col justify-center border-l border-black/10 pl-3 text-black sm:pl-4">
+            <div className="flex h-full min-w-0 flex-col justify-center border-l border-black/10 pl-2.5 text-black sm:pl-3">
               <div className="relative">
                 <select
                   ref={regionRef}
@@ -209,7 +209,7 @@ export function RegistrationPlateField({
                   disabled={unregistered}
                   aria-label="Регион госномера"
                   onChange={(event) => onRegionChange(event.target.value)}
-                  className="w-full appearance-none bg-transparent pr-5 text-right text-[1.65rem] font-medium leading-none text-black outline-none disabled:cursor-not-allowed disabled:text-black/22 sm:text-[1.95rem]"
+                  className="w-full appearance-none bg-transparent pr-4 text-right text-[1.1rem] font-medium leading-none text-black outline-none disabled:cursor-not-allowed disabled:text-black/22 sm:text-[1.2rem]"
                 >
                   <option value="">00</option>
                   {REGISTRATION_PLATE_REGION_OPTIONS.map((option) => (
@@ -218,14 +218,14 @@ export function RegistrationPlateField({
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-black/38" />
+                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 text-black/38" />
               </div>
 
-              <div className="mt-1 flex items-center justify-end gap-1.5 text-black/72">
-                <span className="text-[0.86rem] font-medium tracking-[0.08em]">RUS</span>
+              <div className="mt-0.5 flex items-center justify-end gap-1 text-black/72">
+                <span className="text-[0.72rem] font-medium tracking-[0.08em] sm:text-[0.78rem]">RUS</span>
                 <span
                   aria-hidden="true"
-                  className="h-3.5 w-5 rounded-[2px] border border-black/10 bg-[linear-gradient(180deg,#ffffff_0%,#ffffff_33%,#2b6fff_33%,#2b6fff_66%,#e83939_66%,#e83939_100%)]"
+                  className="h-3 w-[18px] rounded-[2px] border border-black/10 bg-[linear-gradient(180deg,#ffffff_0%,#ffffff_33%,#2b6fff_33%,#2b6fff_66%,#e83939_66%,#e83939_100%)]"
                 />
               </div>
             </div>
@@ -234,17 +234,17 @@ export function RegistrationPlateField({
         {error ? <span className="block text-xs text-destructive">{error}</span> : null}
       </div>
 
-      <label className="flex cursor-pointer items-center gap-3 text-foreground sm:gap-4">
+      <label className="flex cursor-pointer items-center gap-2.5 text-foreground sm:gap-3">
         <input
           type="checkbox"
           checked={unregistered}
           onChange={(event) => onUnregisteredChange(event.target.checked)}
           className="peer sr-only"
         />
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-background/70 transition-colors peer-checked:border-teal-accent/60 peer-checked:bg-teal-accent/12 peer-checked:text-teal-accent">
-          {unregistered ? <Check className="h-4 w-4" /> : null}
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-background/70 transition-colors peer-checked:border-teal-accent/60 peer-checked:bg-teal-accent/12 peer-checked:text-teal-accent">
+          {unregistered ? <Check className="h-3.5 w-3.5" /> : null}
         </span>
-        <span className="text-base font-medium sm:text-[1.12rem]">Машина не стоит на учёте в ГАИ</span>
+        <span className="text-sm font-medium sm:text-base">Машина не стоит на учёте в ГАИ</span>
       </label>
     </div>
   );

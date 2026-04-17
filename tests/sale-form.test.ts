@@ -101,3 +101,9 @@ test('mergeSaleFormWithEditableListing keeps vin, investment note, region and pl
   assert.equal(merged.notTaxi, true);
   assert.equal(merged.notCarsharing, true);
 });
+
+test('saleDefaults start with empty transmission and drive while keeping readable steering', () => {
+  assert.equal(saleDefaults.transmission, '');
+  assert.equal(saleDefaults.drive, '');
+  assert.equal(saleDefaults.steering, 'Левый');
+});

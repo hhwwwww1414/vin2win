@@ -32,12 +32,31 @@ async function selectComboboxValue(page: Page, label: string, value: string) {
   await expect(field.getByRole('combobox')).toContainText(value);
 }
 
+async function selectFirstComboboxValue(page: Page, label: string) {
+  const field = page.locator('label').filter({ hasText: label });
+
+  await field.getByRole('combobox').click();
+  const option = page.locator('[cmdk-item]').first();
+  await expect(option).toBeVisible();
+  const optionText = (await option.textContent())?.trim() ?? '';
+  await option.click();
+  await expect(field.getByRole('combobox')).toContainText(optionText);
+}
+
 export async function fillRequiredSalePassport(page: Page) {
   await selectComboboxValue(page, 'Марка', 'Toyota');
   await selectComboboxValue(page, 'Модель', 'Camry');
   await page.locator('label').filter({ hasText: 'Год' }).locator('select').selectOption('2024');
+  await page.locator('label').filter({ hasText: 'Кузов' }).locator('select').selectOption('Седан');
+  const generationField = page.locator('label').filter({ hasText: 'Поколение' });
+  if (await generationField.count()) {
+    if (await generationField.getByRole('combobox').count()) {
+      await selectFirstComboboxValue(page, 'Поколение');
+    } else {
+      await generationField.locator('input').fill('I');
+    }
+  }
   await selectComboboxValue(page, 'Область / край', 'Московская область');
   await selectComboboxValue(page, 'Город', 'Москва');
   await page.locator('label').filter({ hasText: 'Цена' }).locator('input').fill('2500000');
-  await page.locator('label').filter({ hasText: 'Тип кузова' }).locator('select').selectOption('Седан');
 }

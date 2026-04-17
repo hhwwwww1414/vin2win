@@ -98,7 +98,7 @@ test('listing/new applies catalog modification data and resets dependent fields 
     await selectComboboxValue(page, 'Марка', 'Land Rover');
     await selectComboboxValue(page, 'Модель', 'Range Rover Sport');
     await page.locator('label').filter({ hasText: 'Год' }).locator('select').selectOption('2020');
-    await page.locator('label').filter({ hasText: 'Тип кузова' }).locator('select').selectOption('Внедорожник');
+    await page.locator('label').filter({ hasText: 'Кузов' }).locator('select').selectOption('Внедорожник');
     await selectComboboxValue(page, 'Поколение', '2013-2022, Second generation (L494)');
     await selectComboboxValue(page, 'Область / край', 'Алтайский край');
     await selectComboboxValue(page, 'Город', 'Барнаул');
@@ -107,9 +107,11 @@ test('listing/new applies catalog modification data and resets dependent fields 
     await expect(page.locator('label').filter({ hasText: 'Двигатель' })).toBeVisible();
 
     await page.locator('label').filter({ hasText: 'Двигатель' }).locator('select').selectOption('Бензин');
+    await page.locator('label').filter({ hasText: 'Привод' }).locator('select').selectOption('Полный');
+    await page.locator('label').filter({ hasText: 'Коробка' }).locator('select').selectOption('АКПП');
     await page
       .locator('label')
-      .filter({ hasText: 'Модификация / комплектация' })
+      .filter({ hasText: 'Модификация' })
       .locator('select')
       .selectOption('mod_gasoline');
 
@@ -122,13 +124,80 @@ test('listing/new applies catalog modification data and resets dependent fields 
 
     await page.locator('label').filter({ hasText: 'Двигатель' }).locator('select').selectOption('Дизель');
 
+    await expect(page.locator('label').filter({ hasText: 'Привод' })).toBeVisible();
+    await page.locator('label').filter({ hasText: 'Привод' }).locator('select').selectOption('Полный');
+    await expect(page.locator('label').filter({ hasText: 'Коробка' })).toBeVisible();
     await expect(
-      page.locator('label').filter({ hasText: 'Модификация / комплектация' }).locator('select')
+      page.locator('label').filter({ hasText: 'Коробка' }).locator('select')
     ).toHaveValue('');
+    await page.locator('label').filter({ hasText: 'Коробка' }).locator('select').selectOption('АКПП');
+    await expect(page.locator('label').filter({ hasText: 'Модификация' }).locator('select')).toHaveValue('');
     await expect(page.locator('label').filter({ hasText: 'Мощность' }).locator('input')).toHaveValue('');
     await expect(
       page.locator('label').filter({ hasText: 'Объём двигателя' }).locator('select')
     ).toHaveValue('');
+  } finally {
+    await detachGuards();
+  }
+});
+
+test('listing/new reveals catalog-dependent fields step by step and keeps generation labels readable', async ({
+  page,
+}, testInfo) => {
+  const detachGuards = await attachQaGuards(page, testInfo);
+
+  try {
+    await mockListingSession(page);
+    await mockVehicleCatalogChain(page);
+    await openSaleWizard(page);
+
+    await expect(page.locator('label').filter({ hasText: 'Поколение' })).toHaveCount(0);
+    await expect(page.locator('label').filter({ hasText: 'Кузов' })).toHaveCount(0);
+
+    await selectComboboxValue(page, 'Марка', 'Land Rover');
+    await selectComboboxValue(page, 'Модель', 'Range Rover Sport');
+
+    await expect(page.locator('label').filter({ hasText: 'Год' })).toBeVisible();
+    await expect(page.locator('label').filter({ hasText: 'Кузов' })).toHaveCount(0);
+    await expect(page.locator('label').filter({ hasText: 'Поколение' })).toHaveCount(0);
+
+    await page.locator('label').filter({ hasText: 'Год' }).locator('select').selectOption('2020');
+
+    await expect(page.locator('label').filter({ hasText: 'Кузов' })).toBeVisible();
+    await expect(page.locator('label').filter({ hasText: 'Поколение' })).toHaveCount(0);
+
+    await page.locator('label').filter({ hasText: 'Кузов' }).locator('select').selectOption('Внедорожник');
+
+    const generationField = page.locator('label').filter({ hasText: 'Поколение' });
+    await expect(generationField).toBeVisible();
+    await generationField.getByRole('combobox').click();
+    await expect(page.locator('[cmdk-input]').last()).toHaveAttribute('placeholder', 'Найдите поколение');
+    await page.locator('[cmdk-input]').last().fill('zzz');
+    await expect(page.getByText('Поколение не найдено')).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    await selectComboboxValue(page, 'Поколение', '2013-2022, Second generation (L494)');
+    await selectComboboxValue(page, 'Область / край', 'Московская область');
+    await selectComboboxValue(page, 'Город', 'Москва');
+    await page.locator('label').filter({ hasText: 'Цена' }).locator('input').fill('3500000');
+    await page.getByRole('button', { name: 'Далее' }).click();
+
+    await expect(page.locator('label').filter({ hasText: 'Двигатель' })).toBeVisible();
+    await expect(page.locator('label').filter({ hasText: 'Привод' })).toHaveCount(0);
+    await expect(page.locator('label').filter({ hasText: 'Коробка' })).toHaveCount(0);
+    await expect(page.locator('label').filter({ hasText: 'Модификация' })).toHaveCount(0);
+
+    await page.locator('label').filter({ hasText: 'Двигатель' }).locator('select').selectOption('Бензин');
+    await expect(page.locator('label').filter({ hasText: 'Привод' })).toBeVisible();
+    await expect(page.locator('label').filter({ hasText: 'Коробка' })).toHaveCount(0);
+    await expect(page.locator('label').filter({ hasText: 'Модификация' })).toHaveCount(0);
+
+    await page.locator('label').filter({ hasText: 'Привод' }).locator('select').selectOption('Полный');
+    await expect(page.locator('label').filter({ hasText: 'Коробка' })).toBeVisible();
+    await expect(page.locator('label').filter({ hasText: 'Модификация' })).toHaveCount(0);
+
+    await page.locator('label').filter({ hasText: 'Коробка' }).locator('select').selectOption('АКПП');
+    await expect(page.locator('label').filter({ hasText: 'Модификация' })).toBeVisible();
   } finally {
     await detachGuards();
   }
