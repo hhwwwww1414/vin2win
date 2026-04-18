@@ -1,13 +1,14 @@
 'use client';
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Filter, Gauge, Layers3, MapPin, RotateCcw, Save, ShieldCheck, Sparkles } from 'lucide-react';
+import { Check, Filter, Gauge, Layers3, MapPin, RotateCcw, Save, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { ColorSwatchSelect } from '@/components/ui/color-swatch-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
@@ -22,6 +23,7 @@ import type { SaleSearchFacets, SaleSearchFilters } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const CLEAR_SELECT_VALUE = '__clear__';
+export const DEFAULT_ADVANCED_FILTER_HEADER_PILLS = ['Марка и модель', 'Бюджет и пробег', 'История и качество'] as const;
 
 function prepareDraftFilters(filters: SaleSearchFilters): SaleSearchFilters {
   const inferredRegion = filters.region ?? getRegionForCity(filters.city[0]);
@@ -71,6 +73,8 @@ function countActiveFilters(filters: SaleSearchFilters) {
   if (filters.noCarsharing) count += 1;
   if (filters.hasPhoto) count += 1;
   if (filters.priceInHand) count += 1;
+  if (filters.hasBenefit) count += 1;
+  if (filters.benefitMin || filters.benefitMax) count += 1;
   if (filters.noInvestment) count += 1;
   if (filters.sort !== 'date') count += 1;
 
@@ -89,6 +93,14 @@ function buildSummaryPills(filters: SaleSearchFilters) {
     const min = filters.priceMin ? `от ${filters.priceMin.toLocaleString('ru-RU')}` : '';
     const max = filters.priceMax ? `до ${filters.priceMax.toLocaleString('ru-RU')}` : '';
     items.push(`Цена ${[min, max].filter(Boolean).join(' ')}`.trim());
+  }
+
+  if (filters.benefitMin || filters.benefitMax) {
+    const min = filters.benefitMin ? `от ${filters.benefitMin.toLocaleString('ru-RU')}` : '';
+    const max = filters.benefitMax ? `до ${filters.benefitMax.toLocaleString('ru-RU')}` : '';
+    items.push(`Выгода ${[min, max].filter(Boolean).join(' ')}`.trim());
+  } else if (filters.hasBenefit || filters.sort === 'benefit_desc') {
+    items.push('Есть выгода');
   }
 
   if (filters.yearFrom || filters.yearTo) {
@@ -120,6 +132,12 @@ function buildSummaryPills(filters: SaleSearchFilters) {
 
   return items.slice(0, 6);
 }
+
+export function getAdvancedFilterHeaderPills(filters: SaleSearchFilters): string[] {
+  const summaryPills = buildSummaryPills(filters);
+  return summaryPills.length > 0 ? summaryPills : [...DEFAULT_ADVANCED_FILTER_HEADER_PILLS];
+}
+
 function SectionShell({ children }: { children: ReactNode }) {
   return (
     <section className="rounded-[var(--radius-card)] border border-border/50 bg-card/80 p-3 dark:bg-surface-elevated/80 sm:p-4">
@@ -219,7 +237,7 @@ function CheckboxRow({
   return (
     <label
       className={cn(
-        'flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors',
+        'relative flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors',
         checked
           ? 'border-teal-accent/25 bg-[var(--accent-bg-soft)] text-foreground'
           : 'border-border/70 bg-background/60 text-foreground hover:border-border dark:bg-background/10'
@@ -299,7 +317,7 @@ export function AdvancedFilters({
   }, [draft.make, facets.modelsByMake]);
 
   const activeFilterCount = useMemo(() => countActiveFilters(draft), [draft]);
-  const summaryPills = useMemo(() => buildSummaryPills(draft), [draft]);
+  const headerPills = useMemo(() => getAdvancedFilterHeaderPills(draft), [draft]);
   const draftHasFilters = hasActiveSaleSearchFilters(draft);
   const isHeaderElevated = headerScrollTop > 4;
   const isHeaderCondensed = headerScrollTop > 72;
@@ -337,17 +355,18 @@ export function AdvancedFilters({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="right"
+        hideCloseButton
         className="w-full gap-0 overflow-hidden border-l border-border/70 bg-background/96 p-0 supports-[backdrop-filter]:bg-background/94 sm:max-w-[860px]"
       >
         <SheetHeader
           className={cn(
-            'relative z-20 shrink-0 border-b border-border bg-[var(--surface-soft-strong)] pr-16 backdrop-blur-md transition-all duration-300 dark:bg-[var(--surface-soft-strong)] xl:px-6',
+            'relative z-20 shrink-0 border-b border-border bg-[var(--surface-soft-strong)] backdrop-blur-md transition-all duration-300 dark:bg-[var(--surface-soft-strong)] xl:px-6',
             isHeaderCondensed ? 'pb-3' : 'pb-5',
             isHeaderElevated && 'shadow-[var(--shadow-surface)]'
           )}
         >
-          <div className={cn('flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between', isHeaderCondensed && 'gap-3')}>
-            <div className="min-w-0">
+          <div className={cn('flex items-start gap-3 sm:gap-4', isHeaderCondensed && 'gap-2.5 sm:gap-3')}>
+            <div className="min-w-0 flex-1">
               <SheetTitle className={cn('flex items-center gap-2 transition-all duration-200', isHeaderCondensed ? 'text-base sm:text-lg' : 'text-lg')}>
                 <Filter className="h-4 w-4 text-teal-accent" />
                 Все фильтры
@@ -357,29 +376,41 @@ export function AdvancedFilters({
               </SheetDescription>
             </div>
 
-            <div
-              className={cn(
-                'inline-flex items-center gap-2 self-start rounded-2xl border border-border/70 bg-card/80 px-3 py-2 text-sm font-medium text-foreground transition-all duration-200 dark:bg-surface-elevated/80',
-                isHeaderCondensed && 'rounded-xl px-2.5 py-1.5 text-xs sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm'
-              )}
-            >
-              <Sparkles className="h-4 w-4 text-teal-accent" />
-              {activeFilterCount > 0 ? `${activeFilterCount} активных` : 'Базовый набор'}
+            <div className="ml-auto flex shrink-0 items-start gap-2 sm:gap-3">
+              <div
+                className={cn(
+                  'inline-flex max-w-[calc(100vw-9rem)] items-center gap-2 self-start rounded-2xl border border-border/70 bg-card/80 px-3 py-2 text-sm font-medium text-foreground transition-all duration-200 dark:bg-surface-elevated/80 sm:max-w-none',
+                  isHeaderCondensed && 'rounded-xl px-2.5 py-1.5 text-xs sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm'
+                )}
+              >
+                <Sparkles className="h-4 w-4 text-teal-accent" />
+                {activeFilterCount > 0 ? `${activeFilterCount} активных` : 'Базовый набор'}
+              </div>
+
+              <SheetClose
+                className={cn(
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-[var(--surface-soft-strong)] text-foreground shadow-[var(--shadow-surface)] ring-1 ring-black/5 backdrop-blur-md transition-all',
+                  'hover:border-teal-accent/35 hover:text-teal-accent',
+                  'focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
+                  'disabled:pointer-events-none dark:ring-white/10'
+                )}
+              >
+                <X className="size-5" />
+                <span className="sr-only">Close</span>
+              </SheetClose>
             </div>
           </div>
 
-          {summaryPills.length > 0 ? (
-            <div className={cn('mt-3 flex gap-2 transition-all duration-200', isHeaderCondensed ? 'mt-2 flex-nowrap overflow-x-auto pb-1 scrollbar-hide' : 'flex-wrap')}>
-              {summaryPills.map((item) => (
-                <span
-                  key={item}
-                  className="shrink-0 rounded-full bg-background/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground dark:bg-background/10"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
-          ) : null}
+          <div className={cn('mt-3 flex gap-2 transition-all duration-200', isHeaderCondensed ? 'mt-2 flex-nowrap overflow-x-auto pb-1 scrollbar-hide' : 'flex-wrap')}>
+            {headerPills.map((item) => (
+              <span
+                key={item}
+                className="shrink-0 rounded-full bg-background/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground dark:bg-background/10"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
         </SheetHeader>
 
         <div ref={contentRef} onScroll={handleSheetScroll} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -468,6 +499,62 @@ export function AdvancedFilters({
                   </SelectContent>
                 </Select>
               </Field>
+            </div>
+          </SectionShell>
+
+          <SectionShell>
+            <SectionTitle
+              eyebrow="Выгода"
+              title="Разница между ценой на ресурсах и ценой в руки"
+              icon={<Sparkles className="h-4 w-4" />}
+            />
+
+            <div className="space-y-4">
+              <CheckboxRow
+                checked={Boolean(draft.hasBenefit || draft.benefitMin || draft.benefitMax)}
+                label="Есть выгода"
+                onChange={(checked) =>
+                  setDraft((current) => ({
+                    ...current,
+                    hasBenefit: checked ? true : undefined,
+                    benefitMin: checked ? current.benefitMin : undefined,
+                    benefitMax: checked ? current.benefitMax : undefined,
+                  }))
+                }
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Выгода от">
+                  <input
+                    className={textInputClassName()}
+                    inputMode="numeric"
+                    value={draft.benefitMin ?? ''}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        hasBenefit: event.target.value ? true : current.benefitMax ? true : current.hasBenefit,
+                        benefitMin: event.target.value ? Number(event.target.value) : undefined,
+                      }))
+                    }
+                    placeholder="100 000"
+                  />
+                </Field>
+                <Field label="Выгода до">
+                  <input
+                    className={textInputClassName()}
+                    inputMode="numeric"
+                    value={draft.benefitMax ?? ''}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        hasBenefit: event.target.value ? true : current.benefitMin ? true : current.hasBenefit,
+                        benefitMax: event.target.value ? Number(event.target.value) : undefined,
+                      }))
+                    }
+                    placeholder="300 000"
+                  />
+                </Field>
+              </div>
             </div>
           </SectionShell>
 

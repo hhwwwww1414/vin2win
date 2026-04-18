@@ -4,7 +4,15 @@ export type SellerType = 'owner' | 'flip' | 'broker' | 'commission';
 export type ResourceStatus = 'not_listed' | 'on_resources' | 'pre_resources';
 export type PtsType = 'original' | 'duplicate' | 'epts';
 export type AvtotekaStatus = 'green' | 'yellow' | 'red' | 'unknown';
-export type SaleSearchSortKey = 'date' | 'price_asc' | 'price_desc' | 'mileage' | 'year_desc' | 'year_asc' | 'views';
+export type SaleSearchSortKey =
+  | 'date'
+  | 'price_asc'
+  | 'price_desc'
+  | 'mileage'
+  | 'year_desc'
+  | 'year_asc'
+  | 'views'
+  | 'benefit_desc';
 export type SellerReviewStatus = 'pending' | 'published' | 'rejected';
 
 export interface SalePriceHistoryPoint {
@@ -62,6 +70,9 @@ export interface SaleSearchFilters {
   sellerType: SellerType[];
   hasPhoto?: boolean;
   priceInHand?: boolean;
+  hasBenefit?: boolean;
+  benefitMin?: number;
+  benefitMax?: number;
   noInvestment?: boolean;
   filters: string[];
   sort: SaleSearchSortKey;
@@ -91,6 +102,7 @@ export interface SaleListing {
   price: number;
   priceInHand?: number;
   priceOnResources?: number;
+  potentialBenefit?: number;
   region?: string;
   city: string;
   images: string[];

@@ -372,6 +372,8 @@ function HomeContent({
             (filters.noCarsharing ? 1 : 0) +
             (filters.hasPhoto ? 1 : 0) +
             (filters.priceInHand ? 1 : 0) +
+            (filters.hasBenefit ? 1 : 0) +
+            (filters.benefitMin || filters.benefitMax ? 1 : 0) +
             (filters.noInvestment ? 1 : 0)
           }
           onChange={(ids) => updateSearch({ filters: ids, page: 1 })}

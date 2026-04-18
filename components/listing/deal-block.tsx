@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { CheckCircle, FileText, MapPin, MessageCircle, Phone, Shield } from 'lucide-react';
+import { ListingBenefitBadge } from '@/components/marketplace/listing-benefit-badge';
 import { Button } from '@/components/ui/button';
 import type { SaleListing } from '@/lib/types';
 import { formatPrice } from '@/lib/marketplace-data';
@@ -219,6 +220,11 @@ export function DealBlock({ listing, className }: DealBlockProps) {
                   </p>
                 </div>
               </div>
+              {listing.potentialBenefit ? (
+                <div className="mt-3">
+                  <ListingBenefitBadge amount={listing.potentialBenefit} variant="detail" />
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -288,6 +294,11 @@ export function DealBlock({ listing, className }: DealBlockProps) {
                 <span className={resourceColor}>{resourceLabel}</span>
                 <span>{listing.city}</span>
               </div>
+              {listing.potentialBenefit ? (
+                <div className="mt-2">
+                  <ListingBenefitBadge amount={listing.potentialBenefit} variant="detail" />
+                </div>
+              ) : null}
             </div>
           </div>
           <div className="mt-3 space-y-2">{actionButtons}</div>

@@ -79,6 +79,63 @@ test('advanced filters sheet stays usable', async ({ page }, testInfo) => {
   await assertClean();
 });
 
+test('advanced filters header stays stable after selecting a filter', async ({ page }, testInfo) => {
+  const assertClean = await attachQaGuards(page, testInfo);
+
+  await page.route('**://images.unsplash.com/**', async (route) => {
+    await route.fulfill({ status: 204, body: '' });
+  });
+
+  await page.goto('/sale');
+  await page.getByRole('button', { name: /Расширенный поиск/i }).click();
+
+  const dialog = page.locator('[data-slot="sheet-content"]').first();
+  const closeButton = dialog.getByRole('button', { name: /close/i });
+  const inactiveBadge = dialog.getByText('Базовый набор', { exact: true });
+  const scrollRegion = dialog.locator('div.min-h-0.flex-1.overflow-y-auto').first();
+  const targetFilter = dialog.locator('label').filter({ hasText: 'Есть цена в руки' }).first();
+
+  await expect(dialog).toBeVisible();
+  await expect(closeButton).toBeVisible();
+  await expect(inactiveBadge).toBeVisible();
+  await expect(targetFilter).toBeVisible();
+
+  const inactiveBadgeBox = await inactiveBadge.boundingBox();
+  const closeButtonBox = await closeButton.boundingBox();
+
+  expect(inactiveBadgeBox).not.toBeNull();
+  expect(closeButtonBox).not.toBeNull();
+  expect((inactiveBadgeBox?.x ?? 0) + (inactiveBadgeBox?.width ?? 0)).toBeLessThanOrEqual((closeButtonBox?.x ?? 0) - 4);
+
+  await targetFilter.scrollIntoViewIfNeeded();
+
+  const scrollBefore = await scrollRegion.evaluate((element) => element.scrollTop);
+  const filterBoxBefore = await targetFilter.boundingBox();
+
+  await targetFilter.click();
+
+  const activeBadge = dialog.getByText(/1 активн/i).first();
+  await expect(activeBadge).toBeVisible();
+
+  const scrollAfter = await scrollRegion.evaluate((element) => element.scrollTop);
+  const filterBoxAfter = await targetFilter.boundingBox();
+  const activeBadgeBox = await activeBadge.boundingBox();
+  const closeButtonBoxAfter = await closeButton.boundingBox();
+
+  expect(Math.abs(scrollAfter - scrollBefore)).toBeLessThanOrEqual(12);
+  expect(Math.abs((filterBoxAfter?.y ?? 0) - (filterBoxBefore?.y ?? 0))).toBeLessThanOrEqual(12);
+  expect(activeBadgeBox).not.toBeNull();
+  expect(closeButtonBoxAfter).not.toBeNull();
+  expect((activeBadgeBox?.x ?? 0) + (activeBadgeBox?.width ?? 0)).toBeLessThanOrEqual((closeButtonBoxAfter?.x ?? 0) - 4);
+
+  await testInfo.attach('advanced-filters-header-stability', {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: 'image/png',
+  });
+
+  await assertClean();
+});
+
 test('wanted page keeps a strong hero and routes request CTA into wanted flow', async ({ page }, testInfo) => {
   const assertClean = await attachQaGuards(page, testInfo);
 

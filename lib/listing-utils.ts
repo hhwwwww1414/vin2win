@@ -35,6 +35,21 @@ export function extractEngineDisplacement(
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+export function calculatePotentialBenefit(
+  listing: Pick<SaleListing, 'resourceStatus' | 'priceInHand' | 'priceOnResources'>,
+) {
+  if (
+    listing.resourceStatus !== 'on_resources' ||
+    listing.priceInHand == null ||
+    listing.priceOnResources == null ||
+    listing.priceOnResources <= listing.priceInHand
+  ) {
+    return undefined;
+  }
+
+  return listing.priceOnResources - listing.priceInHand;
+}
+
 export function formatEngineSpec(
   listing: Pick<SaleListing, 'engine' | 'engineDisplacementL'>,
 ) {

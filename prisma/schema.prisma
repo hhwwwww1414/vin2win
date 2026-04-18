@@ -526,6 +526,7 @@ model SaleListing {
   price                 Int
   priceInHand           Int?
   priceOnResources      Int?
+  potentialBenefit      Int?
   city                  String
   vin                   String?
   plateNumber           String?
@@ -596,6 +597,7 @@ model SaleListing {
   @@index([status, make, year])
   @@index([status, city])
   @@index([status, price])
+  @@index([potentialBenefit])
   @@index([catalogBrandId, catalogModelId, year])
   @@index([catalogGenerationId, catalogModificationId])
 }

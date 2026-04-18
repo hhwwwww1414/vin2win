@@ -2,13 +2,21 @@
 
 import { usePathname } from 'next/navigation';
 import { CompareTray } from '@/components/marketplace/compare-tray';
+import { cn } from '@/lib/utils';
 
-function isSaleListingDetailPath(pathname: string | null) {
+export function isSaleListingDetailPath(pathname: string | null) {
   if (!pathname) {
     return false;
   }
 
   return /^\/listing\/[^/]+$/.test(pathname) && pathname !== '/listing/new';
+}
+
+export function getSiteFooterClassName(pathname: string | null) {
+  return cn(
+    'relative z-10 mt-auto border-t border-border pt-8',
+    isSaleListingDetailPath(pathname) && 'hidden lg:block'
+  );
 }
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
@@ -47,7 +55,10 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       <div className="relative z-10 flex flex-1 flex-col">{children}</div>
       <CompareTray />
 
-      <footer data-site-footer className="relative z-10 mt-auto border-t border-border pt-8">
+      <footer
+        data-site-footer
+        className={getSiteFooterClassName(pathname)}
+      >
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 pb-8 sm:px-6 md:flex-row lg:px-8">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-dark dark:bg-teal-accent">

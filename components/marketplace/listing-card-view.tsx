@@ -28,6 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 import { CompareToggle } from './compare-toggle';
 import { FavoriteToggle } from './favorite-toggle';
+import { ListingBenefitBadge } from './listing-benefit-badge';
 import { ListingImageCarousel } from './listing-image-carousel';
 
 interface ListingCardViewProps {
@@ -448,6 +449,11 @@ function PriceColumn({
           <p className={cn('text-[11px] text-muted-foreground sm:text-[12px]', listing.priceInHand ? 'mt-1.5' : 'mt-1')}>
             На ресурсах {formatPrice(listing.priceOnResources)}
           </p>
+        ) : null}
+        {listing.potentialBenefit ? (
+          <div className="mt-2">
+            <ListingBenefitBadge amount={listing.potentialBenefit} variant="card" />
+          </div>
         ) : null}
 
         <div className="mt-2.5 space-y-2">

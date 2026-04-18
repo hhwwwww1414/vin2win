@@ -8,6 +8,7 @@ import { formatPrice, formatMileage } from '@/lib/marketplace-data';
 import { formatPaintCountValue, getListingTitle, SELLER_LABELS } from '@/lib/listing-utils';
 import { CompareToggle } from './compare-toggle';
 import { FavoriteToggle } from './favorite-toggle';
+import { ListingBenefitBadge } from './listing-benefit-badge';
 import { cn } from '@/lib/utils';
 
 const TABLE_COLUMNS = [
@@ -25,6 +26,19 @@ const TABLE_COLUMNS = [
   { key: 'status', label: 'Продавец', width: '104px' },
   { key: 'resources', label: 'Ресурсы', width: '94px' },
 ] as const;
+
+const BENEFIT_TABLE_COLUMN = {
+  key: 'benefit',
+  label: 'Выгода',
+  width: '104px',
+  sortable: ['benefit_desc'] as SaleSearchSortKey[],
+} as const;
+
+const TABLE_COLUMNS_WITH_BENEFIT: Array<(typeof TABLE_COLUMNS)[number] | typeof BENEFIT_TABLE_COLUMN> = [
+  ...TABLE_COLUMNS.slice(0, 5),
+  BENEFIT_TABLE_COLUMN,
+  ...TABLE_COLUMNS.slice(5),
+];
 
 interface ListingsTableProps {
   listings: SaleListing[];
@@ -96,18 +110,19 @@ export function ListingsTable({
       <div className="max-h-[calc(100vh-16rem)] overflow-x-auto overflow-y-auto">
         <table className="min-w-[1180px] w-full table-fixed border-collapse text-sm">
           <colgroup>
-            {TABLE_COLUMNS.map((col) => (
+            {TABLE_COLUMNS_WITH_BENEFIT.map((col) => (
               <col key={col.key} style={{ width: col.width, minWidth: col.width }} />
             ))}
           </colgroup>
           <thead>
             <tr className="border-b-2 border-border">
-              {TABLE_COLUMNS.map((col) => {
+              {TABLE_COLUMNS_WITH_BENEFIT.map((col) => {
                 const sortable = 'sortable' in col ? col.sortable : undefined;
                 const isNumericCol =
                   col.key === 'year' ||
                   col.key === 'price' ||
                   col.key === 'inHand' ||
+                  col.key === 'benefit' ||
                   col.key === 'mileage' ||
                   col.key === 'views' ||
                   col.key === 'owners';
@@ -229,6 +244,20 @@ function ListingTableRow({
       <td className={`${CELL_CLASS} text-right text-xs text-muted-foreground tabular-nums`}>
         <Link href={`/listing/${listing.id}`} className={CELL_LINK}>
           {listing.priceInHand ? formatPrice(listing.priceInHand) : '—'}
+        </Link>
+      </td>
+
+      <td
+        data-col="benefit"
+        className={cn(
+          CELL_CLASS,
+          'text-right text-xs text-muted-foreground tabular-nums',
+          isSortedColumn('benefit', sortKey) && 'bg-teal-accent/[0.04] dark:bg-teal-accent/[0.06]'
+        )}
+      >
+        <Link href={`/listing/${listing.id}`} className="flex w-full justify-end">
+          <ListingBenefitBadge amount={listing.potentialBenefit} variant="table" />
+          {!listing.potentialBenefit ? <span className="text-xs text-muted-foreground/50">вЂ”</span> : null}
         </Link>
       </td>
 

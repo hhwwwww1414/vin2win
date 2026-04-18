@@ -16,7 +16,7 @@ import { prisma } from './prisma';
 import { getRegionForCity, getRegionsForCities, getRuRegionOptions, resolveRegionCitySelection } from '@/lib/ru-regions';
 import { createDefaultSaleSearchFilters } from '@/lib/sale-search';
 import { saleListings as saleListingFixtures, wantedListings as wantedListingFixtures } from '@/lib/marketplace-data';
-import { extractEngineDisplacement } from '@/lib/listing-utils';
+import { calculatePotentialBenefit, extractEngineDisplacement } from '@/lib/listing-utils';
 import type {
   SaleListing,
   SaleSearchFacets,
@@ -372,6 +372,7 @@ function mapSaleListing(record: SaleListingRecord): SaleListing {
     price: record.price,
     priceInHand: record.priceInHand ?? undefined,
     priceOnResources: record.priceOnResources ?? undefined,
+    potentialBenefit: record.potentialBenefit ?? undefined,
     region: getRegionForCity(record.city) ?? undefined,
     city: record.city,
     images,
@@ -534,6 +535,15 @@ async function findOrCreateSellerProfile(input: {
       phone: input.phone,
     },
   });
+}
+
+function requiresPotentialBenefit(filters: SaleSearchFilters) {
+  return Boolean(
+    filters.hasBenefit ||
+    filters.benefitMin ||
+    filters.benefitMax ||
+    filters.sort === 'benefit_desc',
+  );
 }
 
 function buildPublishedSaleListingWhere(filters: SaleSearchFilters): Prisma.SaleListingWhereInput {
@@ -773,6 +783,16 @@ function buildPublishedSaleListingWhere(filters: SaleSearchFilters): Prisma.Sale
     });
   }
 
+  if (requiresPotentialBenefit(filters)) {
+    andConditions.push({
+      potentialBenefit: {
+        not: null,
+        gte: filters.benefitMin,
+        lte: filters.benefitMax,
+      },
+    });
+  }
+
   if (filters.noInvestment) {
     andConditions.push({
       NOT: {
@@ -800,6 +820,8 @@ function getSaleListingOrderBy(sort: SaleSearchFilters['sort']): Prisma.SaleList
       return [{ year: 'asc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }];
     case 'views':
       return [{ viewCount: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }];
+    case 'benefit_desc':
+      return [{ potentialBenefit: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }];
     case 'date':
     default:
       return [{ publishedAt: 'desc' }, { createdAt: 'desc' }];
@@ -815,6 +837,7 @@ function isMarketplaceDbUnavailable(error: unknown) {
 function cloneFixtureSaleListing(listing: SaleListing): SaleListing {
   return {
     ...listing,
+    potentialBenefit: listing.potentialBenefit ?? calculatePotentialBenefit(listing),
     seller: { ...listing.seller },
     images: [...listing.images],
     interiorImages: listing.interiorImages ? [...listing.interiorImages] : undefined,
@@ -859,6 +882,8 @@ function buildFixtureSellerProfileResult(id: string) {
 function filterFixtureSaleListings(filters: SaleSearchFilters) {
   const resolvedRegionSelection = resolveRegionCitySelection(filters.region, filters.city);
   return saleListingFixtures.filter((listing) => {
+    const potentialBenefit = listing.potentialBenefit ?? calculatePotentialBenefit(listing);
+
     if (filters.make.length > 0 && !filters.make.includes(listing.make)) return false;
     if (filters.model.length > 0 && !filters.model.includes(listing.model)) return false;
     if (filters.bodyType.length > 0 && !filters.bodyType.includes(listing.bodyType)) return false;
@@ -893,6 +918,9 @@ function filterFixtureSaleListings(filters: SaleSearchFilters) {
     if (filters.noCarsharing && listing.carsharing) return false;
     if (filters.hasPhoto && listing.images.length === 0) return false;
     if (filters.priceInHand && !listing.priceInHand) return false;
+    if (requiresPotentialBenefit(filters) && !potentialBenefit) return false;
+    if (filters.benefitMin && (!potentialBenefit || potentialBenefit < filters.benefitMin)) return false;
+    if (filters.benefitMax && (!potentialBenefit || potentialBenefit > filters.benefitMax)) return false;
     if (filters.noInvestment && listing.needsInvestment) return false;
 
     return true;
@@ -917,6 +945,11 @@ function sortFixtureSaleListings(items: SaleListing[], sort: SaleSearchFilters['
         return left.year - right.year || createdAtValue(right.createdAt) - createdAtValue(left.createdAt);
       case 'views':
         return right.viewCount - left.viewCount || createdAtValue(right.createdAt) - createdAtValue(left.createdAt);
+      case 'benefit_desc': {
+        const leftBenefit = left.potentialBenefit ?? calculatePotentialBenefit(left) ?? 0;
+        const rightBenefit = right.potentialBenefit ?? calculatePotentialBenefit(right) ?? 0;
+        return rightBenefit - leftBenefit || createdAtValue(right.createdAt) - createdAtValue(left.createdAt);
+      }
       case 'date':
       default:
         return createdAtValue(right.publishedAt ?? right.createdAt) - createdAtValue(left.publishedAt ?? left.createdAt);

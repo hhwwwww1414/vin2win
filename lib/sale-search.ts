@@ -14,6 +14,7 @@ export const SALE_SEARCH_SORT_OPTIONS: Array<{ value: SaleSearchSortKey; label: 
   { value: 'year_desc', label: 'По году: новее' },
   { value: 'year_asc', label: 'По году: старше' },
   { value: 'views', label: 'По просмотрам' },
+  { value: 'benefit_desc', label: 'РџРѕ РІС‹РіРѕРґРµ' },
 ];
 
 const VALID_SORTS = new Set<SaleSearchSortKey>(SALE_SEARCH_SORT_OPTIONS.map((option) => option.value));
@@ -179,6 +180,9 @@ export function parseSaleSearchParams(source: SearchParamSource): SaleSearchFilt
   filters.noCarsharing = parseBooleanParam(source, 'noCarsharing');
   filters.hasPhoto = parseBooleanParam(source, 'hasPhoto');
   filters.priceInHand = parseBooleanParam(source, 'priceInHand');
+  filters.hasBenefit = parseBooleanParam(source, 'hasBenefit');
+  filters.benefitMin = parseOptionalPositiveInt(source, 'benefitMin');
+  filters.benefitMax = parseOptionalPositiveInt(source, 'benefitMax');
   filters.noInvestment = parseBooleanParam(source, 'noInvestment');
 
   const sort = getSingleParam(source, 'sort');
@@ -269,6 +273,9 @@ export function buildSaleSearchParams(filters: Partial<SaleSearchFilters>): URLS
   if (filters.noCarsharing) params.set('noCarsharing', 'true');
   if (filters.hasPhoto) params.set('hasPhoto', 'true');
   if (filters.priceInHand) params.set('priceInHand', 'true');
+  if (filters.hasBenefit) params.set('hasBenefit', 'true');
+  if (filters.benefitMin) params.set('benefitMin', String(filters.benefitMin));
+  if (filters.benefitMax) params.set('benefitMax', String(filters.benefitMax));
   if (filters.noInvestment) params.set('noInvestment', 'true');
 
   if (filters.sort && filters.sort !== 'date') params.set('sort', filters.sort);

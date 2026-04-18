@@ -13,6 +13,7 @@ import {
 import { ListingImageCarousel } from './listing-image-carousel';
 import { ListingStatusBlock } from './listing-status-block';
 import { ListingChipsBlock } from './listing-chips-block';
+import { ListingBenefitBadge } from './listing-benefit-badge';
 import { CompareToggle } from './compare-toggle';
 import { FavoriteToggle } from './favorite-toggle';
 import { cn } from '@/lib/utils';
@@ -78,6 +79,9 @@ export function ListingCompactRow({
               <span className="text-xs text-muted-foreground tabular-nums">в руки {formatPrice(listing.priceInHand)}</span>
             ) : null}
           </div>
+          {listing.potentialBenefit ? (
+            <ListingBenefitBadge amount={listing.potentialBenefit} variant="compact" />
+          ) : null}
 
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
             <span className="tabular-nums">{formatMileage(listing.mileage)}</span>

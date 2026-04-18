@@ -48,8 +48,9 @@ const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   React.ComponentProps<typeof SheetPrimitive.Content> & {
     side?: 'top' | 'right' | 'bottom' | 'left'
+    hideCloseButton?: boolean
   }
->(({ className, children, side = 'right', ...props }, ref) => {
+>(({ className, children, side = 'right', hideCloseButton = false, ...props }, ref) => {
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -71,17 +72,19 @@ const SheetContent = React.forwardRef<
         {...props}
       >
         {children}
-        <SheetPrimitive.Close
-          className={cn(
-            'absolute top-3 right-3 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-[var(--surface-soft-strong)] text-foreground shadow-[var(--shadow-surface)] ring-1 ring-black/5 backdrop-blur-md transition-all sm:top-4 sm:right-4',
-            'hover:border-teal-accent/35 hover:text-teal-accent',
-            'focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
-            'disabled:pointer-events-none dark:ring-white/10'
-          )}
-        >
-          <XIcon className="size-5" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
+        {hideCloseButton ? null : (
+          <SheetPrimitive.Close
+            className={cn(
+              'absolute top-3 right-3 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-[var(--surface-soft-strong)] text-foreground shadow-[var(--shadow-surface)] ring-1 ring-black/5 backdrop-blur-md transition-all sm:top-4 sm:right-4',
+              'hover:border-teal-accent/35 hover:text-teal-accent',
+              'focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
+              'disabled:pointer-events-none dark:ring-white/10'
+            )}
+          >
+            <XIcon className="size-5" />
+            <span className="sr-only">Close</span>
+          </SheetPrimitive.Close>
+        )}
       </SheetPrimitive.Content>
     </SheetPortal>
   )
