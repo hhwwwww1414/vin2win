@@ -193,7 +193,7 @@ export function ListingCardView({
         className
       )}
     >
-      <article className="flex flex-col lg:min-h-[278px] lg:grid lg:grid-cols-[320px_minmax(0,1fr)_196px_40px] xl:grid-cols-[336px_minmax(0,1fr)_208px_40px]">
+      <article className="flex flex-col lg:min-h-[278px] lg:grid lg:grid-cols-[320px_minmax(0,1fr)_216px_40px] xl:grid-cols-[336px_minmax(0,1fr)_228px_40px]">
         <div className="p-2.5 sm:p-3 lg:pr-3">
           <div className="flex flex-col gap-2">
             <div className="relative h-[168px] overflow-hidden rounded-[18px] bg-muted/65 sm:h-[178px] lg:h-[190px] xl:h-[202px]">
