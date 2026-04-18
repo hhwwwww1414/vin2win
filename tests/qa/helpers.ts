@@ -67,6 +67,7 @@ export async function attachQaGuards(page: Page, testInfo: TestInfo) {
     const isBenignRscAbort = /\?_rsc=/i.test(request.url()) && /ERR_ABORTED/i.test(errorText);
     const isBenignViewCounterAbort = /\/api\/listings\/[^/]+\/view/i.test(request.url()) && /ERR_ABORTED/i.test(errorText);
     const isBenignCompareAbort = /\/api\/listings\/compare/i.test(request.url()) && /ERR_ABORTED/i.test(errorText);
+    const isBenignNextFontAbort = /\/__nextjs_font\//i.test(request.url()) && /ERR_ABORTED/i.test(errorText);
     const isBenignRemoteImageOrb =
       /s3\.twcstorage\.ru/i.test(request.url()) &&
       /\.(png|jpe?g|webp|gif)(\?|$)/i.test(request.url()) &&
@@ -80,6 +81,7 @@ export async function attachQaGuards(page: Page, testInfo: TestInfo) {
       isBenignRscAbort ||
       isBenignViewCounterAbort ||
       isBenignCompareAbort ||
+      isBenignNextFontAbort ||
       isBenignRemoteImageOrb
     ) {
       return;

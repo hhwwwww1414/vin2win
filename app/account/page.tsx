@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Copy, Eye } from 'lucide-react';
 import { NotificationDeliverySettings } from '@/components/account/notification-delivery-settings';
+import { AccountSellerProfilePanel } from '@/components/account/seller-profile-panel';
 import { SavedSearchesPanel } from '@/components/account/saved-searches-panel';
 import { MarketplaceHeader } from '@/components/marketplace/header';
 import { FavoriteToggle } from '@/components/marketplace/favorite-toggle';
@@ -11,6 +12,7 @@ import { ListingStatusBadge } from '@/components/listing/listing-status-badge';
 import { Button } from '@/components/ui/button';
 import { cleanSaleSearchFiltersForPersistence } from '@/lib/sale-search';
 import { getAccountOverview, requireAuthenticatedUser } from '@/lib/server/auth';
+import { mapSellerProfileRecord } from '@/lib/server/seller-profile';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +45,7 @@ export default async function AccountPage() {
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
   }));
+  const sellerProfile = overview.sellerProfile ? mapSellerProfileRecord(overview.sellerProfile) : null;
 
   return (
     <div className="min-h-full">
@@ -106,6 +109,10 @@ export default async function AccountPage() {
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="mt-8">
+          <AccountSellerProfilePanel sellerProfile={sellerProfile} />
         </section>
 
         <section className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)]">

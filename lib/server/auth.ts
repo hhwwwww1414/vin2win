@@ -18,6 +18,7 @@ import { type NextResponse } from 'next/server';
 import { countUnreadUserNotifications, createAdminActionLog, createUserNotification } from './admin-activity';
 import { serverEnv } from './env';
 import { prisma } from './prisma';
+export { getEditableSellerProfileByUserId, updateAccountSellerProfile } from './seller-profile';
 
 const scrypt = promisify(scryptCallback);
 const SESSION_TTL_MS = serverEnv.sessionTtlDays * 24 * 60 * 60 * 1000;

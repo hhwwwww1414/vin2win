@@ -7,6 +7,8 @@ test('seller profile keeps trust hero and active listing feed', async ({ page },
 
   await page.goto(sellerPath);
   await expect(page.locator('main h1').first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /О продавце/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /О продавце/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Активные объявления/i })).toBeVisible();
   await expect(page.locator('main a[href^="/listing/"]').first()).toBeVisible();
 

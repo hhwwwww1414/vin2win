@@ -305,6 +305,16 @@ function mapSellerProfile(profile: {
   verified: boolean;
   onPlatformSince: string;
   phone: string | null;
+  about: string | null;
+  avatarUrl: string | null;
+  avatarStorageKey: string | null;
+  coverUrl: string | null;
+  coverStorageKey: string | null;
+  avatarCropX: number | null;
+  avatarCropY: number | null;
+  avatarZoom: number | null;
+  coverCropX: number | null;
+  coverCropY: number | null;
 }): SellerProfile {
   return {
     id: profile.id,
@@ -314,6 +324,16 @@ function mapSellerProfile(profile: {
     verified: profile.verified,
     onPlatformSince: profile.onPlatformSince,
     phone: profile.phone ?? undefined,
+    about: profile.about ?? undefined,
+    avatarUrl: profile.avatarUrl ?? undefined,
+    avatarStorageKey: profile.avatarStorageKey ?? undefined,
+    coverUrl: profile.coverUrl ?? undefined,
+    coverStorageKey: profile.coverStorageKey ?? undefined,
+    avatarCropX: profile.avatarCropX ?? undefined,
+    avatarCropY: profile.avatarCropY ?? undefined,
+    avatarZoom: profile.avatarZoom ?? undefined,
+    coverCropX: profile.coverCropX ?? undefined,
+    coverCropY: profile.coverCropY ?? undefined,
   };
 }
 
@@ -831,7 +851,25 @@ function getSaleListingOrderBy(sort: SaleSearchFilters['sort']): Prisma.SaleList
 const canUseFixtureMarketplaceFallback = process.env.NODE_ENV !== 'production';
 
 function isMarketplaceDbUnavailable(error: unknown) {
-  return error instanceof Error && /Can't reach database server|PrismaClientInitializationError/i.test(error.message);
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const code =
+    'code' in error && typeof error.code === 'string'
+      ? error.code
+      : 'errorCode' in error && typeof error.errorCode === 'string'
+      ? error.errorCode
+      : '';
+  const message = [error.name, error.message].filter(Boolean).join(' ');
+
+  if (code === 'P1000' || code === 'P1001') {
+    return true;
+  }
+
+  return /Can't reach database server|PrismaClientInitializationError|Authentication failed against database server|database credentials .* not valid|ECONNREFUSED|timed out/i.test(
+    message
+  );
 }
 
 function cloneFixtureSaleListing(listing: SaleListing): SaleListing {

@@ -30,6 +30,7 @@ test('account dashboard keeps inbox and primary action surfaces', async ({ page 
     await expect(page.locator('main h1').first()).toBeVisible();
     await expect(page.locator('a[href="/listing/new"]').first()).toBeVisible();
     await expect(page.getByText('Inbox')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Редактировать профиль/i })).toBeVisible();
   } finally {
     await detachGuards();
   }

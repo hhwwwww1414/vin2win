@@ -501,6 +501,16 @@ model SellerProfile {
   verified        Boolean         @default(false)
   onPlatformSince String
   phone           String?
+  about           String?
+  avatarUrl       String?
+  avatarStorageKey String?
+  coverUrl        String?
+  coverStorageKey String?
+  avatarCropX     Float?
+  avatarCropY     Float?
+  avatarZoom      Float?
+  coverCropX      Float?
+  coverCropY      Float?
   saleListings    SaleListing[]   @relation("SaleSeller")
   wantedListings  WantedListing[] @relation("WantedAuthor")
   reviews         SellerReview[]

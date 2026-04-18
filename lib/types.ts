@@ -195,6 +195,16 @@ export interface SellerProfile {
   verified: boolean;
   onPlatformSince: string;
   phone?: string;
+  about?: string;
+  avatarUrl?: string;
+  avatarStorageKey?: string;
+  coverUrl?: string;
+  coverStorageKey?: string;
+  avatarCropX?: number;
+  avatarCropY?: number;
+  avatarZoom?: number;
+  coverCropX?: number;
+  coverCropY?: number;
   completedDealsCount?: number;
   reviewCount?: number;
   averageRating?: number;
