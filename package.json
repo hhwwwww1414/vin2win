@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run db:generate && next build",
+    "build": "npm run db:generate && npm run db:migrate:deploy && next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -16,6 +16,7 @@
     "qa:audit:headed": "playwright test --headed",
     "qa:a11y": "playwright test tests/qa/a11y.spec.ts",
     "db:generate": "tsx scripts/run-prisma.ts generate",
+    "db:migrate:deploy": "tsx scripts/run-prisma.ts migrate deploy",
     "db:push": "tsx scripts/run-prisma.ts db push",
     "db:push:reset": "tsx scripts/run-prisma.ts db push --force-reset",
     "db:seed:marketplace": "tsx scripts/reset-and-seed-marketplace.ts",

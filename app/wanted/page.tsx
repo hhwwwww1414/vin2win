@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { WantedPageClient } from '@/components/wanted/wanted-page-client';
 import { getPublishedWantedListings } from '@/lib/server/marketplace';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Запросы в подбор',
   description: 'Публичная лента заявок на подбор автомобилей с бюджетом, ограничениями и контактами.',
