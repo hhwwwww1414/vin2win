@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, FileText, MapPin, MessageCircle, Phone, Shield } from 'lucide-react';
 import { ListingBenefitBadge } from '@/components/marketplace/listing-benefit-badge';
 import { Button } from '@/components/ui/button';
 import type { SaleListing } from '@/lib/types';
 import { formatPrice } from '@/lib/marketplace-data';
 import { cn } from '@/lib/utils';
+
+const MOBILE_DEAL_BLOCK_BOTTOM_BUFFER_PX = 260;
 
 function normalizePhoneForWhatsApp(phone: string): string {
   const digits = phone.replace(/\D/g, '');
@@ -60,6 +62,42 @@ interface DealBlockProps {
 
 export function DealBlock({ listing, className }: DealBlockProps) {
   const [showPhone, setShowPhone] = useState(false);
+  const [hideMobileDealBlock, setHideMobileDealBlock] = useState(false);
+  const rafIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    function updateMobileDealBlockVisibility() {
+      const viewportBottom = window.scrollY + window.innerHeight;
+      const documentBottom = document.documentElement.scrollHeight;
+      const distanceToBottom = documentBottom - viewportBottom;
+
+      setHideMobileDealBlock(distanceToBottom <= MOBILE_DEAL_BLOCK_BOTTOM_BUFFER_PX);
+    }
+
+    function scheduleUpdate() {
+      if (rafIdRef.current !== null) {
+        window.cancelAnimationFrame(rafIdRef.current);
+      }
+
+      rafIdRef.current = window.requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        updateMobileDealBlockVisibility();
+      });
+    }
+
+    scheduleUpdate();
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+
+    return () => {
+      if (rafIdRef.current !== null) {
+        window.cancelAnimationFrame(rafIdRef.current);
+      }
+
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+    };
+  }, []);
 
   const legalClean =
     listing.ptsOriginal &&
@@ -277,9 +315,14 @@ export function DealBlock({ listing, className }: DealBlockProps) {
 
       <div
         className={cn(
-          'fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/96 px-4 py-3 shadow-[0_-12px_30px_rgba(0,0,0,0.2)] backdrop-blur-xl lg:hidden',
+          'fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/96 px-4 py-3 shadow-[0_-12px_30px_rgba(0,0,0,0.2)] backdrop-blur-xl transition-all duration-200 lg:hidden',
+          hideMobileDealBlock
+            ? 'pointer-events-none translate-y-6 opacity-0'
+            : 'pointer-events-auto translate-y-0 opacity-100',
           className
         )}
+        data-mobile-deal-block="true"
+        data-hidden-near-bottom={hideMobileDealBlock ? 'true' : 'false'}
       >
         <div className="mx-auto max-w-7xl rounded-[24px] border border-border/70 bg-card/90 p-3 shadow-[0_10px_24px_rgba(0,0,0,0.16)] dark:bg-surface-elevated/90">
           <div className="flex items-start gap-3">

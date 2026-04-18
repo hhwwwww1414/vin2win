@@ -29,7 +29,17 @@ test('listing detail keeps mobile sticky CTA visible', async ({ page }, testInfo
   const listingPath = await getFirstListingPath(page);
 
   await page.goto(listingPath);
-  await expect(page.locator('div.fixed button').first()).toBeVisible();
+  const stickyCta = page.locator('[data-mobile-deal-block="true"]').first();
+  await expect(stickyCta).toBeVisible();
+
+  await page.evaluate(() => {
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: 'instant',
+    });
+  });
+  await expect(stickyCta).toHaveAttribute('data-hidden-near-bottom', 'true');
+  await expect(stickyCta).toHaveCSS('pointer-events', 'none');
 
   await testInfo.attach('listing-detail-mobile', {
     body: await page.screenshot({ fullPage: true }),
