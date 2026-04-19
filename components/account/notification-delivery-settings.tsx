@@ -5,11 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 
 type NotificationDeliverySettingsProps = {
   emailEnabled: boolean;
   telegramEnabled: boolean;
   browserPushEnabled: boolean;
+  chatSoundEnabled: boolean;
+  chatPushEnabled: boolean;
   telegramChatId?: string | null;
   hasPushSubscription: boolean;
   lastPushSuccessAt?: string | null;
@@ -145,6 +148,8 @@ export function NotificationDeliverySettings({
   emailEnabled,
   telegramEnabled,
   browserPushEnabled,
+  chatSoundEnabled,
+  chatPushEnabled,
   telegramChatId,
   hasPushSubscription,
   lastPushSuccessAt,
@@ -154,6 +159,8 @@ export function NotificationDeliverySettings({
     emailEnabled,
     telegramEnabled,
     browserPushEnabled,
+    chatSoundEnabled,
+    chatPushEnabled,
     telegramChatId: telegramChatId ?? '',
   });
   const [pushSubscribed, setPushSubscribed] = useState(hasPushSubscription);
@@ -170,11 +177,13 @@ export function NotificationDeliverySettings({
       emailEnabled,
       telegramEnabled,
       browserPushEnabled,
+      chatSoundEnabled,
+      chatPushEnabled,
       telegramChatId: telegramChatId ?? '',
     });
     setPushSubscribed(hasPushSubscription);
     setLastDeliveredPush(lastPushSuccessAt ?? null);
-  }, [browserPushEnabled, emailEnabled, hasPushSubscription, lastPushSuccessAt, telegramChatId, telegramEnabled]);
+  }, [browserPushEnabled, chatPushEnabled, chatSoundEnabled, emailEnabled, hasPushSubscription, lastPushSuccessAt, telegramChatId, telegramEnabled]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -233,6 +242,8 @@ export function NotificationDeliverySettings({
           emailNotificationsEnabled: draft.emailEnabled,
           telegramNotificationsEnabled: draft.telegramEnabled,
           browserPushEnabled: draft.browserPushEnabled,
+          chatSoundEnabled: draft.chatSoundEnabled,
+          chatPushEnabled: draft.chatPushEnabled,
           telegramChatId: draft.telegramChatId.trim() || null,
         }),
       });
@@ -245,6 +256,16 @@ export function NotificationDeliverySettings({
       startTransition(() => {
         router.refresh();
       });
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('vin2win:chat-settings-updated', {
+            detail: {
+              chatSoundEnabled: draft.chatSoundEnabled,
+            },
+          }),
+        );
+      }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Не удалось сохранить настройки уведомлений.');
     } finally {
@@ -413,11 +434,9 @@ export function NotificationDeliverySettings({
               <h3 className="font-medium text-foreground">Email</h3>
               <p className="mt-1 text-sm text-muted-foreground">Оперативные уведомления на основной email аккаунта.</p>
             </div>
-            <input
-              type="checkbox"
+            <Switch
               checked={draft.emailEnabled}
-              onChange={(event) => setDraft((current) => ({ ...current, emailEnabled: event.target.checked }))}
-              className="mt-1 h-4 w-4"
+              onCheckedChange={(checked) => setDraft((current) => ({ ...current, emailEnabled: checked }))}
             />
           </div>
         </label>
@@ -428,11 +447,9 @@ export function NotificationDeliverySettings({
               <h3 className="font-medium text-foreground">Telegram</h3>
               <p className="mt-1 text-sm text-muted-foreground">Подключите Telegram, чтобы получать решения модерации и обновления по объявлениям в мессенджере.</p>
             </div>
-            <input
-              type="checkbox"
+            <Switch
               checked={draft.telegramEnabled}
-              onChange={(event) => setDraft((current) => ({ ...current, telegramEnabled: event.target.checked }))}
-              className="mt-1 h-4 w-4"
+              onCheckedChange={(checked) => setDraft((current) => ({ ...current, telegramEnabled: checked }))}
             />
           </div>
           <input
@@ -446,6 +463,32 @@ export function NotificationDeliverySettings({
               Бот: <Link href={`https://t.me/${telegramBotUsername}`} className="text-teal-accent hover:underline">{telegramBotUsername}</Link>
             </p>
           ) : null}
+        </label>
+
+        <label className="rounded-[24px] border border-border/70 bg-background/60 p-4 shadow-[0_12px_28px_rgba(8,15,27,0.06)]">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="font-medium text-foreground">Звук новых сообщений</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Работает при открытой вкладке и после взаимодействия со страницей. При полностью закрытом сайте звук контролирует уже браузерное push-уведомление.</p>
+            </div>
+            <Switch
+              checked={draft.chatSoundEnabled}
+              onCheckedChange={(checked) => setDraft((current) => ({ ...current, chatSoundEnabled: checked }))}
+            />
+          </div>
+        </label>
+
+        <label className="rounded-[24px] border border-border/70 bg-background/60 p-4 shadow-[0_12px_28px_rgba(8,15,27,0.06)]">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="font-medium text-foreground">Push для чатов</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Отдельный канал для новых сообщений, если вкладка скрыта, браузер в фоне или сайт не открыт.</p>
+            </div>
+            <Switch
+              checked={draft.chatPushEnabled}
+              onCheckedChange={(checked) => setDraft((current) => ({ ...current, chatPushEnabled: checked }))}
+            />
+          </div>
         </label>
       </div>
 

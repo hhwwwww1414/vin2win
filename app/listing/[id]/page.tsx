@@ -453,7 +453,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
           </div>
 
           <div className="lg:col-span-4">
-            <DealBlock listing={listing} />
+            <DealBlock listing={listing} currentUserId={sessionUser?.id} />
           </div>
         </div>
 

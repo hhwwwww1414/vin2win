@@ -86,12 +86,22 @@ enum UserNotificationType {
   ACCOUNT_STATUS_CHANGED
   SELLER_PROFILE_CHANGED
   NEW_LISTING_MATCH
+  CHAT_MESSAGE
 }
 
 enum NotificationChannel {
   EMAIL
   TELEGRAM
   BROWSER_PUSH
+}
+
+enum ChatContextType {
+  SALE_LISTING
+  WANTED_LISTING
+}
+
+enum ChatMessageType {
+  TEXT
 }
 
 enum SellerReviewStatus {
@@ -460,6 +470,8 @@ model User {
   emailNotificationsEnabled    Boolean            @default(true)
   telegramNotificationsEnabled Boolean            @default(false)
   browserPushEnabled           Boolean            @default(false)
+  chatSoundEnabled             Boolean            @default(true)
+  chatPushEnabled              Boolean            @default(true)
   telegramChatId               String?
   sellerProfile                SellerProfile?
   sessions                     Session[]
@@ -469,6 +481,12 @@ model User {
   savedSearches                SavedSearch[]
   notifications                UserNotification[]
   pushSubscriptions            PushSubscription[]
+  createdChats                 Chat[]             @relation("ChatCreatedBy")
+  lowParticipantChats          Chat[]             @relation("ChatParticipantLow")
+  highParticipantChats         Chat[]             @relation("ChatParticipantHigh")
+  chatParticipants             ChatParticipant[]
+  sentChatMessages             ChatMessage[]      @relation("ChatMessageSender")
+  chatPresences                ChatPresence[]
   sellerReviews                SellerReview[]     @relation("SellerReviewAuthor")
   adminActions                 AdminActionLog[]   @relation("AdminActionActor")
   targetedAdminActions         AdminActionLog[]   @relation("AdminActionTarget")
@@ -594,6 +612,7 @@ model SaleListing {
   createdByUserId       String?
   createdByUser         User?                @relation("SaleListingCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   favorites             Favorite[]
+  chats                 Chat[]               @relation("SaleListingChats")
   priceHistory          PriceHistory[]
   media                 ListingMedia[]
   publishedAt           DateTime?
@@ -635,6 +654,7 @@ model WantedListing {
   author          SellerProfile @relation("WantedAuthor", fields: [authorId], references: [id], onDelete: Restrict)
   createdByUserId String?
   createdByUser   User?         @relation("WantedListingCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  chats           Chat[]        @relation("WantedListingChats")
   publishedAt     DateTime?
   statusUpdatedAt DateTime      @default(now())
   createdAt       DateTime
@@ -744,6 +764,94 @@ model PushSubscription {
   lastSuccessAt  DateTime?
 
   @@index([userId, createdAt(sort: Desc)])
+}
+
+model Chat {
+  id                    String          @id @default(cuid())
+  contextType           ChatContextType
+  contextKey            String
+  saleListingId         String?
+  saleListing           SaleListing?    @relation("SaleListingChats", fields: [saleListingId], references: [id], onDelete: SetNull)
+  wantedListingId       String?
+  wantedListing         WantedListing?  @relation("WantedListingChats", fields: [wantedListingId], references: [id], onDelete: SetNull)
+  participantLowUserId  String
+  participantLowUser    User            @relation("ChatParticipantLow", fields: [participantLowUserId], references: [id], onDelete: Restrict)
+  participantHighUserId String
+  participantHighUser   User            @relation("ChatParticipantHigh", fields: [participantHighUserId], references: [id], onDelete: Restrict)
+  createdByUserId       String?
+  createdByUser         User?           @relation("ChatCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  lastMessageId         String?         @unique
+  lastMessage           ChatMessage?    @relation("ChatLastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
+  lastMessageAt         DateTime        @default(now())
+  titleSnapshot         String
+  priceSnapshot         Int?
+  imageSnapshot         String?
+  statusSnapshot        ListingStatus?
+  archivedAt            DateTime?
+  participants          ChatParticipant[]
+  messages              ChatMessage[]   @relation("ChatMessages")
+  presences             ChatPresence[]
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@unique([contextKey, participantLowUserId, participantHighUserId])
+  @@index([saleListingId])
+  @@index([wantedListingId])
+  @@index([participantLowUserId, lastMessageAt(sort: Desc)])
+  @@index([participantHighUserId, lastMessageAt(sort: Desc)])
+  @@index([lastMessageAt(sort: Desc)])
+}
+
+model ChatParticipant {
+  id                String    @id @default(cuid())
+  chatId            String
+  chat              Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unreadCount       Int       @default(0)
+  lastReadAt        DateTime?
+  lastReadMessageId String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([chatId, userId])
+  @@index([userId, unreadCount])
+  @@index([userId, updatedAt(sort: Desc)])
+}
+
+model ChatMessage {
+  id                 String          @id @default(cuid())
+  chatId             String
+  chat               Chat            @relation("ChatMessages", fields: [chatId], references: [id], onDelete: Cascade)
+  senderId           String
+  sender             User            @relation("ChatMessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  messageType        ChatMessageType @default(TEXT)
+  text               String
+  deletedAt          DateTime?
+  lastMessageForChat Chat?           @relation("ChatLastMessage")
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([chatId, createdAt(sort: Desc)])
+  @@index([senderId, createdAt(sort: Desc)])
+}
+
+model ChatPresence {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId        String
+  activeChatId    String?
+  activeChat      Chat?    @relation(fields: [activeChatId], references: [id], onDelete: Cascade)
+  pathname        String?
+  visibilityState String
+  lastHeartbeatAt DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, clientId])
+  @@index([userId, lastHeartbeatAt(sort: Desc)])
+  @@index([activeChatId, lastHeartbeatAt(sort: Desc)])
 }
 
 model AdminActionLog {

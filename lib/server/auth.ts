@@ -62,6 +62,8 @@ export interface AuthUser {
   role: UserRole;
   isActive: boolean;
   sellerProfileId?: string;
+  chatSoundEnabled: boolean;
+  chatPushEnabled: boolean;
 }
 
 export interface AuthSession {
@@ -112,6 +114,8 @@ function mapAuthUser(user: User & { sellerProfile?: SellerProfile | null }): Aut
     role: user.role,
     isActive: user.isActive,
     sellerProfileId: user.sellerProfile?.id ?? undefined,
+    chatSoundEnabled: user.chatSoundEnabled,
+    chatPushEnabled: user.chatPushEnabled,
   };
 }
 

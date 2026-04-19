@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, FileText, MapPin, MessageCircle, Phone, Shield } from 'lucide-react';
 import { ListingBenefitBadge } from '@/components/marketplace/listing-benefit-badge';
+import { OpenChatButton } from '@/components/messages/open-chat-button';
 import { Button } from '@/components/ui/button';
 import type { SaleListing } from '@/lib/types';
 import { formatPrice } from '@/lib/marketplace-data';
@@ -57,10 +58,11 @@ const RESOURCE_BADGE_STYLES: Record<string, string> = {
 
 interface DealBlockProps {
   listing: SaleListing;
+  currentUserId?: string;
   className?: string;
 }
 
-export function DealBlock({ listing, className }: DealBlockProps) {
+export function DealBlock({ listing, currentUserId, className }: DealBlockProps) {
   const [showPhone, setShowPhone] = useState(false);
   const [hideMobileDealBlock, setHideMobileDealBlock] = useState(false);
   const rafIdRef = useRef<number | null>(null);
@@ -117,6 +119,14 @@ export function DealBlock({ listing, className }: DealBlockProps) {
 
   const actionButtons = (
     <>
+      <OpenChatButton
+        contextType="SALE_LISTING"
+        listingId={listing.id}
+        currentUserId={currentUserId}
+        ownerUserId={listing.ownerUserId}
+        nextPath={`/listing/${listing.id}`}
+        className="h-11 w-full rounded-2xl border-border/80 bg-background/70 dark:bg-background/10"
+      />
       {listing.seller.phone ? (
         showPhone ? (
           <>

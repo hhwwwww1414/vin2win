@@ -131,6 +131,8 @@ export default async function AccountPage() {
             emailEnabled={overview.emailNotificationsEnabled}
             telegramEnabled={overview.telegramNotificationsEnabled}
             browserPushEnabled={overview.browserPushEnabled}
+            chatSoundEnabled={overview.chatSoundEnabled}
+            chatPushEnabled={overview.chatPushEnabled}
             telegramChatId={overview.telegramChatId}
             hasPushSubscription={overview.pushSubscriptions.length > 0}
             lastPushSuccessAt={overview.pushSubscriptions[0]?.lastSuccessAt ? formatDateTime(overview.pushSubscriptions[0].lastSuccessAt) : null}

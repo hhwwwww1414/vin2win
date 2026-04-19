@@ -1,14 +1,31 @@
 'use client';
 
-import { useEffect, useState, Suspense, useSyncExternalStore } from 'react';
+import { Suspense, useEffect, useState, useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Plus, LayoutGrid, List, Table, Menu, X, LogIn, LogOut, Shield, UserCircle2, Heart, Moon, Sun } from 'lucide-react';
+import {
+  Heart,
+  LayoutGrid,
+  List,
+  LogIn,
+  LogOut,
+  Menu,
+  MessageCircle,
+  Moon,
+  Plus,
+  Shield,
+  Sun,
+  Table,
+  UserCircle2,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FAVORITES_CHANGED_EVENT } from '@/components/marketplace/favorite-toggle';
+import { type ChatRealtimeEvent, CHAT_WINDOW_EVENT_NAME } from '@/lib/chat/realtime';
 import { SALE_ROUTE } from '@/lib/routes';
 import { cn } from '@/lib/utils';
+import { useChatSound } from '@/hooks/use-chat-sound';
 
 type ViewMode = 'cards' | 'compact' | 'table';
 type SessionUser = {
@@ -18,31 +35,16 @@ type SessionUser = {
 };
 
 const emptyThemeSubscription = () => () => {};
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function ThemeToggle({ compact = false }: { compact?: boolean }) {
-  const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme !== 'light';
-
-  return (
-    <button
-      type="button"
-      onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className={cn(
-        'flex items-center justify-center rounded-xl border border-border/70 bg-background/60 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground dark:bg-background/10',
-        compact ? 'h-11 w-11' : 'h-9 w-9'
-      )}
-      aria-label={isDark ? 'Включить светлую тему' : 'Включить тёмную тему'}
-    >
-      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-    </button>
-  );
-}
+const CHAT_EVENT_TYPES = [
+  'chat.message.created',
+  'chat.read.updated',
+  'chat.list.updated',
+  'chat.unread.updated',
+] as const;
 
 function StableThemeToggle({ compact = false }: { compact?: boolean }) {
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(emptyThemeSubscription, () => true, () => false);
-
   const isDark = resolvedTheme === 'dark';
 
   return (
@@ -59,7 +61,7 @@ function StableThemeToggle({ compact = false }: { compact?: boolean }) {
       className={cn(
         'flex items-center justify-center rounded-xl border border-border/70 bg-background/60 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground dark:bg-background/10',
         compact ? 'h-11 w-11' : 'h-9 w-9',
-        !mounted && 'pointer-events-none opacity-0'
+        !mounted && 'pointer-events-none opacity-0',
       )}
       aria-label={mounted ? (isDark ? 'Включить светлую тему' : 'Включить тёмную тему') : 'Переключить тему'}
     >
@@ -98,13 +100,13 @@ function ViewModeSwitcher({ compact = false }: { compact?: boolean }) {
           className={cn(
             'rounded-lg transition-colors',
             compact ? 'p-2.5' : 'p-2',
-            view === mode ? 'bg-[var(--accent-bg-soft)] text-teal-accent' : 'text-muted-foreground hover:bg-muted/35 hover:text-foreground'
+            view === mode ? 'bg-[var(--accent-bg-soft)] text-teal-accent' : 'text-muted-foreground hover:bg-muted/35 hover:text-foreground',
           )}
           aria-label={mode === 'cards' ? 'Карточки' : mode === 'compact' ? 'Компактный список' : 'Таблица'}
         >
-          {mode === 'cards' && <LayoutGrid className="h-4 w-4" />}
-          {mode === 'compact' && <List className="h-4 w-4" />}
-          {mode === 'table' && <Table className="h-4 w-4" />}
+          {mode === 'cards' ? <LayoutGrid className="h-4 w-4" /> : null}
+          {mode === 'compact' ? <List className="h-4 w-4" /> : null}
+          {mode === 'table' ? <Table className="h-4 w-4" /> : null}
         </Link>
       ))}
     </div>
@@ -136,7 +138,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             className={cn(
               'flex min-h-[44px] items-center justify-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-              isActive ? 'bg-background/80 text-foreground dark:bg-white/10' : 'text-muted-foreground hover:bg-muted/35 hover:text-foreground'
+              isActive ? 'bg-background/80 text-foreground dark:bg-white/10' : 'text-muted-foreground hover:bg-muted/35 hover:text-foreground',
             )}
           >
             {link.label}
@@ -147,9 +149,40 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+function MessageLink({ unreadCount, mobile = false, onNavigate }: { unreadCount: number; mobile?: boolean; onNavigate?: () => void }) {
+  if (mobile) {
+    return (
+      <Link href="/messages" onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
+        <MessageCircle className="mr-2 h-4 w-4 text-teal-accent" />
+        Сообщения
+        {unreadCount > 0 ? (
+          <span className="ml-auto rounded-full border border-teal-accent/30 bg-[var(--accent-bg-soft)] px-2 py-0.5 text-xs text-teal-accent">
+            {unreadCount}
+          </span>
+        ) : null}
+      </Link>
+    );
+  }
+
+  return (
+    <Button asChild variant="ghost" size="sm" className="h-9 px-3 text-xs font-medium text-muted-foreground hover:text-foreground">
+      <Link href="/messages">
+        <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
+        Сообщения
+        {unreadCount > 0 ? (
+          <span className="ml-1 rounded-full border border-teal-accent/30 bg-[var(--accent-bg-soft)] px-1.5 py-0.5 text-[10px] leading-none text-teal-accent">
+            {unreadCount}
+          </span>
+        ) : null}
+      </Link>
+    </Button>
+  );
+}
+
 function AuthControls({
   sessionUser,
   favoriteCount,
+  chatUnreadCount,
   loading,
   isLoggingOut,
   onLogout,
@@ -158,6 +191,7 @@ function AuthControls({
 }: {
   sessionUser: SessionUser | null;
   favoriteCount: number;
+  chatUnreadCount: number;
   loading: boolean;
   isLoggingOut: boolean;
   onLogout: () => void;
@@ -207,18 +241,19 @@ function AuthControls({
   }
 
   if (mobile) {
-      return (
-        <div className="grid gap-2 border-t border-border/50 pt-3">
-          <Link href="/account#favorites" onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
-            <Heart className="mr-2 h-4 w-4 text-teal-accent" />
-            Избранное
-            <span className="ml-auto rounded-full border border-border/70 bg-background/70 px-2 py-0.5 text-xs text-muted-foreground">
-              {favoriteCount}
-            </span>
-          </Link>
-          <Link href="/account" onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
-            <UserCircle2 className="mr-2 h-4 w-4 text-teal-accent" />
-            Кабинет
+    return (
+      <div className="grid gap-2 border-t border-border/50 pt-3">
+        <Link href="/account#favorites" onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
+          <Heart className="mr-2 h-4 w-4 text-teal-accent" />
+          Избранное
+          <span className="ml-auto rounded-full border border-border/70 bg-background/70 px-2 py-0.5 text-xs text-muted-foreground">
+            {favoriteCount}
+          </span>
+        </Link>
+        <MessageLink unreadCount={chatUnreadCount} mobile onNavigate={onNavigate} />
+        <Link href="/account" onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
+          <UserCircle2 className="mr-2 h-4 w-4 text-teal-accent" />
+          Кабинет
         </Link>
         {sessionUser.role !== 'USER' ? (
           <Link href="/admin" onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
@@ -250,6 +285,7 @@ function AuthControls({
           </span>
         </Link>
       </Button>
+      <MessageLink unreadCount={chatUnreadCount} />
       {sessionUser.role !== 'USER' ? (
         <Button asChild variant="ghost" size="sm" className="h-9 px-3 text-xs font-medium text-muted-foreground hover:text-foreground">
           <Link href="/admin">
@@ -276,10 +312,14 @@ export function MarketplaceHeader() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [clientId] = useState(() => globalThis.crypto?.randomUUID?.() ?? `chat-client-${Date.now()}`);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [favoriteCount, setFavoriteCount] = useState(0);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [chatSoundEnabled, setChatSoundEnabled] = useState(true);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const playChatSound = useChatSound(chatSoundEnabled);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
@@ -305,6 +345,7 @@ export function MarketplaceHeader() {
 
     async function loadSession() {
       setSessionLoading(true);
+
       try {
         const response = await fetch('/api/auth/session', {
           cache: 'no-store',
@@ -314,6 +355,8 @@ export function MarketplaceHeader() {
               authenticated?: boolean;
               user?: SessionUser | null;
               favoriteCount?: number;
+              chatUnreadCount?: number;
+              chatSoundEnabled?: boolean;
             }
           | null;
 
@@ -321,13 +364,20 @@ export function MarketplaceHeader() {
           return;
         }
 
-        setSessionUser(payload?.authenticated ? payload.user ?? null : null);
-        setFavoriteCount(payload?.authenticated ? payload.favoriteCount ?? 0 : 0);
+        const authenticated = Boolean(payload?.authenticated);
+        setSessionUser(authenticated ? payload?.user ?? null : null);
+        setFavoriteCount(authenticated ? payload?.favoriteCount ?? 0 : 0);
+        setChatUnreadCount(authenticated ? payload?.chatUnreadCount ?? 0 : 0);
+        setChatSoundEnabled(authenticated ? payload?.chatSoundEnabled ?? true : true);
       } catch {
-        if (active) {
-          setSessionUser(null);
-          setFavoriteCount(0);
+        if (!active) {
+          return;
         }
+
+        setSessionUser(null);
+        setFavoriteCount(0);
+        setChatUnreadCount(0);
+        setChatSoundEnabled(true);
       } finally {
         if (active) {
           setSessionLoading(false);
@@ -358,6 +408,114 @@ export function MarketplaceHeader() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleChatSettingsUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ chatSoundEnabled?: boolean; chatUnreadCount?: number }>).detail;
+      if (typeof detail?.chatSoundEnabled === 'boolean') {
+        setChatSoundEnabled(detail.chatSoundEnabled);
+      }
+      if (typeof detail?.chatUnreadCount === 'number') {
+        setChatUnreadCount(detail.chatUnreadCount);
+      }
+    };
+
+    window.addEventListener('vin2win:chat-settings-updated', handleChatSettingsUpdated as EventListener);
+    return () => {
+      window.removeEventListener('vin2win:chat-settings-updated', handleChatSettingsUpdated as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sessionUser) {
+      return;
+    }
+
+    const source = new EventSource('/api/realtime/chat-events');
+    const handleEvent = (rawEvent: MessageEvent<string>) => {
+      try {
+        const event = JSON.parse(rawEvent.data) as ChatRealtimeEvent;
+        window.dispatchEvent(new CustomEvent(CHAT_WINDOW_EVENT_NAME, { detail: event }));
+
+        const totalUnreadCount = Number(event.payload.totalUnreadCount);
+        if (Number.isFinite(totalUnreadCount)) {
+          setChatUnreadCount(totalUnreadCount);
+        }
+
+        if (
+          event.type === 'chat.message.created' &&
+          event.payload.senderId !== sessionUser.id &&
+          document.visibilityState === 'visible'
+        ) {
+          void playChatSound();
+        }
+      } catch {
+        // noop
+      }
+    };
+
+    for (const eventType of CHAT_EVENT_TYPES) {
+      source.addEventListener(eventType, handleEvent as EventListener);
+    }
+
+    return () => {
+      for (const eventType of CHAT_EVENT_TYPES) {
+        source.removeEventListener(eventType, handleEvent as EventListener);
+      }
+      source.close();
+    };
+  }, [playChatSound, sessionUser, chatSoundEnabled]);
+
+  useEffect(() => {
+    if (!sessionUser) {
+      return;
+    }
+
+    const activeChatId = pathname?.match(/^\/messages\/([^/]+)$/)?.[1] ?? null;
+    let closed = false;
+
+    const sendPresence = async () => {
+      if (closed) {
+        return;
+      }
+
+      await fetch('/api/chat-presence', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clientId,
+          activeChatId,
+          pathname,
+          visibilityState: document.visibilityState,
+        }),
+        keepalive: true,
+      }).catch(() => undefined);
+    };
+
+    void sendPresence();
+
+    const heartbeatId = window.setInterval(() => {
+      void sendPresence();
+    }, 30_000);
+
+    const handleVisibilityChange = () => {
+      void sendPresence();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      closed = true;
+      window.clearInterval(heartbeatId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      void fetch(`/api/chat-presence?clientId=${encodeURIComponent(clientId)}`, {
+        method: 'DELETE',
+        keepalive: true,
+      }).catch(() => undefined);
+    };
+  }, [clientId, pathname, sessionUser]);
+
   const submitHref = sessionUser ? '/listing/new' : '/login?next=%2Flisting%2Fnew';
 
   const handleLogout = async () => {
@@ -377,7 +535,9 @@ export function MarketplaceHeader() {
       <header
         className={cn(
           'sticky top-0 z-30 border-b transition-all duration-300',
-          scrolled ? 'border-border/80 bg-[var(--surface-soft-strong)] backdrop-blur-md dark:bg-[var(--surface-soft-strong)]' : 'border-transparent bg-background/72 dark:bg-surface-2/82'
+          scrolled
+            ? 'border-border/80 bg-[var(--surface-soft-strong)] backdrop-blur-md dark:bg-[var(--surface-soft-strong)]'
+            : 'border-transparent bg-background/72 dark:bg-surface-2/82',
         )}
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -400,7 +560,14 @@ export function MarketplaceHeader() {
                 <ViewModeSwitcher />
               </Suspense>
               <StableThemeToggle />
-              <AuthControls sessionUser={sessionUser} favoriteCount={favoriteCount} loading={sessionLoading} isLoggingOut={isLoggingOut} onLogout={handleLogout} />
+              <AuthControls
+                sessionUser={sessionUser}
+                favoriteCount={favoriteCount}
+                chatUnreadCount={chatUnreadCount}
+                loading={sessionLoading}
+                isLoggingOut={isLoggingOut}
+                onLogout={handleLogout}
+              />
               <Button size="sm" className="h-9 bg-teal-dark px-3 text-xs font-semibold text-white hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam" asChild>
                 <Link href={submitHref}>
                   <Plus className="mr-1.5 h-3.5 w-3.5" />
@@ -410,6 +577,19 @@ export function MarketplaceHeader() {
             </div>
 
             <div className="flex shrink-0 items-center gap-2 sm:hidden">
+              {sessionUser ? (
+                <Link
+                  href="/messages"
+                  className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-border/70 bg-background/60 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground dark:bg-background/10"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {chatUnreadCount > 0 ? (
+                    <span className="absolute right-1.5 top-1.5 rounded-full border border-teal-accent/30 bg-[var(--accent-bg-soft)] px-1.5 py-0.5 text-[10px] leading-none text-teal-accent">
+                      {chatUnreadCount}
+                    </span>
+                  ) : null}
+                </Link>
+              ) : null}
               <StableThemeToggle compact />
               <Button size="sm" className="h-9 bg-teal-dark px-3 text-xs font-semibold text-white hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam" asChild>
                 <Link href={submitHref} onClick={() => setMobileOpen(false)}>
@@ -449,6 +629,7 @@ export function MarketplaceHeader() {
                 mobile
                 sessionUser={sessionUser}
                 favoriteCount={favoriteCount}
+                chatUnreadCount={chatUnreadCount}
                 loading={sessionLoading}
                 isLoggingOut={isLoggingOut}
                 onLogout={handleLogout}

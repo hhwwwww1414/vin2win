@@ -3,6 +3,12 @@ import webpush, { type PushSubscription } from 'web-push';
 import { prisma } from './prisma';
 import { serverEnv } from './env';
 
+export interface DispatchUserNotificationOptions {
+  email?: boolean;
+  telegram?: boolean;
+  browserPush?: boolean;
+}
+
 let transporter: nodemailer.Transporter | null | undefined;
 let vapidConfigured = false;
 
@@ -169,7 +175,10 @@ async function sendBrowserPushNotification(input: {
   );
 }
 
-export async function dispatchUserNotification(notificationId: string) {
+export async function dispatchUserNotification(
+  notificationId: string,
+  options: DispatchUserNotificationOptions = {},
+) {
   const notification = await prisma.userNotification.findUnique({
     where: {
       id: notificationId,
@@ -194,7 +203,11 @@ export async function dispatchUserNotification(notificationId: string) {
 
   const tasks: Promise<unknown>[] = [];
 
-  if (notification.user.emailNotificationsEnabled) {
+  const shouldSendEmail = options.email ?? notification.user.emailNotificationsEnabled;
+  const shouldSendTelegram = options.telegram ?? notification.user.telegramNotificationsEnabled;
+  const shouldSendBrowserPush = options.browserPush ?? notification.user.browserPushEnabled;
+
+  if (shouldSendEmail) {
     tasks.push(
       sendEmailNotification({
         email: notification.user.email,
@@ -205,7 +218,7 @@ export async function dispatchUserNotification(notificationId: string) {
     );
   }
 
-  if (notification.user.telegramNotificationsEnabled && notification.user.telegramChatId) {
+  if (shouldSendTelegram && notification.user.telegramChatId) {
     tasks.push(
       sendTelegramMessage(
         notification.user.telegramChatId,
@@ -221,7 +234,7 @@ export async function dispatchUserNotification(notificationId: string) {
     );
   }
 
-  if (notification.user.browserPushEnabled && notification.user.pushSubscriptions.length > 0) {
+  if (shouldSendBrowserPush && notification.user.pushSubscriptions.length > 0) {
     tasks.push(
       sendBrowserPushNotification({
         userId: notification.user.id,

@@ -18,6 +18,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { MarketplaceHeader } from '@/components/marketplace/header';
+import { OpenChatButton } from '@/components/messages/open-chat-button';
 import { ListingStatusBadge } from '@/components/listing/listing-status-badge';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/marketplace-data';
@@ -259,6 +260,14 @@ export default async function WantedDetailPage({ params }: WantedPageProps) {
               </div>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <OpenChatButton
+                  contextType="WANTED_LISTING"
+                  listingId={w.id}
+                  currentUserId={sessionUser?.id}
+                  ownerUserId={w.ownerUserId}
+                  nextPath={`/wanted/${w.id}`}
+                  className="border-border/80 bg-background/70 dark:bg-background/10"
+                />
                 {primaryActionHref && primaryActionLabel ? (
                   <Button
                     asChild
