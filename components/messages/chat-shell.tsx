@@ -176,6 +176,8 @@ export function ChatShell({
   const [threadError, setThreadError] = useState<string | null>(initialError);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const lastMessageCountRef = useRef(initialMessages.length);
+  const readRequestInFlightRef = useRef<string | null>(null);
+  const lastCompletedReadRef = useRef<string | null>(null);
 
   useEffect(() => {
     setHydrated(true);
@@ -194,6 +196,7 @@ export function ChatShell({
   }, [initialChat, initialError, initialMessages, initialNextCursor]);
 
   const currentChatId = currentChat?.id;
+  const currentChatUnreadCount = currentChat?.unreadCount ?? 0;
   const latestMessageId = messages[messages.length - 1]?.id;
   const sortedChats = useMemo(
     () =>
@@ -224,20 +227,49 @@ export function ChatShell({
     }
   }, [currentChatId]);
 
-  const markCurrentChatRead = useCallback(async () => {
+  const markCurrentChatRead = useCallback(async (options: { force?: boolean; messageId?: string } = {}) => {
     if (!currentChatId) {
       return;
     }
 
-    await fetch(`/api/chats/${currentChatId}/read`, {
-      method: 'POST',
-    }).catch(() => undefined);
+    const marker = options.messageId ?? latestMessageId ?? currentChat?.lastMessage?.id ?? 'empty';
+    const signature = `${currentChatId}:${marker}`;
+
+    if (!options.force && currentChatUnreadCount < 1) {
+      return;
+    }
+
+    if (
+      readRequestInFlightRef.current === signature ||
+      lastCompletedReadRef.current === signature
+    ) {
+      return;
+    }
+
+    readRequestInFlightRef.current = signature;
+
+    try {
+      await fetch(`/api/chats/${currentChatId}/read`, {
+        method: 'POST',
+      }).catch(() => undefined);
+      lastCompletedReadRef.current = signature;
+    } finally {
+      if (readRequestInFlightRef.current === signature) {
+        readRequestInFlightRef.current = null;
+      }
+    }
 
     setChats((current) =>
-      current.map((chat) => (chat.id === currentChatId ? { ...chat, unreadCount: 0 } : chat)),
+      current.map((chat) =>
+        chat.id === currentChatId && chat.unreadCount > 0
+          ? { ...chat, unreadCount: 0 }
+          : chat,
+      ),
     );
-    setCurrentChat((current) => (current ? { ...current, unreadCount: 0 } : current));
-  }, [currentChatId]);
+    setCurrentChat((current) =>
+      current && current.unreadCount > 0 ? { ...current, unreadCount: 0 } : current,
+    );
+  }, [currentChat?.lastMessage?.id, currentChatId, currentChatUnreadCount, latestMessageId]);
 
   const refreshCurrentThread = useCallback(async () => {
     if (!currentChatId) {
@@ -274,8 +306,12 @@ export function ChatShell({
       setNextCursor((current) => current ?? payload.nextCursor);
     }
 
-    if (newItems.some((item) => item.senderId !== currentUserId)) {
-      void markCurrentChatRead();
+    const newestIncoming = [...newItems].reverse().find((item) => item.senderId !== currentUserId);
+    if (newestIncoming) {
+      void markCurrentChatRead({
+        force: true,
+        messageId: newestIncoming.id,
+      });
     }
   }, [currentChatId, currentUserId, latestMessageId, markCurrentChatRead]);
 
@@ -355,7 +391,10 @@ export function ChatShell({
           setMessages((current) => (current.some((item) => item.id === incoming.id) ? current : [...current, incoming]));
 
           if (incoming.senderId !== currentUserId) {
-            void markCurrentChatRead();
+            void markCurrentChatRead({
+              force: true,
+              messageId: incoming.id,
+            });
           }
         }
 

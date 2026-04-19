@@ -613,6 +613,19 @@ export async function markChatRead(input: MarkChatReadInput): Promise<ChatReadSt
     throw new Error('Chat access denied.');
   }
 
+  if (
+    currentParticipant.unreadCount === 0 &&
+    currentParticipant.lastReadMessageId === record.lastMessageId
+  ) {
+    return {
+      chatId: currentParticipant.chatId,
+      userId: currentParticipant.userId,
+      unreadCount: currentParticipant.unreadCount,
+      lastReadAt: currentParticipant.lastReadAt?.toISOString(),
+      lastReadMessageId: currentParticipant.lastReadMessageId ?? undefined,
+    };
+  }
+
   const now = new Date();
   const updated = await prisma.chatParticipant.update({
     where: {

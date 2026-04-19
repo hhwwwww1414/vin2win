@@ -228,6 +228,50 @@ test('chat service keeps one chat per buyer seller and listing while separating 
 
     assert.equal(readState.unreadCount, 0);
 
+    const participantAfterFirstRead = await prisma.chatParticipant.findUnique({
+      where: {
+        chatId_userId: {
+          chatId: firstOpen.id,
+          userId: seller.id,
+        },
+      },
+      select: {
+        lastReadAt: true,
+        lastReadMessageId: true,
+        unreadCount: true,
+      },
+    });
+
+    const repeatedReadState = await markChatRead({
+      chatId: firstOpen.id,
+      userId: seller.id,
+    });
+
+    const participantAfterRepeatedRead = await prisma.chatParticipant.findUnique({
+      where: {
+        chatId_userId: {
+          chatId: firstOpen.id,
+          userId: seller.id,
+        },
+      },
+      select: {
+        lastReadAt: true,
+        lastReadMessageId: true,
+        unreadCount: true,
+      },
+    });
+
+    assert.equal(repeatedReadState.unreadCount, 0);
+    assert.equal(
+      participantAfterRepeatedRead?.lastReadAt?.toISOString(),
+      participantAfterFirstRead?.lastReadAt?.toISOString(),
+    );
+    assert.equal(
+      participantAfterRepeatedRead?.lastReadMessageId,
+      participantAfterFirstRead?.lastReadMessageId,
+    );
+    assert.equal(participantAfterRepeatedRead?.unreadCount, 0);
+
     const sellerChatsAfterRead = await listChatsForUser(seller.id);
     assert.equal(sellerChatsAfterRead[0]?.unreadCount, 0);
 

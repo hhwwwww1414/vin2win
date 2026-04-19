@@ -320,6 +320,9 @@ export function MarketplaceHeader() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const sessionBootstrappedRef = useRef(false);
+  const lastPresenceSignatureRef = useRef<string | null>(null);
+  const lastPresenceSentAtRef = useRef(0);
+  const presenceRequestInFlightRef = useRef<string | null>(null);
   const playChatSound = useChatSound(chatSoundEnabled);
 
   const loadSession = useCallback(async (options: { silent?: boolean } = {}) => {
@@ -516,34 +519,66 @@ export function MarketplaceHeader() {
     const activeChatId = pathname?.match(/^\/messages\/([^/]+)$/)?.[1] ?? null;
     let closed = false;
 
-    const sendPresence = async () => {
+    const sendPresence = async (options: { force?: boolean } = {}) => {
       if (closed) {
         return;
       }
+
+      const payload = {
+        clientId,
+        activeChatId,
+        pathname,
+        visibilityState: document.visibilityState,
+      };
+      const signature = JSON.stringify(payload);
+      const now = Date.now();
+
+      if (
+        !options.force &&
+        lastPresenceSignatureRef.current === signature &&
+        now - lastPresenceSentAtRef.current < 15_000
+      ) {
+        return;
+      }
+
+      if (presenceRequestInFlightRef.current === signature) {
+        return;
+      }
+
+      presenceRequestInFlightRef.current = signature;
 
       await fetch('/api/chat-presence', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          clientId,
-          activeChatId,
-          pathname,
-          visibilityState: document.visibilityState,
-        }),
+        body: JSON.stringify(payload),
         keepalive: true,
-      }).catch(() => undefined);
+      })
+        .then(() => {
+          lastPresenceSignatureRef.current = signature;
+          lastPresenceSentAtRef.current = Date.now();
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          if (presenceRequestInFlightRef.current === signature) {
+            presenceRequestInFlightRef.current = null;
+          }
+        });
     };
 
-    void sendPresence();
+    void sendPresence({
+      force: true,
+    });
 
     const heartbeatId = window.setInterval(() => {
       void sendPresence();
     }, 30_000);
 
     const handleVisibilityChange = () => {
-      void sendPresence();
+      void sendPresence({
+        force: true,
+      });
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
