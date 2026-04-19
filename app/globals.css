@@ -351,6 +351,105 @@ html:not(.dark) .carbon-fiber-listing {
   filter: contrast(0.85) saturate(0.35) brightness(2.8);
 }
 
+.landing-cta-button {
+  isolation: isolate;
+}
+
+.landing-cta-button > :not(.landing-cta-sweep) {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-cta-sweep {
+  position: absolute;
+  inset-block: -28%;
+  right: -22%;
+  z-index: 0;
+  width: 3.25rem;
+  border-radius: 999px;
+  pointer-events: none;
+  transform: translate3d(180%, 0, 0) rotate(14deg);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: landing-cta-sweep-idle 8.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+.landing-cta-sweep-strong {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(246, 255, 255, 0.08) 14%,
+    rgba(246, 255, 255, 0.56) 48%,
+    rgba(208, 244, 255, 0.18) 82%,
+    transparent 100%
+  );
+  box-shadow: 0 0 16px rgba(220, 250, 255, 0.2);
+}
+
+.landing-cta-sweep-soft {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 14%,
+    rgba(255, 255, 255, 0.72) 48%,
+    rgba(255, 255, 255, 0.2) 82%,
+    transparent 100%
+  );
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.26);
+}
+
+.landing-cta-button:hover .landing-cta-sweep,
+.landing-cta-button:focus-visible .landing-cta-sweep,
+.landing-cta-button:active .landing-cta-sweep {
+  animation: landing-cta-sweep-interact 780ms cubic-bezier(0.18, 0.88, 0.28, 1) 1 forwards;
+}
+
+@keyframes landing-cta-sweep-idle {
+  0%,
+  74% {
+    transform: translate3d(180%, 0, 0) rotate(14deg);
+    opacity: 0;
+  }
+  79% {
+    opacity: 0.12;
+  }
+  88% {
+    transform: translate3d(-360%, 0, 0) rotate(14deg);
+    opacity: 0.44;
+  }
+  100% {
+    transform: translate3d(-360%, 0, 0) rotate(14deg);
+    opacity: 0;
+  }
+}
+
+@keyframes landing-cta-sweep-interact {
+  0% {
+    transform: translate3d(170%, 0, 0) rotate(14deg);
+    opacity: 0;
+  }
+  16% {
+    opacity: 0.24;
+  }
+  58% {
+    opacity: 0.54;
+  }
+  100% {
+    transform: translate3d(-360%, 0, 0) rotate(14deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-cta-sweep,
+  .landing-cta-button:hover .landing-cta-sweep,
+  .landing-cta-button:focus-visible .landing-cta-sweep,
+  .landing-cta-button:active .landing-cta-sweep {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 /* Typography scale */
 .text-display { @apply text-2xl font-bold tracking-tight; }
 .text-title { @apply text-base font-semibold; }
