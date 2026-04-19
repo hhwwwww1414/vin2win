@@ -153,182 +153,206 @@ export function SellerProfileEditor({ sellerProfile, onSaved, children }: Seller
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-5xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[min(92vh,960px)] w-[min(1120px,calc(100vw-2rem))] max-w-none flex-col overflow-hidden border-border/70 bg-card p-0 shadow-[0_28px_80px_rgba(0,0,0,0.32)]">
+        <DialogHeader className="shrink-0 border-b border-border/70 px-5 py-5 sm:px-6">
           <DialogTitle>Редактировать профиль</DialogTitle>
           <DialogDescription>
             Что попадет в круг аватара, то же будет показано и на публичной странице продавца.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="grid gap-5">
-            <div className="grid gap-2">
-              <Label htmlFor="seller-profile-name">Имя</Label>
-              <Input id="seller-profile-name" value={form.name} onChange={(event) => updateField('name', event.target.value)} />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="seller-profile-phone">Телефон</Label>
-              <Input id="seller-profile-phone" value={form.phone} onChange={(event) => updateField('phone', event.target.value)} />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="seller-profile-about">Кратко о себе</Label>
-              <Textarea
-                id="seller-profile-about"
-                value={form.about}
-                onChange={(event) => updateField('about', event.target.value)}
-                rows={5}
-              />
-            </div>
-
-            <div className="grid gap-4 rounded-3xl border border-border/70 bg-background/60 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Аватар</p>
-                  <p className="text-xs text-muted-foreground">Загрузите фото и выставьте область, которая попадет в круг.</p>
-                </div>
+        <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-h-0 overflow-y-auto px-5 py-5 sm:px-6">
+            <div className="grid gap-5">
+              <div className="grid gap-2">
+                <Label htmlFor="seller-profile-name">Имя</Label>
                 <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    setAvatarFile(file);
-                    updatePreviewUrl(file, sellerProfile?.avatarUrl, setAvatarPreviewUrl);
-                  }}
-                  className="max-w-[200px]"
+                  id="seller-profile-name"
+                  value={form.name}
+                  onChange={(event) => updateField('name', event.target.value)}
                 />
               </div>
-              <div className="grid gap-2 sm:grid-cols-3">
-                <div className="grid gap-2">
-                  <Label htmlFor="avatar-crop-x">Позиция X</Label>
-                  <Input
-                    id="avatar-crop-x"
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={String(form.avatarCropX)}
-                    onChange={(event) => updateField('avatarCropX', Number(event.target.value))}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="avatar-crop-y">Позиция Y</Label>
-                  <Input
-                    id="avatar-crop-y"
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={String(form.avatarCropY)}
-                    onChange={(event) => updateField('avatarCropY', Number(event.target.value))}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="avatar-zoom">Масштаб</Label>
-                  <Input
-                    id="avatar-zoom"
-                    type="range"
-                    min="1"
-                    max="2.5"
-                    step="0.05"
-                    value={String(form.avatarZoom)}
-                    onChange={(event) => updateField('avatarZoom', Number(event.target.value))}
-                  />
-                </div>
-              </div>
-            </div>
 
-            <div className="grid gap-4 rounded-3xl border border-border/70 bg-background/60 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Обложка</p>
-                  <p className="text-xs text-muted-foreground">Выберите акцентную часть изображения для hero-шапки.</p>
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="seller-profile-phone">Телефон</Label>
                 <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    setCoverFile(file);
-                    updatePreviewUrl(file, sellerProfile?.coverUrl, setCoverPreviewUrl);
-                  }}
-                  className="max-w-[200px]"
+                  id="seller-profile-phone"
+                  value={form.phone}
+                  onChange={(event) => updateField('phone', event.target.value)}
                 />
               </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="cover-crop-x">Позиция X</Label>
-                  <Input
-                    id="cover-crop-x"
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={String(form.coverCropX)}
-                    onChange={(event) => updateField('coverCropX', Number(event.target.value))}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="cover-crop-y">Позиция Y</Label>
-                  <Input
-                    id="cover-crop-y"
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={String(form.coverCropY)}
-                    onChange={(event) => updateField('coverCropY', Number(event.target.value))}
-                  />
-                </div>
-              </div>
-            </div>
 
-            {error ? (
-              <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {error}
+              <div className="grid gap-2">
+                <Label htmlFor="seller-profile-about">Кратко о себе</Label>
+                <Textarea
+                  id="seller-profile-about"
+                  value={form.about}
+                  onChange={(event) => updateField('about', event.target.value)}
+                  rows={5}
+                />
               </div>
-            ) : null}
+
+              <div className="grid gap-4 rounded-3xl border border-border/70 bg-background/60 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Аватар</p>
+                    <p className="text-xs text-muted-foreground">
+                      Загрузите фото и выставьте область, которая попадет в круг.
+                    </p>
+                  </div>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      setAvatarFile(file);
+                      updatePreviewUrl(file, sellerProfile?.avatarUrl, setAvatarPreviewUrl);
+                    }}
+                    className="w-full sm:max-w-[220px]"
+                  />
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="avatar-crop-x">Позиция X</Label>
+                    <Input
+                      id="avatar-crop-x"
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={String(form.avatarCropX)}
+                      onChange={(event) => updateField('avatarCropX', Number(event.target.value))}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="avatar-crop-y">Позиция Y</Label>
+                    <Input
+                      id="avatar-crop-y"
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={String(form.avatarCropY)}
+                      onChange={(event) => updateField('avatarCropY', Number(event.target.value))}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="avatar-zoom">Масштаб</Label>
+                    <Input
+                      id="avatar-zoom"
+                      type="range"
+                      min="1"
+                      max="2.5"
+                      step="0.05"
+                      value={String(form.avatarZoom)}
+                      onChange={(event) => updateField('avatarZoom', Number(event.target.value))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 rounded-3xl border border-border/70 bg-background/60 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Обложка</p>
+                    <p className="text-xs text-muted-foreground">
+                      Выберите акцентную часть изображения для hero-шапки.
+                    </p>
+                  </div>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      setCoverFile(file);
+                      updatePreviewUrl(file, sellerProfile?.coverUrl, setCoverPreviewUrl);
+                    }}
+                    className="w-full sm:max-w-[220px]"
+                  />
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="cover-crop-x">Позиция X</Label>
+                    <Input
+                      id="cover-crop-x"
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={String(form.coverCropX)}
+                      onChange={(event) => updateField('coverCropX', Number(event.target.value))}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="cover-crop-y">Позиция Y</Label>
+                    <Input
+                      id="cover-crop-y"
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={String(form.coverCropY)}
+                      onChange={(event) => updateField('coverCropY', Number(event.target.value))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {error ? (
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {error}
+                </div>
+              ) : null}
+            </div>
           </div>
 
-          <aside className="grid gap-4">
-            <div className="overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
-              <div className="relative h-44 overflow-hidden bg-[linear-gradient(135deg,#163435_0%,#2D5A5A_44%,#5C9E99_100%)]">
-                <FilePreview
-                  src={coverPreviewUrl}
-                  alt="Предпросмотр обложки"
-                  className="h-full w-full object-cover"
-                  style={coverStyle}
-                />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,18,22,0.12),rgba(15,18,22,0.5))]" aria-hidden="true" />
-              </div>
-              <div className="relative px-5 pb-5">
-                <div className="-mt-10 flex items-end gap-4">
-                  <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-[4px] border-white bg-[linear-gradient(135deg,rgba(129,216,208,0.28),rgba(45,90,90,0.9))] text-xl font-semibold text-white shadow-[0_18px_36px_rgba(15,23,42,0.16)]">
-                    {avatarPreviewUrl ? (
-                      <FilePreview
-                        src={avatarPreviewUrl}
-                        alt="Предпросмотр аватара"
-                        className="h-full w-full object-cover"
-                        style={avatarStyle}
-                      />
-                    ) : (
-                      buildSellerProfileInitials(form.name || sellerProfile?.name || 'SP')
-                    )}
-                  </div>
-                  <div className="pb-1">
-                    <p className="text-sm font-semibold text-foreground">{form.name || 'Имя продавца'}</p>
-                    {form.phone ? <p className="mt-1 text-xs text-muted-foreground">{form.phone}</p> : null}
-                  </div>
+          <aside className="hidden min-h-0 border-t border-border/70 bg-background/35 px-5 py-5 lg:block lg:overflow-y-auto lg:border-t-0 lg:border-l lg:px-6">
+            <div className="grid gap-4 lg:sticky lg:top-0">
+              <div className="overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+                <div className="relative h-44 overflow-hidden bg-[linear-gradient(135deg,#163435_0%,#2D5A5A_44%,#5C9E99_100%)]">
+                  <FilePreview
+                    src={coverPreviewUrl}
+                    alt="Предпросмотр обложки"
+                    className="h-full w-full object-cover"
+                    style={coverStyle}
+                  />
+                  <div
+                    className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,18,22,0.12),rgba(15,18,22,0.5))]"
+                    aria-hidden="true"
+                  />
                 </div>
-                <p className="mt-4 text-sm leading-6 text-muted-foreground">{aboutPreview}</p>
+                <div className="relative px-5 pb-5">
+                  <div className="-mt-10 flex items-end gap-4">
+                    <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-[4px] border-white bg-[linear-gradient(135deg,rgba(129,216,208,0.28),rgba(45,90,90,0.9))] text-xl font-semibold text-white shadow-[0_18px_36px_rgba(15,23,42,0.16)]">
+                      {avatarPreviewUrl ? (
+                        <FilePreview
+                          src={avatarPreviewUrl}
+                          alt="Предпросмотр аватара"
+                          className="h-full w-full object-cover"
+                          style={avatarStyle}
+                        />
+                      ) : (
+                        buildSellerProfileInitials(form.name || sellerProfile?.name || 'SP')
+                      )}
+                    </div>
+                    <div className="pb-1">
+                      <p className="text-sm font-semibold text-foreground">{form.name || 'Имя продавца'}</p>
+                      {form.phone ? <p className="mt-1 text-xs text-muted-foreground">{form.phone}</p> : null}
+                    </div>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-muted-foreground">{aboutPreview}</p>
+                </div>
               </div>
             </div>
           </aside>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t border-border/70 px-5 py-4 sm:px-6">
           <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={saving}>
             Отмена
           </Button>
-          <Button type="button" className="bg-teal-dark text-white hover:bg-teal-medium" onClick={handleSubmit} disabled={saving}>
+          <Button
+            type="button"
+            className="bg-teal-dark text-white hover:bg-teal-medium"
+            onClick={handleSubmit}
+            disabled={saving}
+          >
             {saving ? 'Сохраняем…' : 'Сохранить профиль'}
           </Button>
         </DialogFooter>
