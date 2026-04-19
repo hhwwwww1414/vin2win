@@ -3,6 +3,7 @@ import { subscribeToChatEvents } from '@/lib/server/chat-realtime';
 import { getSessionUser } from '@/lib/server/auth';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 function encodeSseEvent(event: ChatRealtimeEvent) {
   return `id: ${event.id}\nevent: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
@@ -61,6 +62,7 @@ export async function GET(request: Request) {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
     },
   });
 }

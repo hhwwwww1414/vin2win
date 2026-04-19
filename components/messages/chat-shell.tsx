@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Textarea } from '@/components/ui/textarea';
+import { ChatPushSetup } from '@/components/messages/chat-push-setup';
 import { useChatEvents } from '@/hooks/use-chat-events';
 import { type ChatMessageDto, type ChatSummaryDto } from '@/lib/chat/dto';
 import { cn } from '@/lib/utils';
@@ -178,6 +179,7 @@ export function ChatShell({
   }, [initialChat, initialError, initialMessages, initialNextCursor]);
 
   const currentChatId = currentChat?.id;
+  const latestMessageId = messages[messages.length - 1]?.id;
   const sortedChats = useMemo(
     () =>
       [...chats].sort((left, right) => {
@@ -222,6 +224,46 @@ export function ChatShell({
     setCurrentChat((current) => (current ? { ...current, unreadCount: 0 } : current));
   }, [currentChatId]);
 
+  const refreshCurrentThread = useCallback(async () => {
+    if (!currentChatId) {
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.set('limit', '40');
+    if (latestMessageId) {
+      params.set('after', latestMessageId);
+    }
+
+    const response = await fetch(`/api/chats/${currentChatId}/messages?${params.toString()}`, {
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const payload = (await response.json()) as { items?: ChatMessageDto[]; nextCursor?: string };
+    const newItems = payload.items ?? [];
+    if (newItems.length === 0) {
+      return;
+    }
+
+    setMessages((current) => {
+      const seenIds = new Set(current.map((item) => item.id));
+      const appended = newItems.filter((item) => !seenIds.has(item.id));
+      return appended.length ? [...current, ...appended] : current;
+    });
+
+    if (typeof payload.nextCursor === 'string') {
+      setNextCursor((current) => current ?? payload.nextCursor);
+    }
+
+    if (newItems.some((item) => item.senderId !== currentUserId)) {
+      void markCurrentChatRead();
+    }
+  }, [currentChatId, currentUserId, latestMessageId, markCurrentChatRead]);
+
   useEffect(() => {
     if (!currentChatId) {
       return;
@@ -229,6 +271,32 @@ export function ChatShell({
 
     void markCurrentChatRead();
   }, [currentChatId, markCurrentChatRead]);
+
+  useEffect(() => {
+    const runRefresh = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return;
+      }
+
+      void refreshChats();
+      void refreshCurrentThread();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        runRefresh();
+      }
+    };
+
+    runRefresh();
+    const intervalId = window.setInterval(runRefresh, currentChatId ? 4_000 : 6_000);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentChatId, refreshChats, refreshCurrentThread]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -363,8 +431,10 @@ export function ChatShell({
   );
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-      <aside className={cn('min-w-0', currentChat ? 'hidden lg:block' : 'block')}>
+    <>
+      <ChatPushSetup />
+      <section className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <aside className={cn('min-w-0', currentChat ? 'hidden lg:block' : 'block')}>
         <div className="rounded-[32px] border border-border/70 bg-card/92 p-4 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92">
           <div className="mb-4 flex items-end justify-between gap-4 px-2">
             <div>
@@ -394,9 +464,9 @@ export function ChatShell({
             </Empty>
           )}
         </div>
-      </aside>
+        </aside>
 
-      <section className={cn('min-w-0', !currentChat ? 'hidden lg:block' : 'block')}>
+        <section className={cn('min-w-0', !currentChat ? 'hidden lg:block' : 'block')}>
         <div className="flex min-h-[720px] flex-col overflow-hidden rounded-[32px] border border-border/70 bg-card/92 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92">
           {currentChat ? (
             <>
@@ -530,7 +600,8 @@ export function ChatShell({
             </Empty>
           )}
         </div>
+        </section>
       </section>
-    </section>
+    </>
   );
 }

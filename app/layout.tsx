@@ -21,6 +21,8 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://vin2win.ru'),
+  manifest: '/manifest.webmanifest',
+  applicationName: 'vin2win',
   title: {
     default: 'vin2win — профессиональный авторынок',
     template: '%s | vin2win',
@@ -58,6 +60,11 @@ export const metadata: Metadata = {
       },
     ],
     apple: '/apple-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'vin2win',
   },
 };
 

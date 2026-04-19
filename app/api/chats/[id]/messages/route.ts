@@ -31,6 +31,7 @@ export async function GET(request: Request, context: RouteContext) {
       chatId: id,
       userId: currentUser.id,
       before: url.searchParams.get('before') ?? undefined,
+      after: url.searchParams.get('after') ?? undefined,
       limit: parsePositiveInteger(url.searchParams.get('limit'), 30),
     });
 

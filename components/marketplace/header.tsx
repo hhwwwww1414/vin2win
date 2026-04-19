@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useSyncExternalStore } from 'react';
+import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -321,6 +321,38 @@ export function MarketplaceHeader() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const playChatSound = useChatSound(chatSoundEnabled);
 
+  const loadSession = useCallback(async () => {
+    setSessionLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/session', {
+        cache: 'no-store',
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            authenticated?: boolean;
+            user?: SessionUser | null;
+            favoriteCount?: number;
+            chatUnreadCount?: number;
+            chatSoundEnabled?: boolean;
+          }
+        | null;
+
+      const authenticated = Boolean(payload?.authenticated);
+      setSessionUser(authenticated ? payload?.user ?? null : null);
+      setFavoriteCount(authenticated ? payload?.favoriteCount ?? 0 : 0);
+      setChatUnreadCount(authenticated ? payload?.chatUnreadCount ?? 0 : 0);
+      setChatSoundEnabled(authenticated ? payload?.chatSoundEnabled ?? true : true);
+    } catch {
+      setSessionUser(null);
+      setFavoriteCount(0);
+      setChatUnreadCount(0);
+      setChatSoundEnabled(true);
+    } finally {
+      setSessionLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
     handleScroll();
@@ -341,56 +373,38 @@ export function MarketplaceHeader() {
   }, [mobileOpen]);
 
   useEffect(() => {
-    let active = true;
+    void loadSession();
+  }, [loadSession, pathname]);
 
-    async function loadSession() {
-      setSessionLoading(true);
-
-      try {
-        const response = await fetch('/api/auth/session', {
-          cache: 'no-store',
-        });
-        const payload = (await response.json().catch(() => null)) as
-          | {
-              authenticated?: boolean;
-              user?: SessionUser | null;
-              favoriteCount?: number;
-              chatUnreadCount?: number;
-              chatSoundEnabled?: boolean;
-            }
-          | null;
-
-        if (!active) {
-          return;
-        }
-
-        const authenticated = Boolean(payload?.authenticated);
-        setSessionUser(authenticated ? payload?.user ?? null : null);
-        setFavoriteCount(authenticated ? payload?.favoriteCount ?? 0 : 0);
-        setChatUnreadCount(authenticated ? payload?.chatUnreadCount ?? 0 : 0);
-        setChatSoundEnabled(authenticated ? payload?.chatSoundEnabled ?? true : true);
-      } catch {
-        if (!active) {
-          return;
-        }
-
-        setSessionUser(null);
-        setFavoriteCount(0);
-        setChatUnreadCount(0);
-        setChatSoundEnabled(true);
-      } finally {
-        if (active) {
-          setSessionLoading(false);
-        }
-      }
+  useEffect(() => {
+    if (!sessionUser) {
+      return;
     }
 
-    void loadSession();
+    const refreshSession = () => {
+      if (document.visibilityState === 'hidden') {
+        return;
+      }
+
+      void loadSession();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void loadSession();
+      }
+    };
+
+    const intervalId = window.setInterval(refreshSession, 6_000);
+    window.addEventListener('focus', refreshSession);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshSession);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [pathname]);
+  }, [loadSession, sessionUser]);
 
   useEffect(() => {
     const handleFavoritesChanged = (event: Event) => {
@@ -431,6 +445,12 @@ export function MarketplaceHeader() {
     }
 
     const source = new EventSource('/api/realtime/chat-events');
+    source.onopen = () => {
+      void loadSession();
+    };
+    source.onerror = () => {
+      void loadSession();
+    };
     const handleEvent = (rawEvent: MessageEvent<string>) => {
       try {
         const event = JSON.parse(rawEvent.data) as ChatRealtimeEvent;
@@ -463,7 +483,7 @@ export function MarketplaceHeader() {
       }
       source.close();
     };
-  }, [playChatSound, sessionUser, chatSoundEnabled]);
+  }, [chatSoundEnabled, loadSession, playChatSound, sessionUser]);
 
   useEffect(() => {
     if (!sessionUser) {

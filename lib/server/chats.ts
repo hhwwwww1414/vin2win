@@ -92,6 +92,7 @@ export interface GetChatMessagesInput {
   userId: string;
   limit?: number;
   before?: string;
+  after?: string;
 }
 
 export interface MarkChatReadInput {
@@ -430,6 +431,7 @@ export async function getChatMessages(
 
   const take = Math.min(Math.max(input.limit ?? 30, 1), 100);
   let beforeCreatedAt: Date | undefined;
+  let afterCreatedAt: Date | undefined;
 
   if (input.before) {
     const cursor = await prisma.chatMessage.findUnique({
@@ -444,15 +446,30 @@ export async function getChatMessages(
     beforeCreatedAt = cursor?.createdAt;
   }
 
+  if (input.after) {
+    const cursor = await prisma.chatMessage.findUnique({
+      where: {
+        id: input.after,
+      },
+      select: {
+        createdAt: true,
+      },
+    });
+
+    afterCreatedAt = cursor?.createdAt;
+  }
+
   const records = await prisma.chatMessage.findMany({
     where: {
       chatId: input.chatId,
       deletedAt: null,
-      createdAt: beforeCreatedAt
-        ? {
-            lt: beforeCreatedAt,
-          }
-        : undefined,
+      createdAt:
+        beforeCreatedAt || afterCreatedAt
+          ? {
+              ...(beforeCreatedAt ? { lt: beforeCreatedAt } : {}),
+              ...(afterCreatedAt ? { gt: afterCreatedAt } : {}),
+            }
+          : undefined,
     },
     orderBy: {
       createdAt: 'desc',
@@ -564,21 +581,26 @@ export async function sendChatMessage(
     }))
   );
 
-  for (const participant of chatRecord.participants) {
-    const unreadPayload = unreadCounts.find((item) => item.userId === participant.userId);
-    publishChatEvent(participant.userId, 'chat.message.created', {
-      chatId: chatRecord.id,
-      senderId: input.senderId,
-      message: mapMessage(created),
-    });
-    publishChatEvent(participant.userId, 'chat.list.updated', {
-      chatId: chatRecord.id,
-    });
-    publishChatEvent(participant.userId, 'chat.unread.updated', {
-      chatId: chatRecord.id,
-      totalUnreadCount: unreadPayload?.totalUnreadCount ?? 0,
-    });
-  }
+  await Promise.all(
+    chatRecord.participants.flatMap((participant) => {
+      const unreadPayload = unreadCounts.find((item) => item.userId === participant.userId);
+
+      return [
+        publishChatEvent(participant.userId, 'chat.message.created', {
+          chatId: chatRecord.id,
+          senderId: input.senderId,
+          message: mapMessage(created),
+        }),
+        publishChatEvent(participant.userId, 'chat.list.updated', {
+          chatId: chatRecord.id,
+        }),
+        publishChatEvent(participant.userId, 'chat.unread.updated', {
+          chatId: chatRecord.id,
+          totalUnreadCount: unreadPayload?.totalUnreadCount ?? 0,
+        }),
+      ];
+    }),
+  );
 
   return mapMessage(created);
 }
@@ -615,18 +637,20 @@ export async function markChatRead(input: MarkChatReadInput): Promise<ChatReadSt
   };
 
   const totalUnreadCount = await countUnreadChatMessagesForUser(input.userId);
-  publishChatEvent(input.userId, 'chat.read.updated', state);
-  publishChatEvent(input.userId, 'chat.list.updated', {
-    chatId: updated.chatId,
-  });
-  publishChatEvent(input.userId, 'chat.unread.updated', {
-    chatId: updated.chatId,
-    totalUnreadCount,
-  });
+  await Promise.all([
+    publishChatEvent(input.userId, 'chat.read.updated', state),
+    publishChatEvent(input.userId, 'chat.list.updated', {
+      chatId: updated.chatId,
+    }),
+    publishChatEvent(input.userId, 'chat.unread.updated', {
+      chatId: updated.chatId,
+      totalUnreadCount,
+    }),
+  ]);
 
   const counterparty = record.participants.find((participant) => participant.userId !== input.userId);
   if (counterparty) {
-    publishChatEvent(counterparty.userId, 'chat.read.updated', {
+    await publishChatEvent(counterparty.userId, 'chat.read.updated', {
       ...state,
       readerUserId: input.userId,
     });
