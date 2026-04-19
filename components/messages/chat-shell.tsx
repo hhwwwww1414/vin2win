@@ -22,6 +22,8 @@ interface ChatShellProps {
   initialError?: string | null;
 }
 
+const EMPTY_MESSAGES: ChatMessageDto[] = [];
+
 function formatMessageTime(value: string) {
   return new Intl.DateTimeFormat('ru-RU', {
     hour: '2-digit',
@@ -100,9 +102,11 @@ function ChatListItem({
   hydrated: boolean;
   selected: boolean;
 }) {
+  const chatHref = `/messages/${chat.id}`;
+
   return (
-    <Link
-      href={`/messages/${chat.id}`}
+    <a
+      href={chatHref}
       className={cn(
         'group block rounded-[24px] border p-3 transition-colors',
         selected
@@ -153,7 +157,7 @@ function ChatListItem({
           </div>
         </div>
       </div>
-    </Link>
+    </a>
   );
 }
 
@@ -161,13 +165,14 @@ export function ChatShell({
   currentUserId,
   initialChats,
   initialChat = null,
-  initialMessages = [],
+  initialMessages,
   initialNextCursor,
   initialError = null,
 }: ChatShellProps) {
+  const safeInitialMessages = initialMessages ?? EMPTY_MESSAGES;
   const [chats, setChats] = useState(initialChats);
   const [currentChat, setCurrentChat] = useState<ChatSummaryDto | null>(initialChat);
-  const [messages, setMessages] = useState<ChatMessageDto[]>(initialMessages);
+  const [messages, setMessages] = useState<ChatMessageDto[]>(safeInitialMessages);
   const [nextCursor, setNextCursor] = useState<string | undefined>(initialNextCursor);
   const [hydrated, setHydrated] = useState(false);
   const [draft, setDraft] = useState('');
@@ -175,7 +180,7 @@ export function ChatShell({
   const [loadingMore, setLoadingMore] = useState(false);
   const [threadError, setThreadError] = useState<string | null>(initialError);
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const lastMessageCountRef = useRef(initialMessages.length);
+  const lastMessageCountRef = useRef(safeInitialMessages.length);
   const readRequestInFlightRef = useRef<string | null>(null);
   const lastCompletedReadRef = useRef<string | null>(null);
 
@@ -189,11 +194,11 @@ export function ChatShell({
 
   useEffect(() => {
     setCurrentChat(initialChat ?? null);
-    setMessages(initialMessages);
+    setMessages(safeInitialMessages);
     setNextCursor(initialNextCursor);
     setThreadError(initialError);
-    lastMessageCountRef.current = initialMessages.length;
-  }, [initialChat, initialError, initialMessages, initialNextCursor]);
+    lastMessageCountRef.current = safeInitialMessages.length;
+  }, [initialChat, initialError, initialNextCursor, safeInitialMessages]);
 
   const currentChatId = currentChat?.id;
   const currentChatUnreadCount = currentChat?.unreadCount ?? 0;
