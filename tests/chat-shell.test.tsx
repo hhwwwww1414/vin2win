@@ -16,7 +16,7 @@ const sampleChat: ChatSummaryDto = {
   },
   counterparty: {
     id: 'user-2',
-    name: 'Иван Петров',
+    name: 'Ivan Petrov',
     verified: true,
   },
   unreadCount: 2,
@@ -26,7 +26,7 @@ const sampleChat: ChatSummaryDto = {
     chatId: 'chat-1',
     senderId: 'user-2',
     messageType: 'TEXT',
-    text: 'Здравствуйте, актуально?',
+    text: 'Is it still available?',
     createdAt: '2026-04-19T12:30:00.000Z',
     updatedAt: '2026-04-19T12:30:00.000Z',
   },
@@ -38,7 +38,7 @@ const sampleMessages: ChatMessageDto[] = [
     chatId: 'chat-1',
     senderId: 'user-2',
     messageType: 'TEXT',
-    text: 'Здравствуйте, актуально?',
+    text: 'Is it still available?',
     createdAt: '2026-04-19T12:30:00.000Z',
     updatedAt: '2026-04-19T12:30:00.000Z',
   },
@@ -47,13 +47,13 @@ const sampleMessages: ChatMessageDto[] = [
     chatId: 'chat-1',
     senderId: 'user-1',
     messageType: 'TEXT',
-    text: 'Да, машина в продаже.',
+    text: 'Yes, the car is still for sale.',
     createdAt: '2026-04-19T12:31:00.000Z',
     updatedAt: '2026-04-19T12:31:00.000Z',
   },
 ];
 
-test('chat shell renders chat list and selected thread context', () => {
+test('chat shell renders chat list and selected thread context without server-side time labels', () => {
   const markup = renderToStaticMarkup(
     <ChatShell
       currentUserId="user-1"
@@ -64,8 +64,10 @@ test('chat shell renders chat list and selected thread context', () => {
   );
 
   assert.match(markup, /Toyota Camry 2022/);
-  assert.match(markup, /Иван Петров/);
-  assert.match(markup, /Да, машина в продаже\./);
-  assert.match(markup, /Здравствуйте, актуально\?/);
-  assert.match(markup, /Открыть карточку объявления/);
+  assert.match(markup, /Ivan Petrov/);
+  assert.match(markup, /Yes, the car is still for sale\./);
+  assert.match(markup, /Is it still available\?/);
+  assert.match(markup, /Open listing card|Открыть карточку объявления|РћС‚РєСЂС‹С‚СЊ РєР°СЂС‚РѕС‡РєСѓ РѕР±СЉСЏРІР»РµРЅРёСЏ/);
+  assert.doesNotMatch(markup, />\d{2}:\d{2}</);
+  assert.doesNotMatch(markup, />\d{2}\.\d{2}</);
 });

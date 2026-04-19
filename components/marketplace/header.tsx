@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -319,10 +319,13 @@ export function MarketplaceHeader() {
   const [chatSoundEnabled, setChatSoundEnabled] = useState(true);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const sessionBootstrappedRef = useRef(false);
   const playChatSound = useChatSound(chatSoundEnabled);
 
-  const loadSession = useCallback(async () => {
-    setSessionLoading(true);
+  const loadSession = useCallback(async (options: { silent?: boolean } = {}) => {
+    if (!options.silent) {
+      setSessionLoading(true);
+    }
 
     try {
       const response = await fetch('/api/auth/session', {
@@ -339,17 +342,39 @@ export function MarketplaceHeader() {
         | null;
 
       const authenticated = Boolean(payload?.authenticated);
-      setSessionUser(authenticated ? payload?.user ?? null : null);
+      const nextUser = authenticated ? payload?.user ?? null : null;
+      setSessionUser((current) => {
+        if (!current && !nextUser) {
+          return current;
+        }
+
+        if (
+          current &&
+          nextUser &&
+          current.id === nextUser.id &&
+          current.name === nextUser.name &&
+          current.role === nextUser.role
+        ) {
+          return current;
+        }
+
+        return nextUser;
+      });
       setFavoriteCount(authenticated ? payload?.favoriteCount ?? 0 : 0);
       setChatUnreadCount(authenticated ? payload?.chatUnreadCount ?? 0 : 0);
       setChatSoundEnabled(authenticated ? payload?.chatSoundEnabled ?? true : true);
     } catch {
-      setSessionUser(null);
-      setFavoriteCount(0);
-      setChatUnreadCount(0);
-      setChatSoundEnabled(true);
+      if (!options.silent) {
+        setSessionUser(null);
+        setFavoriteCount(0);
+        setChatUnreadCount(0);
+        setChatSoundEnabled(true);
+      }
     } finally {
-      setSessionLoading(false);
+      sessionBootstrappedRef.current = true;
+      if (!options.silent) {
+        setSessionLoading(false);
+      }
     }
   }, []);
 
@@ -373,8 +398,12 @@ export function MarketplaceHeader() {
   }, [mobileOpen]);
 
   useEffect(() => {
-    void loadSession();
+    void loadSession({ silent: sessionBootstrappedRef.current });
   }, [loadSession, pathname]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!sessionUser) {
@@ -386,12 +415,12 @@ export function MarketplaceHeader() {
         return;
       }
 
-      void loadSession();
+      void loadSession({ silent: true });
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        void loadSession();
+        void loadSession({ silent: true });
       }
     };
 
@@ -404,7 +433,7 @@ export function MarketplaceHeader() {
       window.removeEventListener('focus', refreshSession);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [loadSession, sessionUser]);
+  }, [loadSession, sessionUser?.id]);
 
   useEffect(() => {
     const handleFavoritesChanged = (event: Event) => {
@@ -440,17 +469,11 @@ export function MarketplaceHeader() {
   }, []);
 
   useEffect(() => {
-    if (!sessionUser) {
+    if (!sessionUser?.id) {
       return;
     }
 
     const source = new EventSource('/api/realtime/chat-events');
-    source.onopen = () => {
-      void loadSession();
-    };
-    source.onerror = () => {
-      void loadSession();
-    };
     const handleEvent = (rawEvent: MessageEvent<string>) => {
       try {
         const event = JSON.parse(rawEvent.data) as ChatRealtimeEvent;
@@ -483,10 +506,10 @@ export function MarketplaceHeader() {
       }
       source.close();
     };
-  }, [chatSoundEnabled, loadSession, playChatSound, sessionUser]);
+  }, [playChatSound, sessionUser?.id]);
 
   useEffect(() => {
-    if (!sessionUser) {
+    if (!sessionUser?.id) {
       return;
     }
 
@@ -534,7 +557,7 @@ export function MarketplaceHeader() {
         keepalive: true,
       }).catch(() => undefined);
     };
-  }, [clientId, pathname, sessionUser]);
+  }, [clientId, pathname, sessionUser?.id]);
 
   const submitHref = sessionUser ? '/listing/new' : '/login?next=%2Flisting%2Fnew';
 

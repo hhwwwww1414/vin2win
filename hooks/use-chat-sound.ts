@@ -1,9 +1,14 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 export function useChatSound(enabled: boolean) {
   const unlockedRef = useRef(false);
+  const enabledRef = useRef(enabled);
+
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -23,8 +28,13 @@ export function useChatSound(enabled: boolean) {
     };
   }, []);
 
-  return async () => {
-    if (!enabled || typeof window === 'undefined' || !unlockedRef.current || document.visibilityState !== 'visible') {
+  return useCallback(async () => {
+    if (
+      !enabledRef.current ||
+      typeof window === 'undefined' ||
+      !unlockedRef.current ||
+      document.visibilityState !== 'visible'
+    ) {
       return;
     }
 
@@ -65,5 +75,5 @@ export function useChatSound(enabled: boolean) {
         void context.close().catch(() => undefined);
       }, 350);
     }
-  };
+  }, []);
 }

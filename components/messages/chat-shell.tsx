@@ -91,7 +91,15 @@ function normalizeIncomingMessage(value: unknown): ChatMessageDto | null {
   };
 }
 
-function ChatListItem({ chat, selected }: { chat: ChatSummaryDto; selected: boolean }) {
+function ChatListItem({
+  chat,
+  hydrated,
+  selected,
+}: {
+  chat: ChatSummaryDto;
+  hydrated: boolean;
+  selected: boolean;
+}) {
   return (
     <Link
       href={`/messages/${chat.id}`}
@@ -116,7 +124,9 @@ function ChatListItem({ chat, selected }: { chat: ChatSummaryDto; selected: bool
               </div>
               <p className="mt-0.5 truncate text-xs text-muted-foreground">{chat.listing.title}</p>
             </div>
-            <span className="shrink-0 text-[11px] text-muted-foreground">{formatListTime(chat.lastMessageAt)}</span>
+            <span className="shrink-0 text-[11px] text-muted-foreground" suppressHydrationWarning>
+              {hydrated ? formatListTime(chat.lastMessageAt) : ''}
+            </span>
           </div>
 
           <div className="mt-3 grid grid-cols-[56px_minmax(0,1fr)] gap-3">
@@ -159,12 +169,17 @@ export function ChatShell({
   const [currentChat, setCurrentChat] = useState<ChatSummaryDto | null>(initialChat);
   const [messages, setMessages] = useState<ChatMessageDto[]>(initialMessages);
   const [nextCursor, setNextCursor] = useState<string | undefined>(initialNextCursor);
+  const [hydrated, setHydrated] = useState(false);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [threadError, setThreadError] = useState<string | null>(initialError);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const lastMessageCountRef = useRef(initialMessages.length);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     setChats(initialChats);
@@ -447,7 +462,12 @@ export function ChatShell({
           {sortedChats.length ? (
             <div className="space-y-3">
               {sortedChats.map((chat) => (
-                <ChatListItem key={chat.id} chat={chat} selected={chat.id === currentChatId} />
+                <ChatListItem
+                  key={chat.id}
+                  chat={chat}
+                  hydrated={hydrated}
+                  selected={chat.id === currentChatId}
+                />
               ))}
             </div>
           ) : (
@@ -545,8 +565,11 @@ export function ChatShell({
                             )}
                           >
                             <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.text}</p>
-                            <p className={cn('mt-2 text-[11px]', own ? 'text-white/75 dark:text-[#09090B]/70' : 'text-muted-foreground')}>
-                              {formatMessageTime(message.createdAt)}
+                            <p
+                              className={cn('mt-2 text-[11px]', own ? 'text-white/75 dark:text-[#09090B]/70' : 'text-muted-foreground')}
+                              suppressHydrationWarning
+                            >
+                              {hydrated ? formatMessageTime(message.createdAt) : ''}
                             </p>
                           </div>
                         </div>
