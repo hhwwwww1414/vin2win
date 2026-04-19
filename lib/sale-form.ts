@@ -57,6 +57,9 @@ export type SaleData = {
 };
 
 export type EditableSaleListingPayload = {
+  status?: ListingStatusValue;
+  moderationNote?: string | null;
+  media?: EditableSaleListingMediaPayload[];
   make?: string;
   model?: string;
   catalogBrandId?: string;
@@ -110,6 +113,55 @@ export type EditableSaleListingPayload = {
   contact?: string;
   vin?: string;
   videoUrl?: string;
+};
+
+export type EditableSaleListingMediaPayload = {
+  id: string;
+  kind: 'GALLERY' | 'VIDEO';
+  publicUrl: string;
+  originalName?: string;
+  sortOrder: number;
+};
+
+export type SaleListingEditMediaDraftItem =
+  | {
+      clientId: string;
+      source: 'existing';
+      kind: 'GALLERY' | 'VIDEO';
+      mediaId: string;
+    }
+  | {
+      clientId: string;
+      source: 'new';
+      kind: 'GALLERY' | 'VIDEO';
+    };
+
+export type SaleListingEditMediaPlanItem =
+  | {
+      clientId: string;
+      source: 'existing';
+      kind: 'GALLERY' | 'VIDEO';
+      mediaId: string;
+    }
+  | {
+      clientId: string;
+      source: 'new';
+      kind: 'GALLERY' | 'VIDEO';
+      uploadId: string;
+    };
+
+export type SaleListingEditMediaPlan = {
+  gallery: SaleListingEditMediaPlanItem[];
+  video: SaleListingEditMediaPlanItem | null;
+};
+
+export type SaleListingFormModeCopy = {
+  heading: string;
+  description: string;
+  primaryActionLabel: string;
+  secondaryActionLabel: string;
+  successTitle: string;
+  successDescription: string;
 };
 
 export const saleDefaults: SaleData = {
@@ -172,6 +224,64 @@ export function buildSaleSubmissionPayload(sale: SaleData, initialStatus: Listin
   return {
     ...sale,
     initialStatus,
+  };
+}
+
+export function buildSaleListingEditMediaPlan(input: {
+  gallery: SaleListingEditMediaDraftItem[];
+  video: SaleListingEditMediaDraftItem | null;
+}): SaleListingEditMediaPlan {
+  return {
+    gallery: input.gallery.map((item) =>
+      item.source === 'existing'
+        ? item
+        : {
+            ...item,
+            uploadId: item.clientId,
+          }
+    ),
+    video:
+      input.video == null
+        ? null
+        : input.video.source === 'existing'
+        ? input.video
+        : {
+            ...input.video,
+            uploadId: input.video.clientId,
+          },
+  };
+}
+
+export function getSaleListingFormModeCopy(input: {
+  isEditMode: boolean;
+  submittedStatus: ListingStatusValue | null;
+}): SaleListingFormModeCopy {
+  if (!input.isEditMode) {
+    const isDraft = input.submittedStatus === 'DRAFT';
+
+    return {
+      heading: 'Продажа автомобиля',
+      description: 'Соберите объявление по шагам, добавьте медиа и отправьте карточку на модерацию или сохраните черновик.',
+      primaryActionLabel: 'Отправить на модерацию',
+      secondaryActionLabel: 'Сохранить как черновик',
+      successTitle: isDraft ? 'Черновик сохранён' : 'Объявление отправлено на модерацию',
+      successDescription: isDraft
+        ? 'Объявление сохранено в личном кабинете. Вы сможете вернуться к нему и отправить на модерацию позже.'
+        : 'Карточка сохранена и будет опубликована после проверки модератором.',
+    };
+  }
+
+  const isDraft = input.submittedStatus === 'DRAFT';
+
+  return {
+    heading: 'Редактирование объявления',
+    description: 'Обновите карточку продажи, проверьте медиа и отправьте объявление на повторную модерацию или сохраните как черновик.',
+    primaryActionLabel: 'Сохранить изменения',
+    secondaryActionLabel: 'Сохранить как черновик',
+    successTitle: isDraft ? 'Изменения сохранены как черновик' : 'Объявление отправлено на повторную модерацию',
+    successDescription: isDraft
+      ? 'Изменения сохранены в черновике. Объявление не вернётся в каталог, пока вы не отправите его на модерацию.'
+      : 'Обновлённое объявление снова пройдет проверку модератора и вернётся в каталог после публикации.',
   };
 }
 

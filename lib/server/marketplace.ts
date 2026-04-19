@@ -15,6 +15,7 @@ import {
 import { prisma } from './prisma';
 import { getRegionForCity, getRegionsForCities, getRuRegionOptions, resolveRegionCitySelection } from '@/lib/ru-regions';
 import { createDefaultSaleSearchFilters } from '@/lib/sale-search';
+import type { EditableSaleListingPayload, SaleListingEditMediaPlan } from '@/lib/sale-form';
 import { saleListings as saleListingFixtures, wantedListings as wantedListingFixtures } from '@/lib/marketplace-data';
 import { calculatePotentialBenefit, extractEngineDisplacement } from '@/lib/listing-utils';
 import type {
@@ -147,6 +148,37 @@ export interface CreateWantedListingInput {
   restrictions: string[];
   region?: string;
   comment?: string;
+}
+
+export type OwnerSaleListingUpdateInput = Omit<CreateSaleListingInput, 'createdByUserId' | 'initialStatus' | 'media'>;
+
+export interface OwnerSaleListingUploadedMediaInput {
+  uploadId: string;
+  kind: 'gallery' | 'video';
+  storageKey: string;
+  publicUrl: string;
+  originalName?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+}
+
+export interface UpdateSaleListingByOwnerInput {
+  listingId: string;
+  currentUserId: string;
+  targetStatus: 'DRAFT' | 'PENDING';
+  values: OwnerSaleListingUpdateInput;
+  mediaPlan: SaleListingEditMediaPlan;
+  uploadedMedia: OwnerSaleListingUploadedMediaInput[];
+}
+
+export interface UpdateSaleListingByOwnerResult {
+  listing: {
+    id: string;
+    status: ListingStatus;
+    moderationNote: string | null;
+    publishedAt: Date | null;
+  };
+  removedStorageKeys: string[];
 }
 
 export interface CreateSellerReviewInput {
@@ -359,6 +391,89 @@ function pickMediaUrls(media: ListingMedia[], kind: ListingMediaKind): string[] 
 
 function pickSingleMediaUrl(media: ListingMedia[], kind: ListingMediaKind): string | undefined {
   return media.find((item) => item.kind === kind)?.publicUrl;
+}
+
+function isEditableListingMedia(
+  item: ListingMedia
+): item is ListingMedia & { kind: 'GALLERY' | 'VIDEO' } {
+  return item.kind === ListingMediaKind.GALLERY || item.kind === ListingMediaKind.VIDEO;
+}
+
+function mapEditableSaleListingPayload(record: SaleListingRecord): EditableSaleListingPayload {
+  return {
+    status: record.status,
+    moderationNote: record.moderationNote ?? null,
+    media: record.media
+      .filter(isEditableListingMedia)
+      .map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        publicUrl: item.publicUrl,
+        originalName: item.originalName ?? undefined,
+        sortOrder: item.sortOrder,
+      })),
+    make: record.make,
+    catalogBrandId: record.catalogBrandId ?? '',
+    model: record.model,
+    catalogModelId: record.catalogModelId ?? '',
+    generation: record.generation ?? '',
+    catalogGenerationId: record.catalogGenerationId ?? '',
+    year: record.year,
+    region: getRegionForCity(record.city) ?? '',
+    city: record.city,
+    price: record.price,
+    priceInHand: record.priceInHand ?? '',
+    priceOnResources: record.priceOnResources ?? '',
+    bodyType: record.bodyType,
+    catalogBodyTypeId: record.catalogBodyTypeId ?? '',
+    engine: record.engine,
+    catalogFuelTypeId: record.catalogFuelTypeId ?? '',
+    engineDisplacementL: record.engineDisplacementL ?? '',
+    catalogEngineId: record.catalogEngineId ?? '',
+    power: record.power,
+    transmission: record.transmission,
+    catalogTransmissionId: record.catalogTransmissionId ?? '',
+    drive: record.drive,
+    catalogDriveTypeId: record.catalogDriveTypeId ?? '',
+    mileage: record.mileage,
+    steering: record.steering,
+    color: record.color,
+    trim: record.trim ?? '',
+    catalogModificationId: record.catalogModificationId ?? '',
+    catalogTrimId: record.catalogTrimId ?? '',
+    owners: record.owners,
+    registrations: record.registrations ?? '',
+    keysCount: record.keysCount ?? '',
+    ptsType: record.ptsType?.toLowerCase() ?? 'original',
+    paintCount: record.paintCount,
+    paintedElements: (record.paintedElements ?? []).join(', '),
+    taxi: record.taxi ?? false,
+    carsharing: record.carsharing ?? false,
+    avtotekaStatus: record.avtotekaStatus?.toLowerCase() ?? '',
+    needsInvestment: record.needsInvestment ?? false,
+    conditionNote: record.conditionNote ?? '',
+    wheelSet: record.wheelSet,
+    extraTires: record.extraTires,
+    glassOriginal: record.glassOriginal ?? false,
+    sellerType: record.sellerType.toLowerCase(),
+    resourceStatus: record.resourceStatus.toLowerCase().replace(/_/g, '_'),
+    description: record.description,
+    sellerName: record.seller?.name ?? '',
+    contact: record.seller?.phone ?? '',
+    vin: record.vin ?? '',
+    plateNumber: record.plateNumber ?? '',
+    plateRegion: record.plateRegion ?? '',
+    plateUnregistered: record.plateUnregistered,
+    videoUrl: record.videoUrlExternal ?? '',
+  };
+}
+
+function isSaleListingOwner(record: Pick<SaleListingRecord, 'createdByUserId' | 'seller'>, currentUserId: string) {
+  return record.createdByUserId === currentUserId || record.seller?.userId === currentUserId;
+}
+
+function normalizeOwnerTargetStatus(value: UpdateSaleListingByOwnerInput['targetStatus']) {
+  return value === 'DRAFT' ? ListingStatus.DRAFT : ListingStatus.PENDING;
 }
 
 function mapSellerReview(record: SellerReviewRecord): SellerReview {
@@ -1534,6 +1649,317 @@ export async function getWantedListingById(id: string, viewer?: ListingViewer): 
 
     throw error;
   }
+}
+
+export async function getEditableSaleListingForOwner(input: {
+  listingId: string;
+  currentUserId: string;
+}): Promise<EditableSaleListingPayload> {
+  const record = await prisma.saleListing.findUnique({
+    where: {
+      id: input.listingId,
+    },
+    include: {
+      seller: true,
+      media: {
+        orderBy: {
+          sortOrder: 'asc',
+        },
+      },
+    },
+  });
+
+  if (!record) {
+    throw new Error('Listing not found.');
+  }
+
+  if (!isSaleListingOwner(record as SaleListingRecord, input.currentUserId)) {
+    throw new Error('Access denied.');
+  }
+
+  return mapEditableSaleListingPayload(record as SaleListingRecord);
+}
+
+export async function updateSaleListingByOwner(
+  input: UpdateSaleListingByOwnerInput
+): Promise<UpdateSaleListingByOwnerResult> {
+  const current = await prisma.saleListing.findUnique({
+    where: {
+      id: input.listingId,
+    },
+    include: {
+      seller: true,
+      media: {
+        orderBy: {
+          sortOrder: 'asc',
+        },
+      },
+    },
+  });
+
+  if (!current) {
+    throw new Error('Listing not found.');
+  }
+
+  if (!isSaleListingOwner(current as SaleListingRecord, input.currentUserId)) {
+    throw new Error('Access denied.');
+  }
+
+  const galleryById = new Map(
+    current.media
+      .filter((item) => item.kind === ListingMediaKind.GALLERY)
+      .map((item) => [item.id, item] as const)
+  );
+  const videoById = new Map(
+    current.media
+      .filter((item) => item.kind === ListingMediaKind.VIDEO)
+      .map((item) => [item.id, item] as const)
+  );
+  const uploadedById = new Map(input.uploadedMedia.map((item) => [item.uploadId, item] as const));
+
+  const nextGallery = input.mediaPlan.gallery.map((item, sortOrder) => {
+    if (item.source === 'existing') {
+      const existing = galleryById.get(item.mediaId);
+      if (!existing) {
+        throw new Error('Invalid gallery media reference.');
+      }
+
+      return {
+        source: 'existing' as const,
+        mediaId: existing.id,
+        sortOrder,
+      };
+    }
+
+    const uploaded = uploadedById.get(item.uploadId);
+    if (!uploaded || uploaded.kind !== 'gallery') {
+      throw new Error('Missing uploaded gallery media.');
+    }
+
+    return {
+      source: 'new' as const,
+      upload: uploaded,
+      sortOrder,
+    };
+  });
+
+  const nextVideo =
+    input.mediaPlan.video == null
+      ? null
+      : input.mediaPlan.video.source === 'existing'
+      ? (() => {
+          const existing = videoById.get(input.mediaPlan.video.mediaId);
+          if (!existing) {
+            throw new Error('Invalid video media reference.');
+          }
+
+          return {
+            source: 'existing' as const,
+            mediaId: existing.id,
+          };
+        })()
+      : (() => {
+          const uploaded = uploadedById.get(input.mediaPlan.video.uploadId);
+          if (!uploaded || uploaded.kind !== 'video') {
+            throw new Error('Missing uploaded video media.');
+          }
+
+          return {
+            source: 'new' as const,
+            upload: uploaded,
+          };
+        })();
+
+  if (normalizeOwnerTargetStatus(input.targetStatus) === ListingStatus.PENDING && nextGallery.length === 0) {
+    throw new Error('Добавьте хотя бы одну фотографию.');
+  }
+
+  const retainedExistingIds = new Set<string>([
+    ...nextGallery.filter((item) => item.source === 'existing').map((item) => item.mediaId),
+    ...(nextVideo && nextVideo.source === 'existing' ? [nextVideo.mediaId] : []),
+  ]);
+  const removedMedia = current.media.filter(
+    (item) =>
+      (item.kind === ListingMediaKind.GALLERY || item.kind === ListingMediaKind.VIDEO) &&
+      !retainedExistingIds.has(item.id)
+  );
+
+  const nextStatus = normalizeOwnerTargetStatus(input.targetStatus);
+  const now = new Date();
+  const ownerUserId = current.createdByUserId ?? current.seller.userId ?? null;
+
+  const updated = await prisma.$transaction(async (tx) => {
+    if (ownerUserId) {
+      await tx.user.update({
+        where: {
+          id: ownerUserId,
+        },
+        data: {
+          name: input.values.sellerName,
+          phone: input.values.contact,
+        },
+      });
+    }
+
+    await tx.sellerProfile.update({
+      where: {
+        id: current.sellerId,
+      },
+      data: {
+        name: input.values.sellerName,
+        phone: input.values.contact,
+        profileType: input.values.sellerType === 'commission' ? ProfileType.COMPANY : ProfileType.PERSON,
+      },
+    });
+
+    const listing = await tx.saleListing.update({
+      where: {
+        id: current.id,
+      },
+      data: {
+        make: input.values.make,
+        catalogBrandId: input.values.catalogBrandId ?? null,
+        model: input.values.model,
+        catalogModelId: input.values.catalogModelId ?? null,
+        generation: input.values.generation || null,
+        catalogGenerationId: input.values.catalogGenerationId ?? null,
+        year: input.values.year,
+        price: input.values.price,
+        priceInHand: input.values.priceInHand ?? null,
+        priceOnResources: input.values.priceOnResources ?? null,
+        city: input.values.city,
+        vin: input.values.vin || null,
+        plateNumber: input.values.plateNumber || null,
+        plateRegion: input.values.plateRegion || null,
+        plateUnregistered: input.values.plateUnregistered ?? false,
+        bodyType: input.values.bodyType,
+        catalogBodyTypeId: input.values.catalogBodyTypeId ?? null,
+        engine: input.values.engine,
+        catalogFuelTypeId: input.values.catalogFuelTypeId ?? null,
+        engineDisplacementL: input.values.engineDisplacementL ?? null,
+        catalogEngineId: input.values.catalogEngineId ?? null,
+        power: input.values.power,
+        transmission: input.values.transmission,
+        catalogTransmissionId: input.values.catalogTransmissionId ?? null,
+        drive: input.values.drive,
+        catalogDriveTypeId: input.values.catalogDriveTypeId ?? null,
+        catalogModificationId: input.values.catalogModificationId ?? null,
+        mileage: input.values.mileage,
+        owners: input.values.owners,
+        registrations: input.values.registrations ?? null,
+        keysCount: input.values.keysCount ?? null,
+        ptsType: input.values.ptsType ? ptsTypeToPrisma[input.values.ptsType] : null,
+        ptsOriginal: input.values.ptsType ? input.values.ptsType === 'original' : true,
+        avtotekaStatus: input.values.avtotekaStatus ? avtotekaToPrisma[input.values.avtotekaStatus] : null,
+        paintedElements: input.values.paintedElements,
+        paintCount: input.values.paintCount,
+        taxi: input.values.taxi,
+        carsharing: input.values.carsharing,
+        wheelSet: input.values.wheelSet,
+        extraTires: input.values.extraTires,
+        conditionNote: input.values.investmentNote || null,
+        needsInvestment: input.values.noInvestment === undefined ? null : !input.values.noInvestment,
+        glassOriginal: input.values.glassOriginal ?? null,
+        resourceStatus: resourceStatusToPrisma[input.values.resourceStatus],
+        sellerType: sellerTypeToPrisma[input.values.sellerType],
+        inspectionCity: input.values.city,
+        color: input.values.color,
+        steering: input.values.steering,
+        trim: input.values.trim || null,
+        catalogTrimId: input.values.catalogTrimId ?? null,
+        description: input.values.description,
+        videoUrlExternal: input.values.videoUrlExternal || null,
+        status: nextStatus,
+        moderationNote: null,
+        publishedAt: null,
+        statusUpdatedAt: now,
+      },
+      select: {
+        id: true,
+        status: true,
+        moderationNote: true,
+        publishedAt: true,
+      },
+    });
+
+    if (current.price !== input.values.price) {
+      await tx.priceHistory.create({
+        data: {
+          saleListingId: current.id,
+          price: input.values.price,
+          createdAt: now,
+        },
+      });
+    }
+
+    if (removedMedia.length > 0) {
+      await tx.listingMedia.deleteMany({
+        where: {
+          id: {
+            in: removedMedia.map((item) => item.id),
+          },
+        },
+      });
+    }
+
+    for (const item of nextGallery) {
+      if (item.source === 'existing') {
+        await tx.listingMedia.update({
+          where: {
+            id: item.mediaId,
+          },
+          data: {
+            sortOrder: item.sortOrder,
+          },
+        });
+        continue;
+      }
+
+      await tx.listingMedia.create({
+        data: {
+          saleListingId: current.id,
+          kind: ListingMediaKind.GALLERY,
+          storageKey: item.upload.storageKey,
+          publicUrl: item.upload.publicUrl,
+          originalName: item.upload.originalName,
+          mimeType: item.upload.mimeType,
+          sizeBytes: item.upload.sizeBytes,
+          sortOrder: item.sortOrder,
+        },
+      });
+    }
+
+    if (nextVideo?.source === 'existing') {
+      await tx.listingMedia.update({
+        where: {
+          id: nextVideo.mediaId,
+        },
+        data: {
+          sortOrder: 0,
+        },
+      });
+    } else if (nextVideo?.source === 'new') {
+      await tx.listingMedia.create({
+        data: {
+          saleListingId: current.id,
+          kind: ListingMediaKind.VIDEO,
+          storageKey: nextVideo.upload.storageKey,
+          publicUrl: nextVideo.upload.publicUrl,
+          originalName: nextVideo.upload.originalName,
+          mimeType: nextVideo.upload.mimeType,
+          sizeBytes: nextVideo.upload.sizeBytes,
+          sortOrder: 0,
+        },
+      });
+    }
+
+    return listing;
+  });
+
+  return {
+    listing: updated,
+    removedStorageKeys: removedMedia.map((item) => item.storageKey),
+  };
 }
 
 export async function createSaleListing(input: CreateSaleListingInput): Promise<SaleListing> {

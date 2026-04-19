@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildSaleListingEditMediaPlan,
   buildSaleSubmissionPayload,
   mergeSaleFormWithEditableListing,
   saleDefaults,
@@ -106,4 +107,26 @@ test('saleDefaults start with empty transmission and drive while keeping readabl
   assert.equal(saleDefaults.transmission, '');
   assert.equal(saleDefaults.drive, '');
   assert.equal(saleDefaults.steering, 'Левый');
+});
+test('buildSaleListingEditMediaPlan keeps final gallery order and maps new uploads by client id', () => {
+  const mediaPlan = buildSaleListingEditMediaPlan({
+    gallery: [
+      { clientId: 'existing-2', source: 'existing', kind: 'GALLERY', mediaId: 'media-2' },
+      { clientId: 'new-1', source: 'new', kind: 'GALLERY' },
+      { clientId: 'existing-1', source: 'existing', kind: 'GALLERY', mediaId: 'media-1' },
+    ],
+    video: { clientId: 'video-new', source: 'new', kind: 'VIDEO' },
+  });
+
+  assert.deepEqual(mediaPlan.gallery, [
+    { clientId: 'existing-2', source: 'existing', kind: 'GALLERY', mediaId: 'media-2' },
+    { clientId: 'new-1', source: 'new', kind: 'GALLERY', uploadId: 'new-1' },
+    { clientId: 'existing-1', source: 'existing', kind: 'GALLERY', mediaId: 'media-1' },
+  ]);
+  assert.deepEqual(mediaPlan.video, {
+    clientId: 'video-new',
+    source: 'new',
+    kind: 'VIDEO',
+    uploadId: 'video-new',
+  });
 });

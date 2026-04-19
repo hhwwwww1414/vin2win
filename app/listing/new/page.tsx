@@ -11,10 +11,14 @@ import { Combobox } from '@/components/ui/combobox';
 import { ColorSwatchSelect } from '@/components/ui/color-swatch-select';
 import { CAR_CATALOG } from '@/lib/car-catalog';
 import { useVehicleCatalogForm } from '@/hooks/use-vehicle-catalog-form';
+import { LISTING_STATUS_BADGE_CLASSES, LISTING_STATUS_LABELS } from '@/lib/listing-status';
 import type { ListingStatusValue } from '@/lib/listing-status';
 import {
+  buildSaleListingEditMediaPlan,
   buildSaleSubmissionPayload,
+  getSaleListingFormModeCopy,
   mergeSaleFormWithEditableListing,
+  type EditableSaleListingMediaPayload,
   type EditableSaleListingPayload,
   type SaleData,
 } from '@/lib/sale-form';
@@ -50,8 +54,47 @@ type SaleStep = 1 | 2 | 3 | 4 | 5;
 type SubmissionMode = 'DRAFT' | 'PENDING';
 type FieldErrors = Record<string, string>;
 
-type PhotoItem = { file: File; url: string };
-type VideoItem = { file: File; name: string; size: string; url: string };
+type ExistingGalleryItem = {
+  clientId: string;
+  source: 'existing';
+  kind: 'GALLERY';
+  mediaId: string;
+  url: string;
+  originalName?: string;
+};
+
+type NewGalleryItem = {
+  clientId: string;
+  source: 'new';
+  kind: 'GALLERY';
+  file: File;
+  url: string;
+  originalName: string;
+};
+
+type GalleryItem = ExistingGalleryItem | NewGalleryItem;
+
+type ExistingVideoItem = {
+  clientId: string;
+  source: 'existing';
+  kind: 'VIDEO';
+  mediaId: string;
+  url: string;
+  name: string;
+  size: string;
+};
+
+type NewVideoItem = {
+  clientId: string;
+  source: 'new';
+  kind: 'VIDEO';
+  file: File;
+  name: string;
+  size: string;
+  url: string;
+};
+
+type VideoItem = ExistingVideoItem | NewVideoItem;
 type SessionUser = { name: string; phone?: string };
 
 type WantedData = {
@@ -413,14 +456,69 @@ function fileSize(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function revokePhotos(photos: PhotoItem[]) {
-  photos.forEach((photo) => URL.revokeObjectURL(photo.url));
+function createMediaClientId(prefix: 'gallery' | 'video') {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function revokeGalleryItems(items: GalleryItem[]) {
+  items.forEach((item) => {
+    if (item.source === 'new') {
+      URL.revokeObjectURL(item.url);
+    }
+  });
 }
 
 function revokeVideoPreview(video: VideoItem | null) {
-  if (video) {
+  if (video?.source === 'new') {
     URL.revokeObjectURL(video.url);
   }
+}
+
+function mapEditableMediaToFormState(media: EditableSaleListingMediaPayload[] | undefined) {
+  const gallery: GalleryItem[] = [];
+  let video: VideoItem | null = null;
+
+  for (const item of media ?? []) {
+    if (item.kind === 'GALLERY') {
+      gallery.push({
+        clientId: `existing-${item.id}`,
+        source: 'existing',
+        kind: 'GALLERY',
+        mediaId: item.id,
+        url: item.publicUrl,
+        originalName: item.originalName,
+      });
+      continue;
+    }
+
+    if (item.kind === 'VIDEO' && !video) {
+      video = {
+        clientId: `existing-${item.id}`,
+        source: 'existing',
+        kind: 'VIDEO',
+        mediaId: item.id,
+        url: item.publicUrl,
+        name: item.originalName || 'Загруженное видео',
+        size: 'Сохранено в объявлении',
+      };
+    }
+  }
+
+  return { gallery, video };
+}
+
+function buildSaleMediaSnapshot(gallery: GalleryItem[], video: VideoItem | null) {
+  return {
+    gallery: gallery.map((item) =>
+      item.source === 'existing' ? `existing:${item.mediaId}` : `new:${item.originalName}:${item.clientId}`
+    ),
+    video:
+      video == null
+        ? null
+        : video.source === 'existing'
+        ? `existing:${video.mediaId}`
+        : `new:${video.name}:${video.clientId}`,
+  };
 }
 
 function wantedRestrictions(data: WantedData) {
@@ -482,14 +580,25 @@ function parseRequestedScenario(value: string | null): Scenario | null {
 export default function NewListingPage() {
   const searchParams = useSearchParams();
   const duplicateId = searchParams.get('duplicate');
+  const editId = searchParams.get('edit');
   const requestedScenario = parseRequestedScenario(searchParams.get('scenario'));
-  const creationPath = requestedScenario ? `/listing/new?scenario=${requestedScenario}` : '/listing/new';
-  const [scenario, setScenario] = useState<Scenario | null>(duplicateId ? 'sale' : requestedScenario);
+  const editableListingId = editId ?? duplicateId;
+  const isEditMode = Boolean(editId);
+  const creationPath = editId
+    ? `/listing/new?edit=${editId}`
+    : duplicateId
+    ? `/listing/new?duplicate=${duplicateId}`
+    : requestedScenario
+    ? `/listing/new?scenario=${requestedScenario}`
+    : '/listing/new';
+  const [scenario, setScenario] = useState<Scenario | null>(editableListingId ? 'sale' : requestedScenario);
   const [step, setStep] = useState<SaleStep>(1);
   const [sale, setSale] = useState<SaleData>(saleDefaults);
   const [wanted, setWanted] = useState<WantedData>(wantedDefaults);
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  const [videoFile, setVideoFile] = useState<VideoItem | null>(null);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [videoItem, setVideoItem] = useState<VideoItem | null>(null);
+  const [editStatus, setEditStatus] = useState<ListingStatusValue | null>(null);
+  const [editModerationNote, setEditModerationNote] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -504,6 +613,7 @@ export default function NewListingPage() {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const duplicateLoadedRef = useRef(false);
   const draftRestoredRef = useRef(false);
+  const editBaselineRef = useRef<string | null>(null);
   const saleCityOptions = useMemo(() => getCitiesForRegion(sale.region), [sale.region]);
   const wantedModelOptions = useMemo(
     () =>
@@ -513,9 +623,17 @@ export default function NewListingPage() {
     []
   );
   const wantedModelItems = useMemo(() => normalizeUniqueList(splitCsv(wanted.models)), [wanted.models]);
+  const saleMediaSnapshot = useMemo(
+    () => buildSaleMediaSnapshot(galleryItems, videoItem),
+    [galleryItems, videoItem]
+  );
   const saleDirty = useMemo(
-    () => JSON.stringify(sale) !== JSON.stringify(saleDefaults) || photos.length > 0 || Boolean(videoFile),
-    [photos.length, sale, videoFile]
+    () =>
+      isEditMode
+        ? editBaselineRef.current != null &&
+          JSON.stringify({ sale, media: saleMediaSnapshot }) !== editBaselineRef.current
+        : JSON.stringify(sale) !== JSON.stringify(saleDefaults) || galleryItems.length > 0 || Boolean(videoItem),
+    [galleryItems.length, isEditMode, sale, saleMediaSnapshot, videoItem]
   );
   const wantedDirty = useMemo(() => JSON.stringify(wanted) !== JSON.stringify(wantedDefaults), [wanted]);
 
@@ -705,7 +823,7 @@ export default function NewListingPage() {
   }, []);
 
   useEffect(() => {
-    if (duplicateId || requestedScenario || authLoading || draftRestoredRef.current) {
+    if (editableListingId || requestedScenario || authLoading || draftRestoredRef.current) {
       return;
     }
 
@@ -721,10 +839,10 @@ export default function NewListingPage() {
     setSale(draft.sale);
     setWanted(draft.wanted);
     setDraftNotice('Черновик восстановлен из браузера. Локальные фото и видеофайл нужно загрузить заново.');
-  }, [authLoading, duplicateId, requestedScenario]);
+  }, [authLoading, editableListingId, requestedScenario]);
 
   useEffect(() => {
-    if (!duplicateId || duplicateLoadedRef.current || authLoading || !sessionUser) {
+    if (!editableListingId || duplicateLoadedRef.current || authLoading || !sessionUser) {
       return;
     }
 
@@ -732,23 +850,37 @@ export default function NewListingPage() {
 
     async function loadDuplicate() {
       try {
-        const response = await fetch(`/api/account/listings/${duplicateId}`);
+        const response = await fetch(`/api/account/listings/${editableListingId}`);
         if (!response.ok) {
           return;
         }
 
         const data = (await response.json()) as EditableSaleListingPayload;
-        setSale((current) => {
-          const merged = mergeSaleFormWithEditableListing(current, data);
-          return {
-            ...merged,
-            region: merged.region || getRegionForCity(merged.city) || '',
-            engine: normalizeDuplicateEngineType(merged.engine),
-            engineDisplacementL: normalizeDuplicateEngineDisplacementL(merged.engineDisplacementL),
-            sellerType: normalizeSaleSellerType(merged.sellerType),
-          };
-        });
+        const merged = mergeSaleFormWithEditableListing(saleDefaults, data);
+        const normalizedSale = {
+          ...merged,
+          region: merged.region || getRegionForCity(merged.city) || '',
+          engine: normalizeDuplicateEngineType(merged.engine),
+          engineDisplacementL: normalizeDuplicateEngineDisplacementL(merged.engineDisplacementL),
+          sellerType: normalizeSaleSellerType(merged.sellerType),
+        };
+
+        setSale(normalizedSale);
         setScenario('sale');
+
+        if (isEditMode) {
+          const mappedMedia = mapEditableMediaToFormState(data.media);
+          setGalleryItems(mappedMedia.gallery);
+          setVideoItem(mappedMedia.video);
+          setEditStatus(data.status ?? null);
+          setEditModerationNote(data.moderationNote ?? null);
+          editBaselineRef.current = JSON.stringify({
+            sale: normalizedSale,
+            media: buildSaleMediaSnapshot(mappedMedia.gallery, mappedMedia.video),
+          });
+          setDraftNotice('Объявление загружено для редактирования. После сохранения оно снова уйдёт на модерацию.');
+          return;
+        }
         setDraftNotice('Данные объявления подставлены в форму. Фото и видео нужно выбрать заново.');
       } catch {
         // noop
@@ -756,9 +888,13 @@ export default function NewListingPage() {
     }
 
     void loadDuplicate();
-  }, [duplicateId, authLoading, sessionUser]);
+  }, [authLoading, editableListingId, isEditMode, sessionUser]);
 
   useEffect(() => {
+    if (isEditMode) {
+      return;
+    }
+
     if (!scenario || submitted) {
       window.localStorage.removeItem(LISTING_DRAFT_STORAGE_KEY);
       return;
@@ -779,7 +915,7 @@ export default function NewListingPage() {
     };
 
     window.localStorage.setItem(LISTING_DRAFT_STORAGE_KEY, JSON.stringify(payload));
-  }, [sale, saleDirty, scenario, step, submitted, wanted, wantedDirty]);
+  }, [isEditMode, sale, saleDirty, scenario, step, submitted, wanted, wantedDirty]);
 
   useEffect(() => {
     if (submitted) {
@@ -801,15 +937,18 @@ export default function NewListingPage() {
   }, [saleDirty, scenario, submitted, wantedDirty]);
 
   const resetAll = useCallback(() => {
-    revokePhotos(photos);
-    revokeVideoPreview(videoFile);
+    revokeGalleryItems(galleryItems);
+    revokeVideoPreview(videoItem);
     window.localStorage.removeItem(LISTING_DRAFT_STORAGE_KEY);
     setScenario(null);
     setStep(1);
     setSale(saleDefaults);
     setWanted(wantedDefaults);
-    setPhotos([]);
-    setVideoFile(null);
+    setGalleryItems([]);
+    setVideoItem(null);
+    setEditStatus(null);
+    setEditModerationNote(null);
+    editBaselineRef.current = null;
     setIsSubmitting(false);
     setSubmitError(null);
     setMediaError(null);
@@ -818,7 +957,7 @@ export default function NewListingPage() {
     setSubmittedStatus(null);
     setFieldErrors({});
     setDraftNotice(null);
-  }, [photos, videoFile]);
+  }, [galleryItems, videoItem]);
 
   const addPhotos = useCallback((files: FileList | null) => {
     if (!files) {
@@ -826,17 +965,24 @@ export default function NewListingPage() {
     }
 
     const selectedFiles = Array.from(files);
-    const freeSlots = Math.max(0, MAX_LISTING_PHOTO_COUNT - photos.length);
+    const freeSlots = Math.max(0, MAX_LISTING_PHOTO_COUNT - galleryItems.length);
     const acceptableFiles = selectedFiles
       .filter((file) => file.type.startsWith('image/') && file.size <= MAX_LISTING_MEDIA_FILE_SIZE_BYTES)
       .slice(0, freeSlots)
-      .map((file) => ({ file, url: URL.createObjectURL(file) }));
+      .map((file) => ({
+        clientId: createMediaClientId('gallery'),
+        source: 'new' as const,
+        kind: 'GALLERY' as const,
+        file,
+        url: URL.createObjectURL(file),
+        originalName: file.name,
+      }));
     const rejectedCount =
       selectedFiles.filter((file) => !file.type.startsWith('image/') || file.size > MAX_LISTING_MEDIA_FILE_SIZE_BYTES).length +
       Math.max(0, selectedFiles.length - freeSlots - acceptableFiles.length);
 
     if (acceptableFiles.length > 0) {
-      setPhotos((current) => [...current, ...acceptableFiles]);
+      setGalleryItems((current) => [...current, ...acceptableFiles]);
       clearError('sale.photos');
       setDraftNotice(null);
     }
@@ -849,16 +995,18 @@ export default function NewListingPage() {
     }
 
     setMediaError(null);
-  }, [clearError, photos.length]);
+  }, [clearError, galleryItems.length]);
 
   const removePhoto = useCallback((index: number) => {
-    setPhotos((current) => {
+    setGalleryItems((current) => {
       const target = current[index];
       if (!target) {
         return current;
       }
 
-      URL.revokeObjectURL(target.url);
+      if (target.source === 'new') {
+        URL.revokeObjectURL(target.url);
+      }
       return current.filter((_, photoIndex) => photoIndex !== index);
     });
   }, []);
@@ -868,7 +1016,7 @@ export default function NewListingPage() {
       return;
     }
 
-    setPhotos((current) => {
+    setGalleryItems((current) => {
       const target = current[index];
       if (!target) {
         return current;
@@ -879,7 +1027,7 @@ export default function NewListingPage() {
   }, []);
 
   const movePhoto = useCallback((index: number, direction: 'left' | 'right') => {
-    setPhotos((current) => {
+    setGalleryItems((current) => {
       const nextIndex = direction === 'left' ? index - 1 : index + 1;
       if (nextIndex < 0 || nextIndex >= current.length) {
         return current;
@@ -911,9 +1059,17 @@ export default function NewListingPage() {
 
     setMediaError(null);
     setDraftNotice(null);
-    revokeVideoPreview(videoFile);
-    setVideoFile({ file, name: file.name, size: fileSize(file.size), url: URL.createObjectURL(file) });
-  }, [videoFile]);
+    revokeVideoPreview(videoItem);
+    setVideoItem({
+      clientId: createMediaClientId('video'),
+      source: 'new',
+      kind: 'VIDEO',
+      file,
+      name: file.name,
+      size: fileSize(file.size),
+      url: URL.createObjectURL(file),
+    });
+  }, [videoItem]);
 
   const validateSaleStep = useCallback(
     (targetStep: SaleStep) => {
@@ -1010,7 +1166,7 @@ export default function NewListingPage() {
       });
 
       const nextErrors: FieldErrors = {};
-      if (mode === 'PENDING' && photos.length === 0) {
+      if (mode === 'PENDING' && galleryItems.length === 0) {
         nextErrors['sale.photos'] = 'Добавьте хотя бы одну фотографию.';
       }
 
@@ -1021,7 +1177,7 @@ export default function NewListingPage() {
       updateFieldErrors(nextErrors, ['sale.photos']);
       return valid;
     },
-    [photos.length, updateFieldErrors, validateSaleStep]
+    [galleryItems.length, updateFieldErrors, validateSaleStep]
   );
 
   const handleSelectSaleStep = useCallback(
@@ -1073,26 +1229,66 @@ export default function NewListingPage() {
         if (scenario === 'sale') {
           const body = new FormData();
           body.append('payload', JSON.stringify(buildSaleSubmissionPayload(sale, mode)));
-          photos.forEach((photo) => body.append('photos', photo.file));
-          if (videoFile) {
-            body.append('video', videoFile.file);
+          if (isEditMode && editId) {
+            const mediaPlan = buildSaleListingEditMediaPlan({
+              gallery: galleryItems.map((item) =>
+                item.source === 'existing'
+                  ? { clientId: item.clientId, source: 'existing', kind: 'GALLERY', mediaId: item.mediaId }
+                  : { clientId: item.clientId, source: 'new', kind: 'GALLERY' }
+              ),
+              video:
+                videoItem == null
+                  ? null
+                  : videoItem.source === 'existing'
+                  ? { clientId: videoItem.clientId, source: 'existing', kind: 'VIDEO', mediaId: videoItem.mediaId }
+                  : { clientId: videoItem.clientId, source: 'new', kind: 'VIDEO' },
+            });
+
+            body.append('mediaPlan', JSON.stringify(mediaPlan));
+            galleryItems.forEach((item) => {
+              if (item.source === 'new') {
+                body.append(`galleryFile:${item.clientId}`, item.file);
+              }
+            });
+            if (videoItem?.source === 'new') {
+              body.append(`videoFile:${videoItem.clientId}`, videoItem.file);
+            }
+          } else {
+            galleryItems.forEach((item) => {
+              if (item.source === 'new') {
+                body.append('photos', item.file);
+              }
+            });
+            if (videoItem?.source === 'new') {
+              body.append('video', videoItem.file);
+            }
           }
 
-          const response = await fetch('/api/listings', { method: 'POST', body });
+          const response = await fetch(isEditMode && editId ? `/api/account/listings/${editId}` : '/api/listings', {
+            method: isEditMode ? 'PATCH' : 'POST',
+            body,
+          });
           const payload = (await response.json().catch(() => null)) as
             | { id?: string; error?: string; status?: ListingStatusValue }
             | null;
 
           if (!response.ok) {
-            throw new Error(payload?.error ?? 'Не удалось создать объявление.');
+            throw new Error(payload?.error ?? (isEditMode ? 'Не удалось сохранить изменения объявления.' : 'Не удалось создать объявление.'));
           }
 
-          revokePhotos(photos);
-          revokeVideoPreview(videoFile);
-          setPhotos([]);
-          setVideoFile(null);
-          setCreatedId(payload?.id ?? null);
-          setSubmittedStatus(payload?.status ?? mode);
+          setCreatedId(payload?.id ?? (isEditMode ? editId : null));
+          const nextStatus = payload?.status ?? mode;
+          setSubmittedStatus(nextStatus);
+          if (isEditMode) {
+            setEditStatus(nextStatus);
+            setEditModerationNote(null);
+            editBaselineRef.current = JSON.stringify({ sale, media: saleMediaSnapshot });
+          } else {
+            revokeGalleryItems(galleryItems);
+            revokeVideoPreview(videoItem);
+            setGalleryItems([]);
+            setVideoItem(null);
+          }
         } else {
           const response = await fetch('/api/wanted', {
             method: 'POST',
@@ -1125,13 +1321,16 @@ export default function NewListingPage() {
       }
     },
     [
-      photos,
+      editId,
+      galleryItems,
+      isEditMode,
       sale,
+      saleMediaSnapshot,
       scenario,
       sessionUser,
       validateSaleBeforeSubmit,
       validateWanted,
-      videoFile,
+      videoItem,
       wanted,
       wantedModelItems,
     ]
@@ -1211,6 +1410,11 @@ export default function NewListingPage() {
     );
   }
 
+  const saleFormModeCopy = getSaleListingFormModeCopy({
+    isEditMode,
+    submittedStatus,
+  });
+
   if (submitted) {
     const href = createdId
       ? scenario === 'sale'
@@ -1229,20 +1433,18 @@ export default function NewListingPage() {
             <Check className="h-8 w-8 text-success" />
           </div>
           <h1 className="mb-3 text-2xl font-bold text-foreground">
-            {isDraft
-              ? scenario === 'sale'
-                ? 'Черновик объявления сохранён'
-                : 'Черновик запроса сохранён'
-              : scenario === 'sale'
-                ? 'Объявление отправлено на модерацию'
-                : 'Запрос отправлен на модерацию'}
+            {scenario === 'sale'
+              ? saleFormModeCopy.successTitle
+              : isDraft
+              ? 'Черновик запроса сохранён'
+              : 'Запрос отправлен на модерацию'}
           </h1>
           <p className="mb-8 text-muted-foreground">
-            {isDraft
+            {scenario === 'sale'
+              ? saleFormModeCopy.successDescription
+              : isDraft
               ? 'Черновик сохранён в личном кабинете. Вы сможете вернуться к нему и завершить публикацию в удобный момент.'
-              : scenario === 'sale'
-                ? 'Объявление принято в работу и отправлено на проверку модератору. После подтверждения карточка станет доступна участникам рынка.'
-                : 'Запрос на подбор сохранён и отправлен на проверку модератору. После публикации он появится в ленте заявок.'}
+              : 'Запрос на подбор сохранён и отправлен на проверку модератору. После публикации он появится в ленте заявок.'}
           </p>
           <div className="flex flex-col justify-center gap-3 sm:flex-row">
             <Link
@@ -1251,13 +1453,22 @@ export default function NewListingPage() {
             >
               Открыть запись
             </Link>
-            <button
-              type="button"
-              onClick={resetAll}
-              className="rounded-lg border border-border px-6 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40"
-            >
-              Подать ещё
-            </button>
+            {isEditMode ? (
+              <Link
+                href="/account"
+                className="rounded-lg border border-border px-6 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40"
+              >
+                Вернуться в кабинет
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={resetAll}
+                className="rounded-lg border border-border px-6 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40"
+              >
+                Подать ещё
+              </button>
+            )}
           </div>
         </main>
       </div>
@@ -1461,8 +1672,8 @@ export default function NewListingPage() {
           <div className="overflow-hidden rounded-[16px] border border-border/70 bg-card/95 shadow-sm">
             <div className="flex flex-col gap-3 p-3 sm:grid sm:grid-cols-[200px_minmax(0,1fr)] sm:items-start sm:gap-4 sm:p-4">
               <div className="overflow-hidden rounded-[12px] border border-border/50 bg-muted">
-                {photos.length > 0 ? (
-                  <Image src={photos[0].url} alt="Превью" width={200} height={140} unoptimized className="aspect-[16/10] w-full object-cover" />
+                {galleryItems.length > 0 ? (
+                  <Image src={galleryItems[0].url} alt="Превью" width={200} height={140} unoptimized className="aspect-[16/10] w-full object-cover" />
                 ) : (
                   <div className="flex aspect-[16/10] w-full items-center justify-center text-xs text-muted-foreground">Нет фото</div>
                 )}
@@ -1840,7 +2051,7 @@ export default function NewListingPage() {
             label="Фотографии"
             required
             error={fieldErrors['sale.photos']}
-            hint={`${photos.length}/${MAX_LISTING_PHOTO_COUNT}. Первое фото станет обложкой.`}
+            hint={`${galleryItems.length}/${MAX_LISTING_PHOTO_COUNT}. Первое фото станет обложкой.`}
           >
             <div className="space-y-3">
               <input
@@ -1858,10 +2069,10 @@ export default function NewListingPage() {
               <button
                 type="button"
                 onClick={() => photoInputRef.current?.click()}
-                disabled={photos.length >= MAX_LISTING_PHOTO_COUNT}
+                disabled={galleryItems.length >= MAX_LISTING_PHOTO_COUNT}
                 className={cn(
                   'flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-8 text-center text-sm transition-colors',
-                  photos.length >= MAX_LISTING_PHOTO_COUNT
+                  galleryItems.length >= MAX_LISTING_PHOTO_COUNT
                     ? 'cursor-not-allowed border-border/60 bg-muted/20 text-muted-foreground'
                     : 'border-border text-muted-foreground hover:border-teal-accent/50 hover:bg-muted/20 hover:text-foreground',
                   fieldErrors['sale.photos'] && 'border-destructive/50 bg-destructive/5'
@@ -1872,10 +2083,10 @@ export default function NewListingPage() {
                 <span className="mt-1 text-xs">JPG, PNG, WebP до {MAX_LISTING_MEDIA_FILE_SIZE_LABEL}. Максимум {MAX_LISTING_PHOTO_COUNT} фото.</span>
               </button>
 
-              {photos.length ? (
+              {galleryItems.length ? (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {photos.map((photo, index) => (
-                    <div key={photo.url} className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-border bg-card">
+                  {galleryItems.map((photo, index) => (
+                    <div key={photo.clientId} className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-border bg-card">
                       <Image src={photo.url} alt={`Фото ${index + 1}`} fill unoptimized sizes="(min-width: 640px) 25vw, 50vw" className="object-cover" />
                       <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-1 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-2 py-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                         {index === 0 ? (
@@ -1904,7 +2115,7 @@ export default function NewListingPage() {
                           <button
                             type="button"
                             onClick={() => movePhoto(index, 'right')}
-                            disabled={index === photos.length - 1}
+                            disabled={index === galleryItems.length - 1}
                             className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-40"
                             aria-label="Сдвинуть фото вправо"
                           >
@@ -1946,24 +2157,24 @@ export default function NewListingPage() {
                 }}
               />
 
-              {videoFile ? (
+              {videoItem ? (
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
                   <div className="relative aspect-video bg-black">
-                    <video key={videoFile.url} src={videoFile.url} controls preload="metadata" className="h-full w-full bg-black object-contain" />
+                    <video key={videoItem.url} src={videoItem.url} controls preload="metadata" className="h-full w-full bg-black object-contain" />
                   </div>
                   <div className="flex items-center gap-3 border-t border-border/70 bg-muted/20 p-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-accent/15">
                       <Video className="h-5 w-5 text-teal-accent" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{videoFile.name}</p>
-                      <p className="text-xs text-muted-foreground">{videoFile.size}</p>
+                      <p className="truncate text-sm font-medium text-foreground">{videoItem.name}</p>
+                      <p className="text-xs text-muted-foreground">{videoItem.size}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => {
-                        revokeVideoPreview(videoFile);
-                        setVideoFile(null);
+                        revokeVideoPreview(videoItem);
+                        setVideoItem(null);
                       }}
                       className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
                       aria-label="Удалить видео"
@@ -2019,13 +2230,15 @@ export default function NewListingPage() {
           <div className="relative p-5 sm:p-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-teal-accent/20 bg-[var(--accent-bg-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-accent">
               <Star className="h-3.5 w-3.5" />
-              Новое объявление
+              {isEditMode ? 'Редактирование продажи' : 'Новое объявление'}
             </div>
             <h1 className="mt-4 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              Подать объявление или запрос на подбор
+              {isEditMode ? saleFormModeCopy.heading : 'Подать объявление или запрос на подбор'}
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-              Выберите тип размещения, заполните данные и отправьте на модерацию. После проверки объявление появится в ленте.
+              {isEditMode
+                ? saleFormModeCopy.description
+                : 'Выберите тип размещения, заполните данные и отправьте на модерацию. После проверки объявление появится в ленте.'}
             </p>
           </div>
         </section>
@@ -2104,6 +2317,28 @@ export default function NewListingPage() {
           </div>
         ) : null}
 
+        {isEditMode && editStatus ? (
+          <div className="mt-6 rounded-[24px] border border-border/70 bg-card/92 p-5 shadow-[0_14px_32px_rgba(0,0,0,0.08)]">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Текущий статус</span>
+              <span
+                className={cn(
+                  'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold',
+                  LISTING_STATUS_BADGE_CLASSES[editStatus]
+                )}
+              >
+                {LISTING_STATUS_LABELS[editStatus]}
+              </span>
+            </div>
+            {editModerationNote ? (
+              <div className="mt-4 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-foreground">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-warning">Комментарий модерации</p>
+                <p className="mt-2 leading-6 text-muted-foreground">{editModerationNote}</p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         {submitError ? (
           <div className="mt-6 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{submitError}</div>
         ) : null}
@@ -2144,7 +2379,18 @@ export default function NewListingPage() {
                 variant="outline"
                 size="sm"
                 disabled={isSubmitting}
-                onClick={() => (step === 1 ? resetAll() : setStep((current) => (current - 1) as SaleStep))}
+                onClick={() => {
+                  if (step === 1) {
+                    if (isEditMode) {
+                      window.location.assign('/account');
+                      return;
+                    }
+                    resetAll();
+                    return;
+                  }
+
+                  setStep((current) => (current - 1) as SaleStep);
+                }}
               >
                 <ChevronLeft className="mr-1 h-4 w-4" />
                 Назад
@@ -2163,7 +2409,7 @@ export default function NewListingPage() {
               ) : (
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" disabled={isSubmitting} onClick={() => submit('DRAFT')}>
-                    {isSubmitting ? 'Сохраняем...' : 'Сохранить черновик'}
+                    {isSubmitting ? 'Сохраняем...' : saleFormModeCopy.secondaryActionLabel}
                   </Button>
                   <Button
                     size="sm"
@@ -2171,7 +2417,7 @@ export default function NewListingPage() {
                     className="bg-teal-dark text-white dark:bg-teal-accent dark:text-[#09090B]"
                     onClick={() => submit('PENDING')}
                   >
-                    {isSubmitting ? 'Сохраняем...' : 'Отправить на модерацию'}
+                    {isSubmitting ? 'Сохраняем...' : saleFormModeCopy.primaryActionLabel}
                   </Button>
                 </div>
               )}

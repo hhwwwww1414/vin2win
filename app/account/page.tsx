@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Copy, Eye } from 'lucide-react';
+import { Copy, Eye, FilePenLine } from 'lucide-react';
 import { NotificationDeliverySettings } from '@/components/account/notification-delivery-settings';
 import { AccountSellerProfilePanel } from '@/components/account/seller-profile-panel';
 import { SavedSearchesPanel } from '@/components/account/saved-searches-panel';
@@ -247,7 +247,14 @@ export default async function AccountPage() {
                         </div>
                       </Link>
                       <ListingStatusActions listingId={listing.id} currentStatus={listing.status} />
-                      <div className="mt-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        <Link
+                          href={`/listing/new?edit=${listing.id}`}
+                          className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <FilePenLine className="h-3.5 w-3.5" />
+                          Редактировать
+                        </Link>
                         <Link
                           href={`/listing/new?duplicate=${listing.id}`}
                           className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
