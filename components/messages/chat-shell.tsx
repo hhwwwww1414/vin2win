@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ChatPushSetup } from '@/components/messages/chat-push-setup';
 import { useChatEvents } from '@/hooks/use-chat-events';
 import { type ChatMessageDto, type ChatSummaryDto } from '@/lib/chat/dto';
+import { formatPrice } from '@/lib/price-formatting';
 import { cn } from '@/lib/utils';
 
 interface ChatShellProps {
@@ -42,14 +43,6 @@ function formatListTime(value: string) {
       ? { hour: '2-digit', minute: '2-digit' }
       : { day: '2-digit', month: '2-digit' },
   ).format(date);
-}
-
-function formatPrice(value?: number) {
-  if (!value) {
-    return null;
-  }
-
-  return `${value.toLocaleString('ru-RU')} ₽`;
 }
 
 function getListingHref(chat: ChatSummaryDto) {

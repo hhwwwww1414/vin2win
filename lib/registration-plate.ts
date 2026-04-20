@@ -16,11 +16,6 @@ const REGISTRATION_PLATE_LATIN_TO_CYRILLIC: Record<string, string> = {
 export const REGISTRATION_PLATE_ALLOWED_LETTERS = ['А', 'В', 'Е', 'К', 'М', 'Н', 'О', 'Р', 'С', 'Т', 'У', 'Х'] as const;
 const REGISTRATION_PLATE_ALLOWED_SET = new Set<string>(REGISTRATION_PLATE_ALLOWED_LETTERS);
 
-export const REGISTRATION_PLATE_REGION_OPTIONS = Array.from({ length: 999 }, (_, index) => {
-  const value = String(index + 1);
-  return value.length === 1 ? `0${value}` : value;
-});
-
 function normalizeRegistrationPlateLetter(value: string) {
   const upper = value.trim().toUpperCase();
   if (!upper) {
@@ -91,9 +86,11 @@ export function splitRegistrationPlateValue(value: string | null | undefined) {
 }
 
 export function hasAnyRegistrationPlateValue(value: string | null | undefined, region: string | null | undefined) {
-  return buildRegistrationPlateValue({
-    ...splitRegistrationPlateValue(value),
-  }).length > 0 || normalizeRegistrationPlateRegion(region).length > 0;
+  return (
+    buildRegistrationPlateValue({
+      ...splitRegistrationPlateValue(value),
+    }).length > 0 || normalizeRegistrationPlateRegion(region).length > 0
+  );
 }
 
 export function isRegistrationPlateComplete(value: string | null | undefined, region: string | null | undefined) {

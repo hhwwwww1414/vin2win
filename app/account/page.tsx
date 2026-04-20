@@ -10,6 +10,7 @@ import { NotificationsPanel } from '@/components/account/notifications-panel';
 import { ListingStatusActions } from '@/components/account/listing-status-actions';
 import { ListingStatusBadge } from '@/components/listing/listing-status-badge';
 import { Button } from '@/components/ui/button';
+import { formatPrice } from '@/lib/price-formatting';
 import { cleanSaleSearchFiltersForPersistence } from '@/lib/sale-search';
 import { getAccountOverview, requireAuthenticatedUser } from '@/lib/server/auth';
 import { mapSellerProfileRecord } from '@/lib/server/seller-profile';
@@ -170,7 +171,7 @@ export default async function AccountPage() {
                                 {listing.make} {listing.model}, {listing.year}
                               </Link>
                               <p className="mt-1 text-sm text-muted-foreground">
-                                {listing.city} • {listing.price.toLocaleString('ru-RU')} ₽
+                                {listing.city} • {formatPrice(listing.price)}
                               </p>
                             </div>
                             <FavoriteToggle listingId={listing.id} initialActive isAuthenticated />
@@ -224,7 +225,7 @@ export default async function AccountPage() {
                                 {listing.make} {listing.model}
                               </h3>
                               <p className="mt-1 text-sm text-muted-foreground">
-                                {listing.year} • {listing.city} • {listing.price.toLocaleString('ru-RU')} ₽
+                                {listing.year} • {listing.city} • {formatPrice(listing.price)}
                               </p>
                             </div>
                             <ListingStatusBadge status={listing.status} />
@@ -291,7 +292,7 @@ export default async function AccountPage() {
                       <div>
                         <h3 className="font-semibold text-foreground">{listing.models.join(', ')}</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          До {listing.budgetMax.toLocaleString('ru-RU')} ₽
+                          До {formatPrice(listing.budgetMax)}
                           {listing.region ? ` • ${listing.region}` : ''}
                         </p>
                       </div>

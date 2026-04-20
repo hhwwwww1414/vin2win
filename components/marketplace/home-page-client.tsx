@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowDownUp, ArrowRight, BellRing, ShieldCheck, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { AdvancedFilters } from '@/components/marketplace/advanced-filters';
+import { GuestListingTeaserLock } from '@/components/marketplace/guest-listing-teaser-lock';
 import { ListingCardView } from '@/components/marketplace/listing-card-view';
 import { ListingCompactRow } from '@/components/marketplace/listing-compact-row';
 import { MarketplaceHeader } from '@/components/marketplace/header';
@@ -20,6 +21,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { SALE_SEARCH_SORT_OPTIONS, buildSaleSearchParams, getSaleSearchCurrentStepLabel, getSaleSearchRequestParams, parseSaleSearchParams } from '@/lib/sale-search';
+import { isGuestListingTeaserLocked } from '@/lib/marketplace-teaser';
 import type { SaleSearchFacets, SaleSearchFilters, SaleSearchResult } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 import { SALE_ROUTE } from '@/lib/routes';
@@ -457,31 +459,51 @@ function HomeContent({
           priorityIndices={new Set([0, 1, 2])}
           isAuthenticated={isAuthenticated}
           loginHref={loginHref}
+          listingOffset={(result.page - 1) * result.limit}
           className="w-full"
         />
       ) : (
         <section className="space-y-2.5">
-          {result.items.map((listing, index) =>
-            viewMode === 'cards' ? (
-              <ListingCardView
+          {result.items.map((listing, index) => {
+            const teaserLocked = isGuestListingTeaserLocked({
+              isAuthenticated,
+              page: result.page,
+              limit: result.limit,
+              index,
+            });
+
+            return viewMode === 'cards' ? (
+              <GuestListingTeaserLock
                 key={listing.id}
-                listing={listing}
-                priority={index < 3}
-                isAuthenticated={isAuthenticated}
+                locked={teaserLocked}
                 loginHref={loginHref}
-                className="w-full"
-              />
+                className="rounded-[24px]"
+              >
+                <ListingCardView
+                  listing={listing}
+                  priority={index < 3}
+                  isAuthenticated={isAuthenticated}
+                  loginHref={loginHref}
+                  className="w-full"
+                />
+              </GuestListingTeaserLock>
             ) : (
-              <ListingCompactRow
+              <GuestListingTeaserLock
                 key={listing.id}
-                listing={listing}
-                priority={index < 3}
-                isAuthenticated={isAuthenticated}
+                locked={teaserLocked}
                 loginHref={loginHref}
-                className="w-full"
-              />
-            )
-          )}
+                className="rounded-xl"
+              >
+                <ListingCompactRow
+                  listing={listing}
+                  priority={index < 3}
+                  isAuthenticated={isAuthenticated}
+                  loginHref={loginHref}
+                  className="w-full"
+                />
+              </GuestListingTeaserLock>
+            );
+          })}
         </section>
       )}
 

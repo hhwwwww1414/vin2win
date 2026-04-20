@@ -4,8 +4,10 @@ import Image from 'next/image';
 import { startTransition, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { ListingStatusBadge } from '@/components/listing/listing-status-badge';
 import { LISTING_STATUS_LABELS, LISTING_STATUS_VALUES, type ListingStatusValue } from '@/lib/listing-status';
+import { formatPrice } from '@/lib/price-formatting';
 
 type SaleAdminItem = {
   id: string;
@@ -331,7 +333,7 @@ export function SaleListingAdminBoard({
                         <h3 className="text-base font-semibold text-foreground">{titleText}</h3>
                         <ListingStatusBadge status={draft.status} />
                       </div>
-                      <p className="mt-1 text-sm text-muted-foreground">{draft.city} • {Number(draft.price || 0).toLocaleString('ru-RU')} ₽ • {Number(draft.mileage || 0).toLocaleString('ru-RU')} км</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{draft.city} • {formatPrice(draft.price || 0)} • {Number(draft.mileage || 0).toLocaleString('ru-RU')} км</p>
                       <p className="mt-2 text-sm text-muted-foreground">{item.ownerLine}</p>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span>Создано: {item.createdAt}</span>
@@ -348,7 +350,12 @@ export function SaleListingAdminBoard({
                       <input value={draft.make} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], make: event.target.value } }))} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30" placeholder="Марка" />
                       <input value={draft.model} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], model: event.target.value } }))} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30" placeholder="Модель" />
                       <input value={draft.year} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], year: event.target.value } }))} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30" placeholder="Год" />
-                      <input value={draft.price} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], price: event.target.value } }))} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30" placeholder="Цена" />
+                      <FormattedNumberInput
+                        value={draft.price}
+                        onValueChange={(value) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], price: value } }))}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30"
+                        placeholder="Цена"
+                      />
                       <input value={draft.city} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], city: event.target.value } }))} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30" placeholder="Город" />
                       <input value={draft.mileage} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], mileage: event.target.value } }))} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30" placeholder="Пробег" />
                     </div>

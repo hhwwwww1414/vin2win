@@ -1,3 +1,4 @@
+import { formatPrice } from '@/lib/price-formatting';
 import type { ResourceStatus, SaleSearchFilters, SaleSearchSortKey, SellerType } from '@/lib/types';
 
 type SearchParamSource = URLSearchParams | Record<string, string | string[] | undefined>;
@@ -317,7 +318,7 @@ export function describeSaleSearch(filters: Partial<SaleSearchFilters>): string 
 
   if (filters.priceMin || filters.priceMax) {
     parts.push(
-      `цена ${filters.priceMin ? `от ${filters.priceMin.toLocaleString('ru-RU')} ₽` : ''}${filters.priceMin && filters.priceMax ? ' ' : ''}${filters.priceMax ? `до ${filters.priceMax.toLocaleString('ru-RU')} ₽` : ''}`.trim()
+      `цена ${filters.priceMin ? `от ${formatPrice(filters.priceMin)}` : ''}${filters.priceMin && filters.priceMax ? ' ' : ''}${filters.priceMax ? `до ${formatPrice(filters.priceMax)}` : ''}`.trim()
     );
   }
 

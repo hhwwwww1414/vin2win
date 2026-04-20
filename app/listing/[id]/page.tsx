@@ -29,6 +29,7 @@ import {
   getPtsTypeLabel,
   getPtsTypeToneClassName,
 } from '@/lib/listing-utils';
+import { formatPrice } from '@/lib/price-formatting';
 import { getSessionUser } from '@/lib/server/auth';
 import { getSaleListingById, getSimilarSaleListings } from '@/lib/server/marketplace';
 import { SALE_ROUTE } from '@/lib/routes';
@@ -50,7 +51,7 @@ function buildListingTitle(listing: Awaited<ReturnType<typeof getSaleListingById
     return 'Объявление';
   }
 
-  return `${listing.make} ${listing.model} ${listing.year} — ${listing.price.toLocaleString('ru-RU')} ₽`;
+  return `${listing.make} ${listing.model} ${listing.year} — ${formatPrice(listing.price)}`;
 }
 
 function buildListingDescription(listing: Awaited<ReturnType<typeof getSaleListingById>>) {

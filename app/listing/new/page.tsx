@@ -9,6 +9,7 @@ import { RegistrationPlateField } from '@/components/listing/registration-plate-
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { ColorSwatchSelect } from '@/components/ui/color-swatch-select';
+import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { CAR_CATALOG } from '@/lib/car-catalog';
 import { useVehicleCatalogForm } from '@/hooks/use-vehicle-catalog-form';
 import { LISTING_STATUS_BADGE_CLASSES, LISTING_STATUS_LABELS } from '@/lib/listing-status';
@@ -23,6 +24,7 @@ import {
   type SaleData,
 } from '@/lib/sale-form';
 import { formatEngineSpec } from '@/lib/listing-utils';
+import { formatPrice } from '@/lib/price-formatting';
 import {
   hasAnyRegistrationPlateValue,
   isRegistrationPlateComplete,
@@ -534,12 +536,12 @@ function wantedRestrictions(data: WantedData) {
 }
 
 function formatRubleValue(value: string) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric) || numeric <= 0) {
+  const formattedValue = formatPrice(value);
+  if (!formattedValue) {
     return null;
   }
 
-  return `${numeric.toLocaleString('ru-RU')} ₽`;
+  return formattedValue;
 }
 
 function normalizeUniqueList(values: string[]) {
@@ -1631,11 +1633,10 @@ export default function NewListingPage() {
             </Field>
 
             <Field label="Цена" required error={fieldErrors['sale.price']}>
-              <input
+              <FormattedNumberInput
                 className={withFieldErrorClass('sale.price')}
-                type="number"
                 value={sale.price}
-                onChange={(event) => updateSale('price', event.target.value)}
+                onValueChange={(value) => updateSale('price', value)}
               />
             </Field>
           </div>
@@ -1690,7 +1691,7 @@ export default function NewListingPage() {
                   {sale.make || 'Марка'} {sale.model || 'Модель'}{sale.year ? `, ${sale.year}` : ''}
                 </h4>
                 <div className="mt-2 text-xl font-bold text-foreground tabular-nums">
-                  {sale.price ? `${Number(sale.price).toLocaleString('ru-RU')} ₽` : 'Цена не указана'}
+                  {sale.price ? formatPrice(sale.price) : 'Цена не указана'}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
                   {sale.mileage ? <span>{Number(sale.mileage).toLocaleString('ru-RU')} км</span> : null}
@@ -2030,15 +2031,18 @@ export default function NewListingPage() {
             </Field>
 
             <Field label="Цена в руки">
-              <input className={withFieldErrorClass('sale.priceInHand')} type="number" value={sale.priceInHand} onChange={(event) => updateSale('priceInHand', event.target.value)} />
+              <FormattedNumberInput
+                className={withFieldErrorClass('sale.priceInHand')}
+                value={sale.priceInHand}
+                onValueChange={(value) => updateSale('priceInHand', value)}
+              />
             </Field>
 
             <Field label="Цена на ресурсах">
-              <input
+              <FormattedNumberInput
                 className={withFieldErrorClass('sale.priceOnResources')}
-                type="number"
                 value={sale.priceOnResources}
-                onChange={(event) => updateSale('priceOnResources', event.target.value)}
+                onValueChange={(value) => updateSale('priceOnResources', value)}
               />
             </Field>
           </div>
@@ -2533,11 +2537,19 @@ export default function NewListingPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Бюджет от">
-                  <input className={withFieldErrorClass('wanted.budgetMin')} type="number" value={wanted.budgetMin} onChange={(event) => updateWanted('budgetMin', event.target.value)} />
+                  <FormattedNumberInput
+                    className={withFieldErrorClass('wanted.budgetMin')}
+                    value={wanted.budgetMin}
+                    onValueChange={(value) => updateWanted('budgetMin', value)}
+                  />
                 </Field>
 
                 <Field label="Бюджет до" required error={fieldErrors['wanted.budgetMax']}>
-                  <input className={withFieldErrorClass('wanted.budgetMax')} type="number" value={wanted.budgetMax} onChange={(event) => updateWanted('budgetMax', event.target.value)} />
+                  <FormattedNumberInput
+                    className={withFieldErrorClass('wanted.budgetMax')}
+                    value={wanted.budgetMax}
+                    onValueChange={(value) => updateWanted('budgetMax', value)}
+                  />
                 </Field>
 
                 <Field label="Год от">

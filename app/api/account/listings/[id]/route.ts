@@ -10,6 +10,7 @@ import {
 } from '@/lib/registration-plate';
 import { getCitiesForRegion } from '@/lib/ru-regions';
 import { getSessionUser } from '@/lib/server/auth';
+import { parseMultipartRequest } from '@/lib/server/multipart-form-data';
 import {
   getEditableSaleListingForOwner,
   updateSaleListingByOwner,
@@ -319,7 +320,7 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const formData = await request.formData();
+    const formData = await parseMultipartRequest(request);
     const payloadRaw = formData.get('payload');
     const mediaPlanRaw = formData.get('mediaPlan');
 

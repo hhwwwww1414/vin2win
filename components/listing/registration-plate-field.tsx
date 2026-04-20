@@ -1,12 +1,13 @@
 'use client';
 
+import Image from 'next/image';
 import { useRef, type KeyboardEvent, type RefObject } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import {
-  REGISTRATION_PLATE_REGION_OPTIONS,
   buildRegistrationPlateValue,
   normalizeRegistrationPlateDigits,
   normalizeRegistrationPlateLetters,
+  normalizeRegistrationPlateRegion,
   splitRegistrationPlateValue,
 } from '@/lib/registration-plate';
 import { cn } from '@/lib/utils';
@@ -62,7 +63,7 @@ function PlateSegmentInput({
       onKeyDown={onKeyDown}
       onChange={(event) => onChange(event.target.value)}
       className={cn(
-        'min-w-0 border-0 bg-transparent text-center text-[1.45rem] font-medium leading-none tracking-[-0.04em] text-black outline-none placeholder:text-black/36 disabled:cursor-not-allowed disabled:text-black/22 disabled:placeholder:text-black/18 sm:text-[1.7rem]',
+        'min-w-0 border-0 bg-transparent text-center font-display text-[2.7rem] font-semibold leading-none tracking-[0.08em] text-black uppercase [font-variant-numeric:tabular-nums] outline-none placeholder:text-black/14 disabled:cursor-not-allowed disabled:text-black/24 disabled:placeholder:text-black/12 sm:text-[3.05rem]',
         className
       )}
     />
@@ -81,7 +82,7 @@ export function RegistrationPlateField({
   const prefixRef = useRef<HTMLInputElement>(null);
   const digitsRef = useRef<HTMLInputElement>(null);
   const suffixRef = useRef<HTMLInputElement>(null);
-  const regionRef = useRef<HTMLSelectElement>(null);
+  const regionRef = useRef<HTMLInputElement>(null);
 
   const parts = splitRegistrationPlateValue(value);
 
@@ -129,26 +130,35 @@ export function RegistrationPlateField({
     }
   };
 
-  const handleSegmentKeyDown = (
-    segment: PlateSegment,
-    currentValue: string
-  ) => (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Backspace' && !currentValue) {
-      focusPreviousSegment(segment);
+  const handleSegmentKeyDown =
+    (segment: PlateSegment, currentValue: string) => (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Backspace' && !currentValue) {
+        focusPreviousSegment(segment);
+        return;
+      }
+
+      if (event.key === 'ArrowLeft' && event.currentTarget.selectionStart === 0) {
+        focusPreviousSegment(segment);
+        return;
+      }
+
+      if (
+        event.key === 'ArrowRight' &&
+        event.currentTarget.selectionStart === currentValue.length &&
+        currentValue.length > 0
+      ) {
+        focusNextSegment(segment);
+      }
+    };
+
+  const handleRegionKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Backspace' && !region) {
+      suffixRef.current?.focus();
       return;
     }
 
     if (event.key === 'ArrowLeft' && event.currentTarget.selectionStart === 0) {
-      focusPreviousSegment(segment);
-      return;
-    }
-
-    if (
-      event.key === 'ArrowRight' &&
-      event.currentTarget.selectionStart === currentValue.length &&
-      currentValue.length > 0
-    ) {
-      focusNextSegment(segment);
+      suffixRef.current?.focus();
     }
   };
 
@@ -160,72 +170,71 @@ export function RegistrationPlateField({
         </span>
         <div
           className={cn(
-            'overflow-hidden rounded-[24px] border border-black/5 bg-[#f3f0eb] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.76)] transition-[box-shadow,transform] focus-within:-translate-y-px focus-within:shadow-[0_14px_30px_rgba(0,0,0,0.14)] sm:px-4 sm:py-3',
-            error && 'ring-2 ring-destructive/30'
+            'w-full max-w-[520px] overflow-hidden rounded-[6px] border-2 border-black bg-white shadow-[0_10px_22px_rgba(15,23,42,0.08)] transition-[box-shadow,transform] focus-within:-translate-y-px focus-within:shadow-[0_16px_30px_rgba(15,23,42,0.14)]',
+            error && 'ring-2 ring-destructive/25'
           )}
         >
-          <div className="grid min-h-[66px] grid-cols-[minmax(0,1fr)_78px] items-center gap-2.5 sm:min-h-[72px] sm:grid-cols-[minmax(0,1fr)_86px] sm:gap-3">
-            <div className="flex min-w-0 items-center justify-center gap-1 sm:gap-1.5">
+          <div className="grid min-h-[96px] grid-cols-[minmax(0,1fr)_110px] items-stretch sm:min-h-[108px] sm:grid-cols-[minmax(0,1fr)_120px]">
+            <div className="flex min-w-0 items-center justify-center gap-3 px-4 sm:gap-4 sm:px-6">
               <PlateSegmentInput
                 value={parts.prefix}
-                placeholder="О"
+                placeholder="A"
                 disabled={unregistered}
                 inputMode="text"
                 ariaLabel="Первая буква госномера"
                 inputRef={prefixRef}
-                className="w-[1.02ch]"
+                className="w-[1.08ch]"
                 onChange={(nextValue) => handleSegmentChange('prefix', nextValue)}
                 onKeyDown={handleSegmentKeyDown('prefix', parts.prefix)}
               />
               <PlateSegmentInput
                 value={parts.digits}
-                placeholder="000"
+                placeholder="777"
                 disabled={unregistered}
                 inputMode="numeric"
                 ariaLabel="Три цифры госномера"
                 inputRef={digitsRef}
-                className="w-[3.15ch]"
+                className="w-[3.2ch]"
                 onChange={(nextValue) => handleSegmentChange('digits', nextValue)}
                 onKeyDown={handleSegmentKeyDown('digits', parts.digits)}
               />
               <PlateSegmentInput
                 value={parts.suffix}
-                placeholder="ОО"
+                placeholder="AA"
                 disabled={unregistered}
                 inputMode="text"
                 ariaLabel="Последние две буквы госномера"
                 inputRef={suffixRef}
-                className="w-[2.12ch]"
+                className="w-[2.16ch]"
                 onChange={(nextValue) => handleSegmentChange('suffix', nextValue)}
                 onKeyDown={handleSegmentKeyDown('suffix', parts.suffix)}
               />
             </div>
 
-            <div className="flex h-full min-w-0 flex-col justify-center border-l border-black/10 pl-2.5 text-black sm:pl-3">
-              <div className="relative">
-                <select
-                  ref={regionRef}
-                  value={region}
-                  disabled={unregistered}
-                  aria-label="Регион госномера"
-                  onChange={(event) => onRegionChange(event.target.value)}
-                  className="w-full appearance-none bg-transparent pr-4 text-right text-[1.1rem] font-medium leading-none text-black outline-none disabled:cursor-not-allowed disabled:text-black/22 sm:text-[1.2rem]"
-                >
-                  <option value="">00</option>
-                  {REGISTRATION_PLATE_REGION_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 text-black/38" />
-              </div>
+            <div className="flex min-w-0 flex-col justify-between border-l-2 border-black px-2 py-2.5 sm:px-3 sm:py-3">
+              <input
+                ref={regionRef}
+                value={region}
+                disabled={unregistered}
+                inputMode="numeric"
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={3}
+                aria-label="Регион госномера"
+                placeholder="777"
+                onFocus={(event) => event.currentTarget.select()}
+                onKeyDown={handleRegionKeyDown}
+                onChange={(event) => onRegionChange(normalizeRegistrationPlateRegion(event.target.value))}
+                className="w-full border-0 bg-transparent text-center font-display text-[1.9rem] font-semibold leading-none text-black [font-variant-numeric:tabular-nums] outline-none placeholder:text-black/18 disabled:cursor-not-allowed disabled:text-black/24 disabled:placeholder:text-black/14 sm:text-[2.15rem]"
+              />
 
-              <div className="mt-0.5 flex items-center justify-end gap-1 text-black/72">
-                <span className="text-[0.72rem] font-medium tracking-[0.08em] sm:text-[0.78rem]">RUS</span>
-                <span
-                  aria-hidden="true"
-                  className="h-3 w-[18px] rounded-[2px] border border-black/10 bg-[linear-gradient(180deg,#ffffff_0%,#ffffff_33%,#2b6fff_33%,#2b6fff_66%,#e83939_66%,#e83939_100%)]"
+              <div className="flex justify-center pt-2">
+                <Image
+                  src="/plate-rus.svg"
+                  alt=""
+                  width={63}
+                  height={15}
+                  className="h-[15px] w-[63px] select-none"
                 />
               </div>
             </div>

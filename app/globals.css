@@ -457,6 +457,27 @@ html:not(.dark) .carbon-fiber-listing {
 .text-meta { @apply text-xs text-muted-foreground; }
 .text-caption { @apply text-[11px] text-muted-foreground/80; }
 
+.guest-listing-teaser-content {
+  filter: blur(10px);
+  transform: scale(1.01);
+  transform-origin: center;
+}
+
+.guest-listing-teaser-overlay {
+  backdrop-filter: blur(18px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guest-listing-teaser-content {
+    filter: none;
+    transform: none;
+  }
+
+  .guest-listing-teaser-overlay {
+    backdrop-filter: none;
+  }
+}
+
 [data-sale-listing-detail="true"] footer:not([data-site-footer]) {
   display: none;
 }

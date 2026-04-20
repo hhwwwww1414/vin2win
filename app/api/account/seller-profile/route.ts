@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/server/auth';
+import { parseMultipartRequest } from '@/lib/server/multipart-form-data';
 import { deleteS3Objects, uploadToS3, buildS3PublicUrl } from '@/lib/server/s3';
 import { getEditableSellerProfileByUserId, updateAccountSellerProfile } from '@/lib/server/seller-profile';
 
@@ -94,7 +95,7 @@ export async function PUT(request: Request) {
 
   try {
     const existingProfile = await getEditableSellerProfileByUserId(currentUser.id);
-    const formData = await request.formData();
+    const formData = await parseMultipartRequest(request);
     const name = parseString(formData.get('name'));
     const phone = parseString(formData.get('phone'));
     const about = parseString(formData.get('about'));

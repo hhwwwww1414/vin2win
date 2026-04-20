@@ -1,3 +1,4 @@
+import { formatPrice } from '@/lib/price-formatting';
 import type { SalePriceHistoryPoint } from '@/lib/types';
 
 function formatDate(value: string) {
@@ -30,8 +31,8 @@ export function PriceHistoryChart({ items }: { items: SalePriceHistoryPoint[] })
           <p className="mt-1 text-xs text-muted-foreground">Динамика карточки по опубликованным изменениям стоимости.</p>
         </div>
         <div className="text-right text-xs text-muted-foreground">
-          <div>Мин.: {min.toLocaleString('ru-RU')} ₽</div>
-          <div>Макс.: {max.toLocaleString('ru-RU')} ₽</div>
+          <div>Мин.: {formatPrice(min)}</div>
+          <div>Макс.: {formatPrice(max)}</div>
         </div>
       </div>
 
@@ -62,7 +63,7 @@ export function PriceHistoryChart({ items }: { items: SalePriceHistoryPoint[] })
         <div className="mt-3 flex flex-col gap-2">
           {items.map((item) => (
             <div key={`${item.createdAt}-${item.price}`} className="rounded-xl border border-border/60 bg-card/70 px-3 py-2">
-              <div className="text-sm font-medium text-foreground">{item.price.toLocaleString('ru-RU')} ₽</div>
+              <div className="text-sm font-medium text-foreground">{formatPrice(item.price)}</div>
               <div className="text-xs text-muted-foreground">{formatDate(item.createdAt)}</div>
             </div>
           ))}

@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowDown, ArrowUp, ArrowUpDown, Eye } from 'lucide-react';
+import { GuestListingTeaserLock } from '@/components/marketplace/guest-listing-teaser-lock';
 import type { SaleListing, SaleSearchSortKey } from '@/lib/types';
 import { formatPrice, formatMileage } from '@/lib/marketplace-data';
 import { formatPaintCountValue, getListingTitle, SELLER_LABELS } from '@/lib/listing-utils';
+import { isGuestListingTeaserLockedByGlobalIndex } from '@/lib/marketplace-teaser';
 import { CompareToggle } from './compare-toggle';
 import { FavoriteToggle } from './favorite-toggle';
 import { ListingBenefitBadge } from './listing-benefit-badge';
@@ -47,6 +49,7 @@ interface ListingsTableProps {
   priorityIndices?: Set<number>;
   isAuthenticated?: boolean;
   loginHref?: string;
+  listingOffset?: number;
   className?: string;
 }
 
@@ -103,6 +106,7 @@ export function ListingsTable({
   priorityIndices = new Set(),
   isAuthenticated = false,
   loginHref,
+  listingOffset = 0,
   className,
 }: ListingsTableProps) {
   return (
@@ -160,19 +164,71 @@ export function ListingsTable({
           </thead>
           <tbody>
             {listings.map((listing, index) => (
-              <ListingTableRow
-                key={listing.id}
-                listing={listing}
-                sortKey={sortKey}
-                priority={priorityIndices.has(index)}
-                isAuthenticated={isAuthenticated}
-                loginHref={loginHref}
-              />
+              isGuestListingTeaserLockedByGlobalIndex({
+                isAuthenticated,
+                globalIndex: listingOffset + index,
+              }) ? (
+                <LockedListingTableRow
+                  key={listing.id}
+                  listing={listing}
+                  sortKey={sortKey}
+                  priority={priorityIndices.has(index)}
+                  isAuthenticated={isAuthenticated}
+                  loginHref={loginHref ?? '/login'}
+                />
+              ) : (
+                <ListingTableRow
+                  key={listing.id}
+                  listing={listing}
+                  sortKey={sortKey}
+                  priority={priorityIndices.has(index)}
+                  isAuthenticated={isAuthenticated}
+                  loginHref={loginHref}
+                />
+              )
             ))}
           </tbody>
         </table>
       </div>
     </div>
+  );
+}
+
+function LockedListingTableRow({
+  listing,
+  sortKey,
+  priority = false,
+  isAuthenticated = false,
+  loginHref,
+}: ListingTableRowProps) {
+  return (
+    <tr className="border-b border-border/50">
+      <td colSpan={TABLE_COLUMNS_WITH_BENEFIT.length} className="p-0">
+        <GuestListingTeaserLock
+          locked
+          loginHref={loginHref ?? '/login'}
+          className="rounded-none"
+          overlayClassName="bg-background/42 dark:bg-background/58"
+        >
+          <table className="min-w-[1180px] w-full table-fixed border-collapse text-sm">
+            <colgroup>
+              {TABLE_COLUMNS_WITH_BENEFIT.map((col) => (
+                <col key={col.key} style={{ width: col.width, minWidth: col.width }} />
+              ))}
+            </colgroup>
+            <tbody>
+              <ListingTableRow
+                listing={listing}
+                sortKey={sortKey}
+                priority={priority}
+                isAuthenticated={isAuthenticated}
+                loginHref={loginHref}
+              />
+            </tbody>
+          </table>
+        </GuestListingTeaserLock>
+      </td>
+    </tr>
   );
 }
 

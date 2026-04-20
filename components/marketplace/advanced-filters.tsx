@@ -5,6 +5,7 @@ import { Check, Filter, Gauge, Layers3, MapPin, RotateCcw, Save, ShieldCheck, Sp
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { ColorSwatchSelect } from '@/components/ui/color-swatch-select';
+import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Sheet,
@@ -16,6 +17,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { CAR_CATALOG, CAR_MAKES, getModelsForMake } from '@/lib/car-catalog';
+import { formatGroupedNumber } from '@/lib/price-formatting';
 import { getCitiesForRegion, getRegionForCity, getRuRegionOptions } from '@/lib/ru-regions';
 import { hasActiveSaleSearchFilters, SALE_SEARCH_SORT_OPTIONS } from '@/lib/sale-search';
 import { VEHICLE_ENGINE_DISPLACEMENT_OPTIONS, formatEngineDisplacementOptionLabel } from '@/lib/vehicle-metadata';
@@ -90,14 +92,14 @@ function buildSummaryPills(filters: SaleSearchFilters) {
   if (filters.city[0]) items.push(filters.city[0]);
 
   if (filters.priceMin || filters.priceMax) {
-    const min = filters.priceMin ? `от ${filters.priceMin.toLocaleString('ru-RU')}` : '';
-    const max = filters.priceMax ? `до ${filters.priceMax.toLocaleString('ru-RU')}` : '';
+    const min = filters.priceMin ? `от ${formatGroupedNumber(filters.priceMin)}` : '';
+    const max = filters.priceMax ? `до ${formatGroupedNumber(filters.priceMax)}` : '';
     items.push(`Цена ${[min, max].filter(Boolean).join(' ')}`.trim());
   }
 
   if (filters.benefitMin || filters.benefitMax) {
-    const min = filters.benefitMin ? `от ${filters.benefitMin.toLocaleString('ru-RU')}` : '';
-    const max = filters.benefitMax ? `до ${filters.benefitMax.toLocaleString('ru-RU')}` : '';
+    const min = filters.benefitMin ? `от ${formatGroupedNumber(filters.benefitMin)}` : '';
+    const max = filters.benefitMax ? `до ${formatGroupedNumber(filters.benefitMax)}` : '';
     items.push(`Выгода ${[min, max].filter(Boolean).join(' ')}`.trim());
   } else if (filters.hasBenefit || filters.sort === 'benefit_desc') {
     items.push('Есть выгода');
@@ -525,30 +527,28 @@ export function AdvancedFilters({
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Выгода от">
-                  <input
+                  <FormattedNumberInput
                     className={textInputClassName()}
-                    inputMode="numeric"
-                    value={draft.benefitMin ?? ''}
-                    onChange={(event) =>
+                    value={draft.benefitMin ? String(draft.benefitMin) : ''}
+                    onValueChange={(value) =>
                       setDraft((current) => ({
                         ...current,
-                        hasBenefit: event.target.value ? true : current.benefitMax ? true : current.hasBenefit,
-                        benefitMin: event.target.value ? Number(event.target.value) : undefined,
+                        hasBenefit: value ? true : current.benefitMax ? true : current.hasBenefit,
+                        benefitMin: value ? Number(value) : undefined,
                       }))
                     }
                     placeholder="100 000"
                   />
                 </Field>
                 <Field label="Выгода до">
-                  <input
+                  <FormattedNumberInput
                     className={textInputClassName()}
-                    inputMode="numeric"
-                    value={draft.benefitMax ?? ''}
-                    onChange={(event) =>
+                    value={draft.benefitMax ? String(draft.benefitMax) : ''}
+                    onValueChange={(value) =>
                       setDraft((current) => ({
                         ...current,
-                        hasBenefit: event.target.value ? true : current.benefitMin ? true : current.hasBenefit,
-                        benefitMax: event.target.value ? Number(event.target.value) : undefined,
+                        hasBenefit: value ? true : current.benefitMin ? true : current.hasBenefit,
+                        benefitMax: value ? Number(value) : undefined,
                       }))
                     }
                     placeholder="300 000"
@@ -613,20 +613,18 @@ export function AdvancedFilters({
                 </Select>
               </Field>
               <Field label="Цена от">
-                <input
+                <FormattedNumberInput
                   className={textInputClassName()}
-                  inputMode="numeric"
-                  value={draft.priceMin ?? ''}
-                  onChange={(event) => setDraft((current) => ({ ...current, priceMin: event.target.value ? Number(event.target.value) : undefined }))}
+                  value={draft.priceMin ? String(draft.priceMin) : ''}
+                  onValueChange={(value) => setDraft((current) => ({ ...current, priceMin: value ? Number(value) : undefined }))}
                   placeholder="1 500 000"
                 />
               </Field>
               <Field label="Цена до">
-                <input
+                <FormattedNumberInput
                   className={textInputClassName()}
-                  inputMode="numeric"
-                  value={draft.priceMax ?? ''}
-                  onChange={(event) => setDraft((current) => ({ ...current, priceMax: event.target.value ? Number(event.target.value) : undefined }))}
+                  value={draft.priceMax ? String(draft.priceMax) : ''}
+                  onValueChange={(value) => setDraft((current) => ({ ...current, priceMax: value ? Number(value) : undefined }))}
                   placeholder="4 000 000"
                 />
               </Field>

@@ -1,3 +1,4 @@
+import { formatGroupedNumber, formatPrice as formatPriceValue } from './price-formatting';
 import type { SaleListing, WantedListing } from './types';
 
 // Расширенные данные для B2B
@@ -422,11 +423,11 @@ export const wantedListings: WantedListing[] = [
 ];
 
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
+  return formatPriceValue(price);
 }
 
 export function formatMileage(mileage: number): string {
-  return new Intl.NumberFormat('ru-RU').format(mileage) + ' км';
+  return `${formatGroupedNumber(mileage)} км`;
 }
 
 // Обратная совместимость: Vehicle для старых компонентов

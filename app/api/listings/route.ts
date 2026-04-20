@@ -10,6 +10,7 @@ import {
 } from '@/lib/registration-plate';
 import { getCitiesForRegion } from '@/lib/ru-regions';
 import { getSessionUser } from '@/lib/server/auth';
+import { parseMultipartRequest } from '@/lib/server/multipart-form-data';
 import { createSaleListing } from '@/lib/server/marketplace';
 import { buildS3PublicUrl, uploadToS3 } from '@/lib/server/s3';
 
@@ -174,7 +175,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Требуется авторизация.' }, { status: 401 });
     }
 
-    const formData = await request.formData();
+    const formData = await parseMultipartRequest(request);
     const payloadRaw = formData.get('payload');
 
     if (typeof payloadRaw !== 'string') {

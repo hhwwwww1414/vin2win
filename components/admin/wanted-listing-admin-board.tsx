@@ -3,8 +3,10 @@
 import { startTransition, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { ListingStatusBadge } from '@/components/listing/listing-status-badge';
 import { LISTING_STATUS_LABELS, LISTING_STATUS_VALUES, type ListingStatusValue } from '@/lib/listing-status';
+import { formatPrice } from '@/lib/price-formatting';
 
 type WantedAdminItem = {
   id: string;
@@ -312,7 +314,7 @@ export function WantedListingAdminBoard({
                         <ListingStatusBadge status={draft.status} />
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        До {Number(draft.budgetMax || 0).toLocaleString('ru-RU')} ₽
+                        До {formatPrice(draft.budgetMax || 0)}
                         {draft.region ? ` • ${draft.region}` : ''}
                       </p>
                       <p className="mt-2 text-sm text-muted-foreground">{item.ownerLine}</p>
@@ -329,8 +331,18 @@ export function WantedListingAdminBoard({
                   <div className="grid gap-3">
                     <div className="grid gap-3 md:grid-cols-2">
                       <input value={draft.models} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], models: event.target.value } }))} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30 md:col-span-2" placeholder="Марки и модели" />
-                      <input value={draft.budgetMin} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], budgetMin: event.target.value } }))} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30" placeholder="Бюджет от" />
-                      <input value={draft.budgetMax} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], budgetMax: event.target.value } }))} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30" placeholder="Бюджет до" />
+                      <FormattedNumberInput
+                        value={draft.budgetMin}
+                        onValueChange={(value) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], budgetMin: value } }))}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30"
+                        placeholder="Бюджет от"
+                      />
+                      <FormattedNumberInput
+                        value={draft.budgetMax}
+                        onValueChange={(value) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], budgetMax: value } }))}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30"
+                        placeholder="Бюджет до"
+                      />
                       <input value={draft.region} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: { ...current[item.id], region: event.target.value } }))} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30 md:col-span-2" placeholder="Регион" />
                     </div>
 
