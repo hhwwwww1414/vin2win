@@ -1,11 +1,10 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import {
-  Heart,
   LayoutGrid,
   List,
   LogIn,
@@ -20,6 +19,10 @@ import {
   UserCircle2,
   X,
 } from 'lucide-react';
+import {
+  HeaderFavoritesHeartIcon,
+  getHeaderFavoritesHeartState,
+} from '@/components/marketplace/header-favorites-heart';
 import { Button } from '@/components/ui/button';
 import { FAVORITES_CHANGED_EVENT } from '@/components/marketplace/favorite-toggle';
 import { type ChatRealtimeEvent, CHAT_WINDOW_EVENT_NAME } from '@/lib/chat/realtime';
@@ -35,6 +38,15 @@ type SessionUser = {
 };
 
 const emptyThemeSubscription = () => () => {};
+const subscribeToHashChanges = (onStoreChange: () => void) => {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  window.addEventListener('hashchange', onStoreChange);
+  return () => window.removeEventListener('hashchange', onStoreChange);
+};
+const getHashSnapshot = () => (typeof window === 'undefined' ? '' : window.location.hash);
 const CHAT_EVENT_TYPES = [
   'chat.message.created',
   'chat.read.updated',
@@ -200,6 +212,16 @@ function AuthControls({
 }) {
   const pathname = usePathname();
   const nextPath = pathname ? `?next=${encodeURIComponent(pathname)}` : '';
+  const currentHash = useSyncExternalStore(subscribeToHashChanges, getHashSnapshot, () => '');
+  const favoritesHeartState = useMemo(
+    () =>
+      getHeaderFavoritesHeartState({
+        favoriteCount,
+        pathname,
+        hash: currentHash,
+      }),
+    [currentHash, favoriteCount, pathname]
+  );
 
   if (loading) {
     return <div className={cn('rounded-lg bg-muted/60', mobile ? 'h-9 w-full' : 'h-9 w-28 animate-pulse')} />;
@@ -244,7 +266,7 @@ function AuthControls({
     return (
       <div className="grid gap-2 border-t border-border/50 pt-3">
         <Link href="/account#favorites" onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
-          <Heart className="mr-2 h-4 w-4 text-teal-accent" />
+          <HeaderFavoritesHeartIcon state={favoritesHeartState} className="mr-2 h-4 w-4" />
           Избранное
           <span className="ml-auto rounded-full border border-border/70 bg-background/70 px-2 py-0.5 text-xs text-muted-foreground">
             {favoriteCount}
@@ -278,7 +300,7 @@ function AuthControls({
     <div className="flex items-center gap-1">
       <Button asChild variant="ghost" size="sm" className="h-9 px-3 text-xs font-medium text-muted-foreground hover:text-foreground">
         <Link href="/account#favorites">
-          <Heart className="mr-1.5 h-3.5 w-3.5" />
+          <HeaderFavoritesHeartIcon state={favoritesHeartState} className="mr-1.5 h-3.5 w-3.5" />
           Избранное
           <span className="ml-1 rounded-full border border-border/70 bg-background/70 px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
             {favoriteCount}
@@ -409,7 +431,7 @@ export function MarketplaceHeader() {
   }, [pathname]);
 
   useEffect(() => {
-    if (!sessionUser) {
+    if (!sessionUser?.id) {
       return;
     }
 
