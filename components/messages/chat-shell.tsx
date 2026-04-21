@@ -485,181 +485,189 @@ export function ChatShell({
   return (
     <>
       <ChatPushSetup />
-      <section className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className={cn('min-w-0', currentChat ? 'hidden lg:block' : 'block')}>
-        <div className="rounded-[32px] border border-border/70 bg-card/92 p-4 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92">
-          <div className="mb-4 flex items-end justify-between gap-4 px-2">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-accent">Сообщения</p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">Диалоги по объявлениям</h1>
+      <section className="grid min-w-0 gap-4 lg:h-[calc(100dvh-10rem)] lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-stretch lg:gap-6">
+        <aside className={cn('min-w-0 lg:min-h-0', currentChat ? 'hidden lg:block' : 'block')}>
+          <div className="flex h-full min-h-[calc(100dvh-8rem)] min-w-0 flex-col overflow-hidden rounded-[32px] border border-border/70 bg-card/92 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92 lg:min-h-0">
+            <div className="shrink-0 px-5 pt-5 pb-4">
+              <div className="flex items-end justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-accent">Сообщения</p>
+                  <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">Диалоги по объявлениям</h1>
+                </div>
+                <span className="shrink-0 text-sm text-muted-foreground">{sortedChats.length}</span>
+              </div>
             </div>
-            <span className="text-sm text-muted-foreground">{sortedChats.length}</span>
-          </div>
 
-          {sortedChats.length ? (
-            <div className="space-y-3">
-              {sortedChats.map((chat) => (
-                <ChatListItem
-                  key={chat.id}
-                  chat={chat}
-                  hydrated={hydrated}
-                  selected={chat.id === currentChatId}
-                />
-              ))}
-            </div>
-          ) : (
-            <Empty className="min-h-[360px] rounded-[28px] border border-dashed border-border/70 bg-background/50">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <MessageCircle className="h-5 w-5" />
-                </EmptyMedia>
-                <EmptyTitle>Пока нет диалогов</EmptyTitle>
-                <EmptyDescription>
-                  Откройте карточку автомобиля и нажмите «Написать», чтобы создать первый чат по конкретному объявлению.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
-        </div>
+            {sortedChats.length ? (
+              <div className="panel-scroll-y min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-4">
+                <div className="space-y-3">
+                  {sortedChats.map((chat) => (
+                    <ChatListItem
+                      key={chat.id}
+                      chat={chat}
+                      hydrated={hydrated}
+                      selected={chat.id === currentChatId}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-h-0 flex-1 px-4 pb-4">
+                <Empty className="min-h-full rounded-[28px] border border-dashed border-border/70 bg-background/50">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <MessageCircle className="h-5 w-5" />
+                    </EmptyMedia>
+                    <EmptyTitle>Пока нет диалогов</EmptyTitle>
+                    <EmptyDescription>
+                      Откройте карточку автомобиля и нажмите «Написать», чтобы создать первый чат по конкретному объявлению.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              </div>
+            )}
+          </div>
         </aside>
 
-        <section className={cn('min-w-0', !currentChat ? 'hidden lg:block' : 'block')}>
-        <div className="flex min-h-[720px] flex-col overflow-hidden rounded-[32px] border border-border/70 bg-card/92 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92">
-          {currentChat ? (
-            <>
-              <div className="border-b border-border/60 px-5 py-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="mb-3 lg:hidden">
-                      <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-xs">
-                        <Link href="/messages">
-                          <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
-                          К списку
-                        </Link>
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 border border-border/70">
-                        <AvatarImage src={currentChat.counterparty.avatarUrl} alt={currentChat.counterparty.name} />
-                        <AvatarFallback>{getAvatarFallback(currentChat.counterparty.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <h2 className="truncate text-lg font-semibold text-foreground">{currentChat.counterparty.name}</h2>
-                          {currentChat.counterparty.verified ? <ShieldCheck className="h-4 w-4 shrink-0 text-teal-accent" /> : null}
+        <section className={cn('min-w-0 lg:min-h-0', !currentChat ? 'hidden lg:block' : 'block')}>
+          <div className="flex h-full min-h-[calc(100dvh-8rem)] min-w-0 flex-col overflow-hidden rounded-[32px] border border-border/70 bg-card/92 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92 lg:min-h-0">
+            {currentChat ? (
+              <>
+                <div className="shrink-0 border-b border-border/60 px-4 py-4 sm:px-5">
+                  <div className="flex min-w-0 items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-3 lg:hidden">
+                        <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-xs">
+                          <Link href="/messages">
+                            <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+                            К списку
+                          </Link>
+                        </Button>
+                      </div>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar className="h-12 w-12 border border-border/70">
+                          <AvatarImage src={currentChat.counterparty.avatarUrl} alt={currentChat.counterparty.name} />
+                          <AvatarFallback>{getAvatarFallback(currentChat.counterparty.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <h2 className="truncate text-lg font-semibold text-foreground">{currentChat.counterparty.name}</h2>
+                            {currentChat.counterparty.verified ? <ShieldCheck className="h-4 w-4 shrink-0 text-teal-accent" /> : null}
+                          </div>
+                          <p className="truncate text-sm text-muted-foreground">
+                            Чат привязан к конкретному объявлению и не смешивается с другими автомобилями.
+                          </p>
                         </div>
-                        <p className="truncate text-sm text-muted-foreground">
-                          Чат привязан к конкретному объявлению и не смешивается с другими автомобилями.
-                        </p>
                       </div>
                     </div>
                   </div>
+
+                  <Link href={getListingHref(currentChat)} className="mt-4 grid min-w-0 gap-3 rounded-[24px] border border-border/70 bg-background/65 p-3 transition-colors hover:border-teal-accent/25 hover:bg-background/80 sm:grid-cols-[88px_minmax(0,1fr)]">
+                    <div className="overflow-hidden rounded-2xl border border-border/70 bg-muted/20">
+                      {currentChat.listing.imageUrl ? (
+                        <Image src={currentChat.listing.imageUrl} alt={currentChat.listing.title} width={88} height={88} unoptimized className="h-[88px] w-full object-cover" />
+                      ) : (
+                        <div className="flex h-[88px] items-center justify-center text-xs text-muted-foreground">Нет фото</div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-accent">
+                        {currentChat.listing.type === 'SALE_LISTING' ? 'Объявление о продаже' : 'Запрос в подбор'}
+                      </p>
+                      <p className="mt-2 truncate text-base font-semibold text-foreground">{currentChat.listing.title}</p>
+                      {currentChat.listing.price ? (
+                        <p className="mt-1 text-sm text-muted-foreground">{formatPrice(currentChat.listing.price)}</p>
+                      ) : null}
+                      <p className="mt-3 text-xs text-muted-foreground">Открыть карточку объявления</p>
+                    </div>
+                  </Link>
                 </div>
 
-                <Link href={getListingHref(currentChat)} className="mt-4 grid gap-3 rounded-[24px] border border-border/70 bg-background/65 p-3 transition-colors hover:border-teal-accent/25 hover:bg-background/80 sm:grid-cols-[88px_minmax(0,1fr)]">
-                  <div className="overflow-hidden rounded-2xl border border-border/70 bg-muted/20">
-                    {currentChat.listing.imageUrl ? (
-                      <Image src={currentChat.listing.imageUrl} alt={currentChat.listing.title} width={88} height={88} unoptimized className="h-[88px] w-full object-cover" />
-                    ) : (
-                      <div className="flex h-[88px] items-center justify-center text-xs text-muted-foreground">Нет фото</div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-accent">
-                      {currentChat.listing.type === 'SALE_LISTING' ? 'Объявление о продаже' : 'Запрос в подбор'}
-                    </p>
-                    <p className="mt-2 truncate text-base font-semibold text-foreground">{currentChat.listing.title}</p>
-                    {currentChat.listing.price ? (
-                      <p className="mt-1 text-sm text-muted-foreground">{formatPrice(currentChat.listing.price)}</p>
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <div ref={viewportRef} className="panel-scroll-y min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5">
+                    {nextCursor ? (
+                      <div className="mb-4 flex justify-center">
+                        <Button variant="outline" size="sm" disabled={loadingMore} onClick={() => void handleLoadMore()}>
+                          {loadingMore ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                          Показать более ранние сообщения
+                        </Button>
+                      </div>
                     ) : null}
-                    <p className="mt-3 text-xs text-muted-foreground">Открыть карточку объявления</p>
-                  </div>
-                </Link>
-              </div>
 
-              <div className="flex min-h-0 flex-1 flex-col">
-                <div ref={viewportRef} className="panel-scroll-y min-h-0 flex-1 overflow-y-auto px-5 py-4">
-                  {nextCursor ? (
-                    <div className="mb-4 flex justify-center">
-                      <Button variant="outline" size="sm" disabled={loadingMore} onClick={() => void handleLoadMore()}>
-                        {loadingMore ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-                        Показать более ранние сообщения
+                    <div className="space-y-3">
+                      {messages.map((message) => {
+                        const own = message.senderId === currentUserId;
+                        return (
+                          <div key={message.id} className={cn('flex min-w-0', own ? 'justify-end' : 'justify-start')}>
+                            <div
+                              className={cn(
+                                'max-w-[min(520px,92%)] rounded-[24px] px-4 py-3 shadow-[0_10px_24px_rgba(8,15,27,0.06)]',
+                                own
+                                  ? 'bg-teal-dark text-white dark:bg-teal-accent dark:text-[#09090B]'
+                                  : 'border border-border/70 bg-background/75 text-foreground dark:bg-background/10',
+                              )}
+                            >
+                              <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.text}</p>
+                              <p
+                                className={cn('mt-2 text-[11px]', own ? 'text-white/75 dark:text-[#09090B]/70' : 'text-muted-foreground')}
+                                suppressHydrationWarning
+                              >
+                                {hydrated ? formatMessageTime(message.createdAt) : ''}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 border-t border-border/60 px-4 py-4 sm:px-5">
+                    {threadError ? (
+                      <div className="mb-3 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                        {threadError}
+                      </div>
+                    ) : null}
+                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row">
+                      <Textarea
+                        value={draft}
+                        onChange={(event) => setDraft(event.target.value)}
+                        onKeyDown={handleComposerKeyDown}
+                        placeholder="Напишите сообщение по этому автомобилю"
+                        className="min-h-[92px] min-w-0 flex-1 rounded-[24px] border-border/70 bg-background/60 px-4 py-3 resize-none"
+                        maxLength={4000}
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => void handleSend()}
+                        disabled={sending || !draft.trim()}
+                        className="h-11 w-full rounded-[24px] bg-teal-dark px-4 text-white hover:bg-teal-medium sm:h-auto sm:min-w-28 sm:w-auto sm:self-stretch dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam"
+                      >
+                        {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                        Отправить
                       </Button>
                     </div>
-                  ) : null}
-
-                  <div className="space-y-3">
-                    {messages.map((message) => {
-                      const own = message.senderId === currentUserId;
-                      return (
-                        <div key={message.id} className={cn('flex', own ? 'justify-end' : 'justify-start')}>
-                          <div
-                            className={cn(
-                              'max-w-[min(520px,92%)] rounded-[24px] px-4 py-3 shadow-[0_10px_24px_rgba(8,15,27,0.06)]',
-                              own
-                                ? 'bg-teal-dark text-white dark:bg-teal-accent dark:text-[#09090B]'
-                                : 'border border-border/70 bg-background/75 text-foreground dark:bg-background/10',
-                            )}
-                          >
-                            <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.text}</p>
-                            <p
-                              className={cn('mt-2 text-[11px]', own ? 'text-white/75 dark:text-[#09090B]/70' : 'text-muted-foreground')}
-                              suppressHydrationWarning
-                            >
-                              {hydrated ? formatMessageTime(message.createdAt) : ''}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    <p className="mt-2 text-xs text-muted-foreground">Ctrl/Cmd + Enter для быстрой отправки.</p>
                   </div>
                 </div>
-
-                <div className="border-t border-border/60 px-5 py-4">
-                  {threadError ? (
-                    <div className="mb-3 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                      {threadError}
-                    </div>
-                  ) : null}
-                  <div className="flex gap-3">
-                    <Textarea
-                      value={draft}
-                      onChange={(event) => setDraft(event.target.value)}
-                      onKeyDown={handleComposerKeyDown}
-                      placeholder="Напишите сообщение по этому автомобилю"
-                      className="min-h-[92px] rounded-[24px] border-border/70 bg-background/60 px-4 py-3"
-                      maxLength={4000}
-                    />
-                    <Button
-                      type="button"
-                      onClick={() => void handleSend()}
-                      disabled={sending || !draft.trim()}
-                      className="h-auto min-w-28 rounded-[24px] bg-teal-dark px-4 text-white hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam"
-                    >
-                      {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                      Отправить
-                    </Button>
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">Ctrl/Cmd + Enter для быстрой отправки.</p>
-                </div>
+              </>
+            ) : (
+              <div className="flex min-h-0 flex-1 p-6">
+                <Empty className="min-h-full rounded-[28px] border border-dashed border-border/70 bg-background/50">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <MessageCircle className="h-5 w-5" />
+                    </EmptyMedia>
+                    <EmptyTitle>{threadError ? 'Чат недоступен' : 'Выберите диалог'}</EmptyTitle>
+                    <EmptyDescription>
+                      {threadError
+                        ? threadError
+                        : 'Слева видны собеседник, автомобиль, последнее сообщение и непрочитанные. Выберите чат, чтобы продолжить переписку по конкретному объявлению.'}
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
               </div>
-            </>
-          ) : (
-            <Empty className="m-6 min-h-[640px] rounded-[28px] border border-dashed border-border/70 bg-background/50">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <MessageCircle className="h-5 w-5" />
-                </EmptyMedia>
-                <EmptyTitle>{threadError ? 'Чат недоступен' : 'Выберите диалог'}</EmptyTitle>
-                <EmptyDescription>
-                  {threadError
-                    ? threadError
-                    : 'Слева видны собеседник, автомобиль, последнее сообщение и непрочитанные. Выберите чат, чтобы продолжить переписку по конкретному объявлению.'}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
-        </div>
+            )}
+          </div>
         </section>
       </section>
     </>
