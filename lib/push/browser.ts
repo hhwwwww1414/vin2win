@@ -297,6 +297,26 @@ export function getPushSubscriptionErrorMessage(error: unknown) {
   return 'Не удалось подключить браузерные уведомления.';
 }
 
+export async function fetchBrowserPushVapidPublicKey() {
+  const response = await fetch('/api/push/public-key', {
+    cache: 'no-store',
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | {
+        publicKey?: string | null;
+        error?: string;
+      }
+    | null;
+
+  if (!response.ok) {
+    throw new Error(
+      payload?.error ?? 'РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РєРѕРЅС„РёРіСѓСЂР°С†РёСЋ browser push.',
+    );
+  }
+
+  return typeof payload?.publicKey === 'string' ? payload.publicKey : undefined;
+}
+
 export async function savePushSubscription(
   subscription: PushSubscription,
   options: {

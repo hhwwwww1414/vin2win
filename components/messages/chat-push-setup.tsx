@@ -6,22 +6,52 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import {
   detectBrowserPushSupport,
+  fetchBrowserPushVapidPublicKey,
   getPushSubscriptionErrorMessage,
   requestBrowserPushPermissionAndSubscribe,
   type BrowserPushSupportResult,
 } from '@/lib/push/browser';
 
 export function ChatPushSetup() {
-  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const [support, setSupport] = useState<BrowserPushSupportResult | null>(null);
+  const [vapidPublicKey, setVapidPublicKey] = useState<string | undefined>(undefined);
+  const [pushConfigResolved, setPushConfigResolved] = useState(false);
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [chatPushEnabled, setChatPushEnabled] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setSupport(detectBrowserPushSupport(vapidPublicKey));
-  }, [vapidPublicKey]);
+    let active = true;
+
+    async function loadPushConfig() {
+      try {
+        const publicKey = await fetchBrowserPushVapidPublicKey();
+        if (!active) {
+          return;
+        }
+
+        setVapidPublicKey(publicKey);
+        setSupport(detectBrowserPushSupport(publicKey));
+      } catch {
+        if (!active) {
+          return;
+        }
+
+        setVapidPublicKey(undefined);
+        setSupport(detectBrowserPushSupport());
+      } finally {
+        if (active) {
+          setPushConfigResolved(true);
+        }
+      }
+    }
+
+    void loadPushConfig();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -59,7 +89,7 @@ export function ChatPushSetup() {
     };
   }, []);
 
-  if (!support) {
+  if (!pushConfigResolved || !support) {
     return null;
   }
 

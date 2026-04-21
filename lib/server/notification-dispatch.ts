@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import webpush, { type PushSubscription } from 'web-push';
 import { prisma } from './prisma';
 import { serverEnv } from './env';
+import { getEffectiveVapidConfig } from './vapid';
 
 export interface DispatchUserNotificationOptions {
   email?: boolean;
@@ -43,11 +44,12 @@ function ensureWebPushConfigured() {
     return true;
   }
 
-  if (!serverEnv.vapidPublicKey || !serverEnv.vapidPrivateKey || !serverEnv.vapidSubject) {
+  const config = getEffectiveVapidConfig();
+  if (!config) {
     return false;
   }
 
-  webpush.setVapidDetails(serverEnv.vapidSubject, serverEnv.vapidPublicKey, serverEnv.vapidPrivateKey);
+  webpush.setVapidDetails(config.subject, config.publicKey, config.privateKey);
   vapidConfigured = true;
   return true;
 }

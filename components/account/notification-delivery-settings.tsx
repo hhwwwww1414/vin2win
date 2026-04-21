@@ -3,9 +3,16 @@
 import { startTransition, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { toast } from '@/hooks/use-toast';
+import {
+  detectBrowserPushSupport,
+  fetchBrowserPushVapidPublicKey,
+  getPushSubscriptionErrorMessage,
+  requestBrowserPushPermissionAndSubscribe,
+  type BrowserPushSupportResult,
+} from '@/lib/push/browser';
 
 type NotificationDeliverySettingsProps = {
   emailEnabled: boolean;
@@ -29,121 +36,6 @@ function getPermissionLabel(permission: string) {
   }
 }
 
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
-}
-
-async function waitForActiveServiceWorker(registration: ServiceWorkerRegistration) {
-  if (registration.active) {
-    return registration;
-  }
-
-  const worker = registration.installing ?? registration.waiting;
-  if (!worker) {
-    return navigator.serviceWorker.ready;
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    const handleStateChange = () => {
-      if (worker.state === 'activated') {
-        cleanup();
-        resolve();
-        return;
-      }
-
-      if (worker.state === 'redundant') {
-        cleanup();
-        reject(new Error('Сервис уведомлений не был активирован.'));
-      }
-    };
-
-    const cleanup = () => {
-      worker.removeEventListener('statechange', handleStateChange);
-    };
-
-    worker.addEventListener('statechange', handleStateChange);
-    handleStateChange();
-  });
-
-  return navigator.serviceWorker.ready;
-}
-
-async function unregisterPushServiceWorkers() {
-  const registrations = await navigator.serviceWorker.getRegistrations();
-  await Promise.all(
-    registrations.map(async (registration) => {
-      try {
-        await registration.unregister();
-      } catch (error) {
-        console.warn('[push] failed to unregister service worker', error);
-      }
-    })
-  );
-}
-
-async function subscribeBrowserPushWithRecovery(vapidPublicKey: string) {
-  let lastError: unknown;
-
-  for (const shouldReset of [false, true]) {
-    try {
-      if (shouldReset) {
-        await unregisterPushServiceWorkers();
-      }
-
-      const registration = await navigator.serviceWorker.register('/push-sw.js', {
-        scope: '/',
-        updateViaCache: 'none',
-      });
-
-      const activeRegistration = await waitForActiveServiceWorker(registration);
-      const existingSubscription = await activeRegistration.pushManager.getSubscription();
-      if (existingSubscription) {
-        return existingSubscription;
-      }
-
-      return await activeRegistration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      });
-    } catch (error) {
-      lastError = error;
-
-      if (!(error instanceof Error)) {
-        break;
-      }
-
-      if (!['AbortError', 'InvalidStateError'].includes(error.name) || shouldReset) {
-        break;
-      }
-    }
-  }
-
-  throw lastError;
-}
-
-function getPushSubscriptionErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    if (error.name === 'AbortError') {
-      return `Не удалось подключить браузерные уведомления. ${error.message || 'Попробуйте повторить попытку после обновления страницы и очистки сервисного кэша.'}`;
-    }
-
-    if (error.name === 'InvalidStateError') {
-      return `Service worker не готов для push. ${error.message || 'Повторите попытку через несколько секунд.'}`;
-    }
-
-    if (error.name === 'NotAllowedError') {
-      return 'Браузер заблокировал уведомления для этого сайта.';
-    }
-
-    return error.message;
-  }
-
-  return 'Не удалось подключить браузерные уведомления.';
-}
-
 export function NotificationDeliverySettings({
   emailEnabled,
   telegramEnabled,
@@ -165,11 +57,14 @@ export function NotificationDeliverySettings({
   });
   const [pushSubscribed, setPushSubscribed] = useState(hasPushSubscription);
   const [permissionState, setPermissionState] = useState<string>('default');
-  const [browserPushSupported, setBrowserPushSupported] = useState(false);
+  const [pushSupport, setPushSupport] = useState<BrowserPushSupportResult | null>(null);
+  const [vapidPublicKey, setVapidPublicKey] = useState<string | undefined>(undefined);
+  const [pushConfigResolved, setPushConfigResolved] = useState(false);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [lastDeliveredPush, setLastDeliveredPush] = useState<string | null>(lastPushSuccessAt ?? null);
-  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const [lastDeliveredPush, setLastDeliveredPush] = useState<string | null>(
+    lastPushSuccessAt ?? null,
+  );
   const telegramBotUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
   useEffect(() => {
@@ -183,25 +78,56 @@ export function NotificationDeliverySettings({
     });
     setPushSubscribed(hasPushSubscription);
     setLastDeliveredPush(lastPushSuccessAt ?? null);
-  }, [browserPushEnabled, chatPushEnabled, chatSoundEnabled, emailEnabled, hasPushSubscription, lastPushSuccessAt, telegramChatId, telegramEnabled]);
+  }, [
+    browserPushEnabled,
+    chatPushEnabled,
+    chatSoundEnabled,
+    emailEnabled,
+    hasPushSubscription,
+    lastPushSuccessAt,
+    telegramChatId,
+    telegramEnabled,
+  ]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
 
-    const notificationsSupported = 'Notification' in window;
-    if (notificationsSupported) {
-      setPermissionState(Notification.permission);
+    let active = true;
+
+    async function loadPushConfig() {
+      try {
+        const publicKey = await fetchBrowserPushVapidPublicKey();
+        if (!active) {
+          return;
+        }
+
+        const nextSupport = detectBrowserPushSupport(publicKey);
+        setVapidPublicKey(publicKey);
+        setPushSupport(nextSupport);
+        setPermissionState(nextSupport.permission === 'unsupported' ? 'default' : nextSupport.permission);
+      } catch {
+        if (!active) {
+          return;
+        }
+
+        const nextSupport = detectBrowserPushSupport();
+        setVapidPublicKey(undefined);
+        setPushSupport(nextSupport);
+        setPermissionState(nextSupport.permission === 'unsupported' ? 'default' : nextSupport.permission);
+      } finally {
+        if (active) {
+          setPushConfigResolved(true);
+        }
+      }
     }
 
-    setBrowserPushSupported(
-      notificationsSupported &&
-        'serviceWorker' in navigator &&
-        'PushManager' in window &&
-        Boolean(vapidPublicKey)
-    );
-  }, [vapidPublicKey]);
+    void loadPushConfig();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) {
@@ -215,9 +141,15 @@ export function NotificationDeliverySettings({
 
       toast({
         title: event.data.payload?.title ?? 'Новое уведомление vin2win',
-        description: event.data.payload?.body ?? 'Получено новое системное уведомление.',
+        description:
+          event.data.payload?.body ?? 'Получено новое системное уведомление.',
       });
-      setLastDeliveredPush(new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date()));
+      setLastDeliveredPush(
+        new Intl.DateTimeFormat('ru-RU', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(new Date()),
+      );
     };
 
     navigator.serviceWorker.addEventListener('message', handleMessage);
@@ -226,7 +158,9 @@ export function NotificationDeliverySettings({
     };
   }, []);
 
-  const canUseBrowserPush = browserPushSupported;
+  const canUseBrowserPush = Boolean(pushSupport?.canRequestPermission);
+  const browserPushStatusMessage =
+    pushSupport?.message ?? 'Браузерные уведомления временно недоступны.';
 
   const saveSettings = useCallback(async () => {
     setError(null);
@@ -267,7 +201,11 @@ export function NotificationDeliverySettings({
         );
       }
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Не удалось сохранить настройки уведомлений.');
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : 'Не удалось сохранить настройки уведомлений.',
+      );
     } finally {
       setPendingKey(null);
     }
@@ -275,7 +213,11 @@ export function NotificationDeliverySettings({
 
   const subscribeBrowserPush = useCallback(async () => {
     if (!canUseBrowserPush || !vapidPublicKey) {
-      setError('Браузерные уведомления временно недоступны.');
+      setError(
+        pushConfigResolved
+          ? browserPushStatusMessage
+          : 'Браузерные уведомления временно недоступны.',
+      );
       return;
     }
 
@@ -283,28 +225,12 @@ export function NotificationDeliverySettings({
     setPendingKey('push');
 
     try {
-      const permission = await Notification.requestPermission();
-      setPermissionState(permission);
-
-      if (permission !== 'granted') {
-        throw new Error('Браузер заблокировал уведомления для vin2win.');
-      }
-
-      const subscription = await subscribeBrowserPushWithRecovery(vapidPublicKey);
-
-      const response = await fetch('/api/account/push-subscriptions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(subscription),
+      const { permission } = await requestBrowserPushPermissionAndSubscribe({
+        vapidPublicKey,
       });
 
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      if (!response.ok) {
-        throw new Error(payload?.error ?? 'Не удалось подключить браузерные уведомления.');
-      }
-
+      setPermissionState(permission);
+      setPushSupport(detectBrowserPushSupport(vapidPublicKey));
       setPushSubscribed(true);
       setDraft((current) => ({
         ...current,
@@ -312,18 +238,23 @@ export function NotificationDeliverySettings({
       }));
       toast({
         title: 'Браузерные уведомления подключены',
-        description: 'Канал оповещений активирован. Можно отправить контрольное уведомление.',
+        description:
+          'Канал оповещений активирован. Можно отправить контрольное уведомление.',
       });
 
       startTransition(() => {
         router.refresh();
       });
     } catch (submitError) {
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        setPermissionState(Notification.permission);
+      }
+      setPushSupport(detectBrowserPushSupport(vapidPublicKey));
       setError(getPushSubscriptionErrorMessage(submitError));
     } finally {
       setPendingKey(null);
     }
-  }, [canUseBrowserPush, router, vapidPublicKey]);
+  }, [browserPushStatusMessage, canUseBrowserPush, pushConfigResolved, router, vapidPublicKey]);
 
   const sendTestBrowserPush = useCallback(async () => {
     setError(null);
@@ -341,14 +272,18 @@ export function NotificationDeliverySettings({
 
       toast({
         title: 'Контрольное уведомление отправлено',
-        description: 'Проверьте системное уведомление и сообщение в открытой вкладке.',
+        description:
+          'Проверьте системное уведомление и сообщение в открытой вкладке.',
       });
 
       startTransition(() => {
         router.refresh();
       });
     } catch (submitError) {
-      const message = submitError instanceof Error ? submitError.message : 'Не удалось отправить контрольное уведомление.';
+      const message =
+        submitError instanceof Error
+          ? submitError.message
+          : 'Не удалось отправить контрольное уведомление.';
       setError(message);
       toast({
         title: 'Контрольное уведомление не отправлено',
@@ -406,7 +341,11 @@ export function NotificationDeliverySettings({
         router.refresh();
       });
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Не удалось отключить браузерные уведомления.');
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : 'Не удалось отключить браузерные уведомления.',
+      );
     } finally {
       setPendingKey(null);
     }
@@ -421,22 +360,31 @@ export function NotificationDeliverySettings({
       <div className="mb-5">
         <h2 className="text-xl font-semibold text-foreground">Каналы оповещений</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Настройте рабочие каналы оповещений, чтобы не пропускать публикацию карточек, комментарии модератора и изменения по аккаунту.
+          Настройте рабочие каналы оповещений, чтобы не пропускать публикацию карточек,
+          комментарии модератора и изменения по аккаунту.
         </p>
       </div>
 
-      {error ? <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}
+      {error ? (
+        <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <label className="rounded-[24px] border border-border/70 bg-background/60 p-4 shadow-[0_12px_28px_rgba(8,15,27,0.06)]">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="font-medium text-foreground">Email</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Оперативные уведомления на основной email аккаунта.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Оперативные уведомления на основной email аккаунта.
+              </p>
             </div>
             <Switch
               checked={draft.emailEnabled}
-              onCheckedChange={(checked) => setDraft((current) => ({ ...current, emailEnabled: checked }))}
+              onCheckedChange={(checked) =>
+                setDraft((current) => ({ ...current, emailEnabled: checked }))
+              }
             />
           </div>
         </label>
@@ -445,22 +393,35 @@ export function NotificationDeliverySettings({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="font-medium text-foreground">Telegram</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Подключите Telegram, чтобы получать решения модерации и обновления по объявлениям в мессенджере.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Подключите Telegram, чтобы получать решения модерации и обновления по
+                объявлениям в мессенджере.
+              </p>
             </div>
             <Switch
               checked={draft.telegramEnabled}
-              onCheckedChange={(checked) => setDraft((current) => ({ ...current, telegramEnabled: checked }))}
+              onCheckedChange={(checked) =>
+                setDraft((current) => ({ ...current, telegramEnabled: checked }))
+              }
             />
           </div>
           <input
             value={draft.telegramChatId}
-            onChange={(event) => setDraft((current) => ({ ...current, telegramChatId: event.target.value }))}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, telegramChatId: event.target.value }))
+            }
             className="mt-4 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-accent/60 focus:ring-2 focus:ring-teal-accent/30"
             placeholder="Например: 123456789"
           />
           {telegramBotUsername ? (
             <p className="mt-2 text-xs text-muted-foreground">
-              Бот: <Link href={`https://t.me/${telegramBotUsername}`} className="text-teal-accent hover:underline">{telegramBotUsername}</Link>
+              Бот:{' '}
+              <Link
+                href={`https://t.me/${telegramBotUsername}`}
+                className="text-teal-accent hover:underline"
+              >
+                {telegramBotUsername}
+              </Link>
             </p>
           ) : null}
         </label>
@@ -469,11 +430,16 @@ export function NotificationDeliverySettings({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="font-medium text-foreground">Звук новых сообщений</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Работает при открытой вкладке и после взаимодействия со страницей. При полностью закрытом сайте звук контролирует уже браузерное push-уведомление.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Работает при открытой вкладке и после взаимодействия со страницей. При
+                полностью закрытом сайте звук контролирует уже браузерное push-уведомление.
+              </p>
             </div>
             <Switch
               checked={draft.chatSoundEnabled}
-              onCheckedChange={(checked) => setDraft((current) => ({ ...current, chatSoundEnabled: checked }))}
+              onCheckedChange={(checked) =>
+                setDraft((current) => ({ ...current, chatSoundEnabled: checked }))
+              }
             />
           </div>
         </label>
@@ -482,11 +448,16 @@ export function NotificationDeliverySettings({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="font-medium text-foreground">Push для чатов</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Отдельный канал для новых сообщений, если вкладка скрыта, браузер в фоне или сайт не открыт.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Отдельный канал для новых сообщений, если вкладка скрыта, браузер в фоне
+                или сайт не открыт.
+              </p>
             </div>
             <Switch
               checked={draft.chatPushEnabled}
-              onCheckedChange={(checked) => setDraft((current) => ({ ...current, chatPushEnabled: checked }))}
+              onCheckedChange={(checked) =>
+                setDraft((current) => ({ ...current, chatPushEnabled: checked }))
+              }
             />
           </div>
         </label>
@@ -498,30 +469,50 @@ export function NotificationDeliverySettings({
             <h3 className="font-medium text-foreground">Браузерные уведомления</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Статус: {pushSubscribed ? 'канал активен' : 'канал не подключён'}
-              {permissionState ? ` • разрешение браузера: ${getPermissionLabel(permissionState)}` : ''}
+              {permissionState
+                ? ` • разрешение браузера: ${getPermissionLabel(permissionState)}`
+                : ''}
             </p>
             {lastDeliveredPush ? (
-              <p className="mt-2 text-xs text-muted-foreground">Последняя успешная доставка: {lastDeliveredPush}</p>
-            ) : null}
-            {!canUseBrowserPush ? (
               <p className="mt-2 text-xs text-muted-foreground">
-                Браузерные уведомления будут доступны после полной настройки push-канала для проекта.
+                Последняя успешная доставка: {lastDeliveredPush}
               </p>
+            ) : null}
+            {pushConfigResolved && !canUseBrowserPush ? (
+              <p className="mt-2 text-xs text-muted-foreground">{browserPushStatusMessage}</p>
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
             {pushSubscribed ? (
               <>
-                <Button variant="outline" disabled={pendingKey === 'test-push'} onClick={sendTestBrowserPush}>
-                  {pendingKey === 'test-push' ? 'Отправляем...' : 'Контрольное уведомление'}
+                <Button
+                  variant="outline"
+                  disabled={pendingKey === 'test-push'}
+                  onClick={sendTestBrowserPush}
+                >
+                  {pendingKey === 'test-push'
+                    ? 'Отправляем...'
+                    : 'Контрольное уведомление'}
                 </Button>
-                <Button variant="outline" disabled={pendingKey === 'push'} onClick={unsubscribeBrowserPush}>
-                  {pendingKey === 'push' ? 'Отключаем...' : 'Отключить уведомления'}
+                <Button
+                  variant="outline"
+                  disabled={pendingKey === 'push'}
+                  onClick={unsubscribeBrowserPush}
+                >
+                  {pendingKey === 'push'
+                    ? 'Отключаем...'
+                    : 'Отключить уведомления'}
                 </Button>
               </>
             ) : (
-              <Button variant="outline" disabled={!canUseBrowserPush || pendingKey === 'push'} onClick={subscribeBrowserPush}>
-                {pendingKey === 'push' ? 'Подключаем...' : 'Подключить уведомления'}
+              <Button
+                variant="outline"
+                disabled={!pushConfigResolved || !canUseBrowserPush || pendingKey === 'push'}
+                onClick={subscribeBrowserPush}
+              >
+                {pendingKey === 'push'
+                  ? 'Подключаем...'
+                  : 'Подключить уведомления'}
               </Button>
             )}
           </div>
