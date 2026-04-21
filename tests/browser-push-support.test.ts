@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getBrowserPushSupportState } from '@/lib/push/browser';
+import {
+  getBrowserPushSupportState,
+  getPushSubscriptionErrorMessage,
+  getVapidPublicKeyValidationError,
+} from '@/lib/push/browser';
 
 test('browser push requires standalone install on iPhone web apps', () => {
   const support = getBrowserPushSupportState({
@@ -31,4 +35,23 @@ test('browser push is available on desktop when APIs and VAPID are configured', 
   });
 
   assert.equal(support.state, 'supported');
+});
+
+test('invalid VAPID public key is rejected before subscribe', () => {
+  assert.equal(
+    getVapidPublicKeyValidationError('not-a-real-vapid-key'),
+    'Push-канал настроен некорректно: публичный VAPID-ключ не похож на браузерный P-256 ключ.',
+  );
+});
+
+test('push service abort is mapped to actionable VAPID guidance', () => {
+  const error = new DOMException(
+    'Registration failed - push service error',
+    'AbortError',
+  );
+
+  assert.match(
+    getPushSubscriptionErrorMessage(error),
+    /неверный публичный VAPID-ключ/i,
+  );
 });

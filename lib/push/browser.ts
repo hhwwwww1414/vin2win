@@ -4,6 +4,7 @@ export type BrowserPushSupportState =
   | 'supported'
   | 'unsupported'
   | 'missing-config'
+  | 'invalid-config'
   | 'ios-install-required';
 
 export interface BrowserPushSupportSnapshot {
@@ -23,6 +24,9 @@ export interface BrowserPushSupportResult {
   permission: NotificationPermission | 'unsupported';
   requiresStandaloneInstall: boolean;
 }
+
+const INVALID_VAPID_PUBLIC_KEY_MESSAGE =
+  'Push-канал настроен некорректно: публичный VAPID-ключ не похож на браузерный P-256 ключ.';
 
 function isAppleMobileUserAgent(userAgent: string) {
   return /iPhone|iPad|iPod/i.test(userAgent);
@@ -103,6 +107,18 @@ export function detectBrowserPushSupport(
       ).standalone,
     );
 
+  const vapidPublicKeyError = getVapidPublicKeyValidationError(vapidPublicKey);
+
+  if (vapidPublicKey && vapidPublicKeyError) {
+    return {
+      state: 'invalid-config',
+      canRequestPermission: false,
+      permission: 'Notification' in window ? Notification.permission : 'unsupported',
+      requiresStandaloneInstall: false,
+      message: vapidPublicKeyError,
+    };
+  }
+
   return getBrowserPushSupportState({
     notificationsAvailable: 'Notification' in window,
     serviceWorkerAvailable: 'serviceWorker' in navigator,
@@ -114,11 +130,46 @@ export function detectBrowserPushSupport(
   });
 }
 
-function urlBase64ToUint8Array(base64String: string) {
+function decodeUrlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
+  const atobFn =
+    typeof window !== 'undefined' && typeof window.atob === 'function'
+      ? window.atob.bind(window)
+      : typeof globalThis.atob === 'function'
+        ? globalThis.atob.bind(globalThis)
+        : null;
+
+  if (!atobFn) {
+    throw new Error('Base64 decoder is not available in this runtime.');
+  }
+
+  const rawData = atobFn(base64);
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+  return decodeUrlBase64ToUint8Array(base64String);
+}
+
+export function getVapidPublicKeyValidationError(
+  vapidPublicKey?: string,
+): string | null {
+  if (!vapidPublicKey) {
+    return null;
+  }
+
+  try {
+    const bytes = decodeUrlBase64ToUint8Array(vapidPublicKey);
+
+    if (bytes.length !== 65 || bytes[0] !== 0x04) {
+      return INVALID_VAPID_PUBLIC_KEY_MESSAGE;
+    }
+
+    return null;
+  } catch {
+    return INVALID_VAPID_PUBLIC_KEY_MESSAGE;
+  }
 }
 
 async function waitForActiveServiceWorker(registration: ServiceWorkerRegistration) {
@@ -170,6 +221,11 @@ async function unregisterPushServiceWorkers() {
 }
 
 export async function subscribeBrowserPushWithRecovery(vapidPublicKey: string) {
+  const vapidPublicKeyError = getVapidPublicKeyValidationError(vapidPublicKey);
+  if (vapidPublicKeyError) {
+    throw new Error(vapidPublicKeyError);
+  }
+
   let lastError: unknown;
 
   for (const shouldReset of [false, true]) {
@@ -211,7 +267,15 @@ export async function subscribeBrowserPushWithRecovery(vapidPublicKey: string) {
 
 export function getPushSubscriptionErrorMessage(error: unknown) {
   if (error instanceof Error) {
+    if (error.message === INVALID_VAPID_PUBLIC_KEY_MESSAGE) {
+      return error.message;
+    }
+
     if (error.name === 'AbortError') {
+      if (/push service error/i.test(error.message)) {
+        return 'Не удалось подключить браузерные уведомления. Push-service отклонил регистрацию, обычно это означает неверный публичный VAPID-ключ на текущем окружении.';
+      }
+
       return `Не удалось подключить браузерные уведомления. ${
         error.message || 'Попробуйте повторить попытку после обновления страницы и очистки сервисного кэша.'
       }`;
