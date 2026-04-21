@@ -68,7 +68,7 @@ test('chat shell renders chat list and selected thread context without server-si
   assert.match(markup, /Yes, the car is still for sale\./);
   assert.match(markup, /Is it still available\?/);
   assert.match(markup, /2 500 000 ₽/);
-  assert.match(markup, /Open listing card|Открыть карточку объявления|РћС‚РєСЂС‹С‚СЊ РєР°СЂС‚РѕС‡РєСѓ РѕР±СЉСЏРІР»РµРЅРёСЏ/);
+  assert.match(markup, /Open listing card|Открыть карточку объявления/);
   assert.doesNotMatch(markup, />\d{2}:\d{2}</);
   assert.doesNotMatch(markup, />\d{2}\.\d{2}</);
 });

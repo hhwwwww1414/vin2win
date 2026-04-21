@@ -313,7 +313,7 @@ function ListingTableRow({
       >
         <Link href={`/listing/${listing.id}`} className="flex w-full justify-end">
           <ListingBenefitBadge amount={listing.potentialBenefit} variant="table" />
-          {!listing.potentialBenefit ? <span className="text-xs text-muted-foreground/50">вЂ”</span> : null}
+          {!listing.potentialBenefit ? <span className="text-xs text-muted-foreground/50">—</span> : null}
         </Link>
       </td>
 

@@ -29,7 +29,7 @@ test('mobile chat cards open the selected thread', async ({ page }, testInfo) =>
     await page.goto('/login');
     await page.locator('input[type="email"]').fill(email);
     await page.locator('input[type="password"]').fill(password);
-    await page.locator('main').getByRole('button', { name: /^войти$|^РІРѕР№С‚Рё$/i }).click();
+    await page.locator('main').getByRole('button', { name: /^войти$/i }).click();
     await page.waitForURL(/\/account/);
 
     await page.goto('/messages');

@@ -179,7 +179,7 @@ export function ListingImageCarousel({
                 'rounded-full bg-black/50 p-1 text-white shadow-sm backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-accent disabled:cursor-not-allowed disabled:opacity-30',
                 arrowSize
               )}
-              aria-label="Предыду��ее фото"
+              aria-label="Предыдущее фото"
             >
               <ChevronLeft className="h-full w-full" />
             </button>

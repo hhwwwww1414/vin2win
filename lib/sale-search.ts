@@ -15,7 +15,7 @@ export const SALE_SEARCH_SORT_OPTIONS: Array<{ value: SaleSearchSortKey; label: 
   { value: 'year_desc', label: 'По году: новее' },
   { value: 'year_asc', label: 'По году: старше' },
   { value: 'views', label: 'По просмотрам' },
-  { value: 'benefit_desc', label: 'РџРѕ РІС‹РіРѕРґРµ' },
+  { value: 'benefit_desc', label: 'По выгоде' },
 ];
 
 const VALID_SORTS = new Set<SaleSearchSortKey>(SALE_SEARCH_SORT_OPTIONS.map((option) => option.value));

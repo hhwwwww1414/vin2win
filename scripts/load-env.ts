@@ -38,6 +38,10 @@ function loadEnvFile(fileName: string) {
       continue;
     }
 
+    if (process.env[parsed.key] !== undefined) {
+      continue;
+    }
+
     process.env[parsed.key] = parsed.value;
   }
 }

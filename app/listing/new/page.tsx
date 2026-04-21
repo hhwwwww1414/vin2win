@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { MarketplaceHeader } from '@/components/marketplace/header';
+import { ListingSubmissionSuccessState } from '@/components/listing/listing-submission-success-state';
 import { RegistrationPlateField } from '@/components/listing/registration-plate-field';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
@@ -25,6 +26,11 @@ import {
 } from '@/lib/sale-form';
 import { formatEngineSpec } from '@/lib/listing-utils';
 import { formatPrice } from '@/lib/price-formatting';
+import {
+  getListingSuccessCelebrationMode,
+  type ListingSuccessCelebrationMode,
+} from '@/lib/listing-success-feedback';
+import { launchListingSuccessConfetti } from '@/lib/listing-success-confetti';
 import {
   hasAnyRegistrationPlateValue,
   isRegistrationPlateComplete,
@@ -607,6 +613,12 @@ export default function NewListingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [submittedStatus, setSubmittedStatus] = useState<ListingStatusValue | null>(null);
+  const [successSequence, setSuccessSequence] = useState(0);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  );
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -616,6 +628,7 @@ export default function NewListingPage() {
   const duplicateLoadedRef = useRef(false);
   const draftRestoredRef = useRef(false);
   const editBaselineRef = useRef<string | null>(null);
+  const launchedSuccessSequenceRef = useRef(0);
   const saleCityOptions = useMemo(() => getCitiesForRegion(sale.region), [sale.region]);
   const wantedModelOptions = useMemo(
     () =>
@@ -638,6 +651,10 @@ export default function NewListingPage() {
     [galleryItems.length, isEditMode, sale, saleMediaSnapshot, videoItem]
   );
   const wantedDirty = useMemo(() => JSON.stringify(wanted) !== JSON.stringify(wantedDefaults), [wanted]);
+  const successCelebrationMode = useMemo<ListingSuccessCelebrationMode>(
+    () => getListingSuccessCelebrationMode(submittedStatus),
+    [submittedStatus]
+  );
 
   const withFieldErrorClass = useCallback((name: string) => cn(inputClass, fieldErrors[name] && errorInputClass), [fieldErrors]);
 
@@ -893,6 +910,27 @@ export default function NewListingPage() {
   }, [authLoading, editableListingId, isEditMode, sessionUser]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mediaQueryList = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleMotionPreferenceChange = (event: MediaQueryListEvent) => {
+      setPrefersReducedMotion(event.matches);
+    };
+
+    setPrefersReducedMotion(mediaQueryList.matches);
+
+    if (typeof mediaQueryList.addEventListener === 'function') {
+      mediaQueryList.addEventListener('change', handleMotionPreferenceChange);
+      return () => mediaQueryList.removeEventListener('change', handleMotionPreferenceChange);
+    }
+
+    mediaQueryList.addListener(handleMotionPreferenceChange);
+    return () => mediaQueryList.removeListener(handleMotionPreferenceChange);
+  }, []);
+
+  useEffect(() => {
     if (isEditMode) {
       return;
     }
@@ -937,6 +975,17 @@ export default function NewListingPage() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [saleDirty, scenario, submitted, wantedDirty]);
+
+  useEffect(() => {
+    if (successSequence === 0 || launchedSuccessSequenceRef.current === successSequence) {
+      return;
+    }
+
+    launchedSuccessSequenceRef.current = successSequence;
+    void launchListingSuccessConfetti(successCelebrationMode, {
+      reducedMotion: prefersReducedMotion,
+    });
+  }, [prefersReducedMotion, successCelebrationMode, successSequence]);
 
   const resetAll = useCallback(() => {
     revokeGalleryItems(galleryItems);
@@ -1281,6 +1330,7 @@ export default function NewListingPage() {
           setCreatedId(payload?.id ?? (isEditMode ? editId : null));
           const nextStatus = payload?.status ?? mode;
           setSubmittedStatus(nextStatus);
+          setSuccessSequence((current) => current + 1);
           if (isEditMode) {
             setEditStatus(nextStatus);
             setEditModerationNote(null);
@@ -1312,6 +1362,7 @@ export default function NewListingPage() {
 
           setCreatedId(payload?.id ?? null);
           setSubmittedStatus(payload?.status ?? mode);
+          setSuccessSequence((current) => current + 1);
         }
 
         window.localStorage.removeItem(LISTING_DRAFT_STORAGE_KEY);
@@ -1426,52 +1477,47 @@ export default function NewListingPage() {
         ? SALE_ROUTE
         : '/wanted';
     const isDraft = submittedStatus === 'DRAFT';
+    const successTitle =
+      scenario === 'sale'
+        ? saleFormModeCopy.successTitle
+        : isDraft
+        ? 'Черновик запроса сохранён'
+        : 'Запрос отправлен на модерацию';
+    const successDescription =
+      scenario === 'sale'
+        ? saleFormModeCopy.successDescription
+        : isDraft
+        ? 'Черновик сохранён в личном кабинете. Вы сможете вернуться к нему и завершить публикацию в удобный момент.'
+        : 'Запрос на подбор сохранён и отправлен на проверку модератору. После публикации он появится в ленте заявок.';
+    const secondaryAction = isEditMode ? (
+      <Link
+        href="/account"
+        className="rounded-lg border border-border px-6 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40"
+      >
+        Вернуться в кабинет
+      </Link>
+    ) : (
+      <button
+        type="button"
+        onClick={resetAll}
+        className="rounded-lg border border-border px-6 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40"
+      >
+        Подать ещё
+      </button>
+    );
 
     return (
       <div className="min-h-full">
         <MarketplaceHeader />
         <main id="page-main" className="mx-auto max-w-xl px-4 py-16 text-center sm:px-6">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
-            <Check className="h-8 w-8 text-success" />
-          </div>
-          <h1 className="mb-3 text-2xl font-bold text-foreground">
-            {scenario === 'sale'
-              ? saleFormModeCopy.successTitle
-              : isDraft
-              ? 'Черновик запроса сохранён'
-              : 'Запрос отправлен на модерацию'}
-          </h1>
-          <p className="mb-8 text-muted-foreground">
-            {scenario === 'sale'
-              ? saleFormModeCopy.successDescription
-              : isDraft
-              ? 'Черновик сохранён в личном кабинете. Вы сможете вернуться к нему и завершить публикацию в удобный момент.'
-              : 'Запрос на подбор сохранён и отправлен на проверку модератору. После публикации он появится в ленте заявок.'}
-          </p>
-          <div className="flex flex-col justify-center gap-3 sm:flex-row">
-            <Link
-              href={href}
-              className="rounded-lg bg-teal-dark px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 dark:bg-teal-accent dark:text-[#09090B]"
-            >
-              Открыть запись
-            </Link>
-            {isEditMode ? (
-              <Link
-                href="/account"
-                className="rounded-lg border border-border px-6 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40"
-              >
-                Вернуться в кабинет
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={resetAll}
-                className="rounded-lg border border-border px-6 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40"
-              >
-                Подать ещё
-              </button>
-            )}
-          </div>
+          <ListingSubmissionSuccessState
+            title={successTitle}
+            description={successDescription}
+            primaryHref={href}
+            primaryLabel="Открыть запись"
+            secondaryAction={secondaryAction}
+            reducedMotion={prefersReducedMotion}
+          />
         </main>
       </div>
     );
