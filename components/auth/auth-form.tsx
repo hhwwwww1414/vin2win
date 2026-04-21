@@ -4,6 +4,7 @@ import { startTransition, useId, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { PasswordField } from '@/components/auth/password-field';
 import { MarketplaceHeader } from '@/components/marketplace/header';
 import { TelegramLoginButton } from '@/components/auth/telegram-login-button';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -260,14 +262,15 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
         <label htmlFor={`${fieldId}-password`} className="block space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground">Пароль</span>
-          <input
+          <PasswordField
             id={`${fieldId}-password`}
-            type="password"
             className={inputClass}
             autoComplete={isRegister ? 'new-password' : 'current-password'}
             suppressHydrationWarning
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            visible={passwordVisible}
+            onToggleVisibility={() => setPasswordVisible((current) => !current)}
             placeholder="Не менее 7 символов"
           />
         </label>
