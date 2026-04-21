@@ -103,6 +103,7 @@ export function Combobox({
 
   return (
     <Popover
+      modal
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
@@ -146,7 +147,7 @@ export function Combobox({
               className="h-11 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
             />
           </div>
-          <Command.List id={listId} className="max-h-72 overflow-y-auto p-1">
+          <Command.List id={listId} className="panel-scroll-y max-h-72 overflow-y-auto p-1">
             {clearable && value ? (
               <Command.Item
                 value="__clear__"

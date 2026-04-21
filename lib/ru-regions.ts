@@ -12,6 +12,23 @@ type RegionDirectoryJson = {
 };
 
 const DIRECTORY = regionDirectory as RegionDirectoryJson;
+const MOSCOW_REGION_KEY = 'обл|Московская';
+
+type RegionPresentationOverride = {
+  label: string;
+  aliases?: string[];
+  extraCities?: string[];
+};
+
+// Keep the Moscow label stable even if the generated directory falls back to
+// the raw oblast name after a rebuild or data refresh.
+const REGION_PRESENTATION_OVERRIDES: Record<string, RegionPresentationOverride> = {
+  [MOSCOW_REGION_KEY]: {
+    label: 'Москва и Московская область',
+    aliases: ['Московская область', 'Москва и МО'],
+    extraCities: ['Москва'],
+  },
+};
 
 function normalizeLookupValue(value: string) {
   return value.trim().toLowerCase().replace(/ё/g, 'е');
@@ -41,19 +58,29 @@ function buildRegionKey(type: string, name: string) {
   return `${type}|${name}`;
 }
 
-const regionItems = DIRECTORY.items.map((item) => ({
-  key: buildRegionKey(item.type, item.name),
-  label: formatRegionLabel(item.type, item.name),
-  cities: item.cities,
-}));
+const regionItems = DIRECTORY.items.map((item) => {
+  const key = buildRegionKey(item.type, item.name);
+  const presentation = REGION_PRESENTATION_OVERRIDES[key];
+
+  return {
+    key,
+    label: presentation?.label ?? formatRegionLabel(item.type, item.name),
+    aliases: presentation?.aliases ?? [],
+    cities: [...new Set([...(item.cities ?? []), ...(presentation?.extraCities ?? [])])],
+  };
+});
 
 const regions = regionItems.map((item) => item.label).sort((left, right) => left.localeCompare(right, 'ru'));
-const regionByNormalizedLabel = new Map(
-  regionItems.map((item) => [normalizeLookupValue(item.label), item] as const),
-);
-const regionByNormalizedKey = new Map(
-  regionItems.map((item) => [normalizeLookupValue(item.key), item] as const),
-);
+const regionByNormalizedLookup = new Map<string, (typeof regionItems)[number]>();
+
+for (const item of regionItems) {
+  for (const lookupValue of [item.label, item.key, ...item.aliases]) {
+    const normalizedLookupValue = normalizeLookupValue(lookupValue);
+    if (!regionByNormalizedLookup.has(normalizedLookupValue)) {
+      regionByNormalizedLookup.set(normalizedLookupValue, item);
+    }
+  }
+}
 
 const cityToRegion = new Map<string, string>();
 const normalizedCityToRegion = new Map<string, string>();
@@ -87,7 +114,7 @@ export function resolveRuRegion(region: string | undefined) {
   }
 
   const normalized = normalizeLookupValue(region);
-  return regionByNormalizedLabel.get(normalized)?.label ?? regionByNormalizedKey.get(normalized)?.label;
+  return regionByNormalizedLookup.get(normalized)?.label;
 }
 
 export function getCitiesForRegion(region: string | undefined) {

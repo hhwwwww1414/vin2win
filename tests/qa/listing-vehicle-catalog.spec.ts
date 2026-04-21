@@ -177,7 +177,7 @@ test('listing/new reveals catalog-dependent fields step by step and keeps genera
     await page.keyboard.press('Escape');
 
     await selectComboboxValue(page, 'Поколение', '2013-2022, Second generation (L494)');
-    await selectComboboxValue(page, 'Область / край', 'Московская область');
+    await selectComboboxValue(page, 'Область / край', 'Москва и Московская область');
     await selectComboboxValue(page, 'Город', 'Москва');
     await page.locator('label').filter({ hasText: 'Цена' }).locator('input').fill('3500000');
     await page.getByRole('button', { name: 'Далее' }).click();

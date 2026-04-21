@@ -182,7 +182,7 @@ export function SellerProfileEditor({ sellerProfile, onSaved, children }: Seller
             </DialogHeader>
 
             <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1fr)_400px]">
-              <div className="min-h-0 overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="panel-scroll-y min-h-0 overflow-y-auto px-5 py-5 sm:px-6">
                 <div className="grid gap-5">
                   <div className="grid gap-2">
                     <Label htmlFor="seller-profile-name">Имя</Label>
@@ -322,7 +322,7 @@ export function SellerProfileEditor({ sellerProfile, onSaved, children }: Seller
                 </div>
               </div>
 
-              <aside className="hidden min-h-0 border-l border-border/70 bg-background/35 px-6 py-5 lg:block lg:overflow-y-auto">
+              <aside className="panel-scroll-y hidden min-h-0 border-l border-border/70 bg-background/35 px-6 py-5 lg:block lg:overflow-y-auto">
                 <div className="grid gap-4">
                   <div className="overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
                     <div className="relative h-48 overflow-hidden bg-[linear-gradient(135deg,#163435_0%,#2D5A5A_44%,#5C9E99_100%)]">

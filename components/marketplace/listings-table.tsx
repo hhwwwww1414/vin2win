@@ -111,7 +111,7 @@ export function ListingsTable({
 }: ListingsTableProps) {
   return (
     <div className={cn('overflow-hidden rounded-xl border border-border bg-card/95 backdrop-blur-sm dark:bg-surface-elevated/90', className)}>
-      <div className="max-h-[calc(100vh-16rem)] overflow-x-auto overflow-y-auto">
+      <div className="panel-scroll-y max-h-[calc(100vh-16rem)] overflow-x-auto overflow-y-auto">
         <table className="min-w-[1180px] w-full table-fixed border-collapse text-sm">
           <colgroup>
             {TABLE_COLUMNS_WITH_BENEFIT.map((col) => (

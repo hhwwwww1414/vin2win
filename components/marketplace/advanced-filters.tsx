@@ -381,12 +381,14 @@ export function AdvancedFilters({
             <div className="ml-auto flex shrink-0 items-start gap-2 sm:gap-3">
               <div
                 className={cn(
-                  'inline-flex max-w-[calc(100vw-9rem)] items-center gap-2 self-start rounded-2xl border border-border/70 bg-card/80 px-3 py-2 text-sm font-medium text-foreground transition-all duration-200 dark:bg-surface-elevated/80 sm:max-w-none',
+                  'inline-flex min-w-0 max-w-[calc(100vw-10rem)] shrink items-center gap-2 self-start rounded-2xl border border-border/70 bg-card/80 px-3 py-2 text-sm font-medium text-foreground transition-all duration-200 dark:bg-surface-elevated/80 sm:max-w-[11rem]',
                   isHeaderCondensed && 'rounded-xl px-2.5 py-1.5 text-xs sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm'
                 )}
               >
                 <Sparkles className="h-4 w-4 text-teal-accent" />
-                {activeFilterCount > 0 ? `${activeFilterCount} активных` : 'Базовый набор'}
+                <span className="truncate">
+                  {activeFilterCount > 0 ? `${activeFilterCount} активных` : 'Базовый набор'}
+                </span>
               </div>
 
               <SheetClose
@@ -415,7 +417,7 @@ export function AdvancedFilters({
           </div>
         </SheetHeader>
 
-        <div ref={contentRef} onScroll={handleSheetScroll} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div ref={contentRef} onScroll={handleSheetScroll} className="panel-scroll-y min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="space-y-4 px-4 py-4 sm:px-6">
             <SectionShell>
             <SectionTitle

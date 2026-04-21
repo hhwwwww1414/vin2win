@@ -56,7 +56,7 @@ export async function fillRequiredSalePassport(page: Page) {
       await generationField.locator('input').fill('I');
     }
   }
-  await selectComboboxValue(page, 'Область / край', 'Московская область');
+  await selectComboboxValue(page, 'Область / край', 'Москва и Московская область');
   await selectComboboxValue(page, 'Город', 'Москва');
   await page.locator('label').filter({ hasText: 'Цена' }).locator('input').fill('2500000');
 }

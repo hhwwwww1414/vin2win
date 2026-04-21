@@ -16,7 +16,7 @@ test('buildSaleSubmissionPayload excludes removed ui-only flags and preserves re
       make: 'BMW',
       model: 'X5',
       year: '2022',
-      region: 'Московская область',
+      region: 'Москва и Московская область',
       city: 'Москва',
       plateNumber: 'М192ММ',
       plateRegion: '192',
@@ -36,7 +36,7 @@ test('buildSaleSubmissionPayload excludes removed ui-only flags and preserves re
   );
 
   assert.equal(payload.initialStatus, 'PENDING');
-  assert.equal(payload.region, 'Московская область');
+  assert.equal(payload.region, 'Москва и Московская область');
   assert.equal(payload.plateNumber, 'М192ММ');
   assert.equal(payload.plateRegion, '192');
   assert.equal(payload.plateUnregistered, false);
@@ -108,6 +108,7 @@ test('saleDefaults start with empty transmission and drive while keeping readabl
   assert.equal(saleDefaults.drive, '');
   assert.equal(saleDefaults.steering, 'Левый');
 });
+
 test('buildSaleListingEditMediaPlan keeps final gallery order and maps new uploads by client id', () => {
   const mediaPlan = buildSaleListingEditMediaPlan({
     gallery: [

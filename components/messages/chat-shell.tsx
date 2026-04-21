@@ -578,7 +578,7 @@ export function ChatShell({
               </div>
 
               <div className="flex min-h-0 flex-1 flex-col">
-                <div ref={viewportRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <div ref={viewportRef} className="panel-scroll-y min-h-0 flex-1 overflow-y-auto px-5 py-4">
                   {nextCursor ? (
                     <div className="mb-4 flex justify-center">
                       <Button variant="outline" size="sm" disabled={loadingMore} onClick={() => void handleLoadMore()}>

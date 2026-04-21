@@ -95,6 +95,8 @@ test('advanced filters header stays stable after selecting a filter', async ({ p
   const scrollRegion = dialog.locator('div.min-h-0.flex-1.overflow-y-auto').first();
   const targetFilter = dialog.locator('label').filter({ hasText: 'Есть цена в руки' }).first();
 
+  await expect.poll(async () => (await dialog.boundingBox())?.x ?? Number.POSITIVE_INFINITY).toBeLessThan(1000);
+
   await expect(dialog).toBeVisible();
   await expect(closeButton).toBeVisible();
   await expect(inactiveBadge).toBeVisible();
@@ -132,6 +134,37 @@ test('advanced filters header stays stable after selecting a filter', async ({ p
     body: await page.screenshot({ fullPage: true }),
     contentType: 'image/png',
   });
+
+  await assertClean();
+});
+
+test('advanced filters combobox keeps scrolling inside the sheet', async ({ page }, testInfo) => {
+  const assertClean = await attachQaGuards(page, testInfo);
+
+  await page.goto('/sale');
+  await page.getByRole('button', { name: /Расширенный поиск/i }).click();
+
+  const dialog = page.locator('[data-slot="sheet-content"]').first();
+  const regionField = dialog.locator('label').filter({ hasText: 'Область / край' }).first();
+
+  await expect.poll(async () => (await dialog.boundingBox())?.x ?? Number.POSITIVE_INFINITY).toBeLessThan(1000);
+
+  await regionField.getByRole('combobox').click();
+
+  const list = page.locator('[cmdk-list]').last();
+  await expect(list).toBeVisible();
+  await list.hover();
+
+  const scrollBefore = await list.evaluate((element) => {
+    element.scrollTop = 0;
+    return element.scrollTop;
+  });
+
+  await page.mouse.wheel(0, 420);
+
+  const scrollAfter = await list.evaluate((element) => element.scrollTop);
+  expect(scrollBefore).toBe(0);
+  expect(scrollAfter).toBeGreaterThan(0);
 
   await assertClean();
 });
