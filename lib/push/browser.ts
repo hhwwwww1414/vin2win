@@ -152,6 +152,50 @@ function urlBase64ToUint8Array(base64String: string) {
   return decodeUrlBase64ToUint8Array(base64String);
 }
 
+function toUint8Array(value: ArrayBuffer | ArrayBufferView | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof ArrayBuffer) {
+    return new Uint8Array(value);
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+
+  return null;
+}
+
+function uint8ArraysEqual(left: Uint8Array, right: Uint8Array) {
+  if (left.byteLength !== right.byteLength) {
+    return false;
+  }
+
+  for (let index = 0; index < left.byteLength; index += 1) {
+    if (left[index] !== right[index]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function browserPushSubscriptionMatchesVapidKey(
+  subscription: Pick<PushSubscription, 'options'>,
+  vapidPublicKey: string,
+) {
+  const configuredKey = urlBase64ToUint8Array(vapidPublicKey);
+  const subscriptionKey = toUint8Array(subscription.options.applicationServerKey);
+
+  if (!subscriptionKey) {
+    return false;
+  }
+
+  return uint8ArraysEqual(subscriptionKey, configuredKey);
+}
+
 export function getVapidPublicKeyValidationError(
   vapidPublicKey?: string,
 ): string | null {
@@ -220,6 +264,22 @@ async function unregisterPushServiceWorkers() {
   );
 }
 
+async function removePushSubscriptionByEndpoint(endpoint: string) {
+  try {
+    await fetch('/api/account/push-subscriptions', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        endpoint,
+      }),
+    });
+  } catch (error) {
+    console.warn('[push] failed to remove previous browser subscription', error);
+  }
+}
+
 export async function subscribeBrowserPushWithRecovery(vapidPublicKey: string) {
   const vapidPublicKeyError = getVapidPublicKeyValidationError(vapidPublicKey);
   if (vapidPublicKeyError) {
@@ -242,13 +302,35 @@ export async function subscribeBrowserPushWithRecovery(vapidPublicKey: string) {
       const activeRegistration = await waitForActiveServiceWorker(registration);
       const existingSubscription = await activeRegistration.pushManager.getSubscription();
       if (existingSubscription) {
-        return existingSubscription;
+        if (browserPushSubscriptionMatchesVapidKey(existingSubscription, vapidPublicKey)) {
+          return {
+            subscription: existingSubscription,
+          };
+        }
+
+        const replacedEndpoint =
+          existingSubscription.endpoint !== '' ? existingSubscription.endpoint : undefined;
+
+        await existingSubscription.unsubscribe();
+        const subscription = await activeRegistration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        });
+
+        return {
+          subscription,
+          replacedEndpoint,
+        };
       }
 
-      return await activeRegistration.pushManager.subscribe({
+      const subscription = await activeRegistration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
       });
+
+      return {
+        subscription,
+      };
     } catch (error) {
       lastError = error;
 
@@ -321,8 +403,13 @@ export async function savePushSubscription(
   subscription: PushSubscription,
   options: {
     enableChatPush?: boolean;
+    replacedEndpoint?: string;
   } = {},
 ) {
+  if (options.replacedEndpoint && options.replacedEndpoint !== subscription.endpoint) {
+    await removePushSubscriptionByEndpoint(options.replacedEndpoint);
+  }
+
   const response = await fetch('/api/account/push-subscriptions', {
     method: 'POST',
     headers: {
@@ -368,13 +455,14 @@ export async function requestBrowserPushPermissionAndSubscribe(input: {
     throw new Error('Браузер не выдал разрешение на уведомления.');
   }
 
-  const subscription = await subscribeBrowserPushWithRecovery(input.vapidPublicKey);
-  await savePushSubscription(subscription, {
+  const result = await subscribeBrowserPushWithRecovery(input.vapidPublicKey);
+  await savePushSubscription(result.subscription, {
     enableChatPush: input.enableChatPush,
+    replacedEndpoint: result.replacedEndpoint,
   });
 
   return {
     permission,
-    subscription,
+    subscription: result.subscription,
   };
 }
