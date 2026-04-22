@@ -286,3 +286,89 @@ test('table mode keeps sticky data header and highlighted numeric columns', asyn
 
   await assertClean();
 });
+
+test('mobile sort dropdown stays inside viewport without widening the page', async ({ page }, testInfo) => {
+  test.skip((page.viewportSize()?.width ?? 0) > 640, 'This check only matters on the mobile project.');
+
+  const assertClean = await attachQaGuards(page, testInfo);
+
+  await page.route('**://images.unsplash.com/**', async (route) => {
+    await route.fulfill({ status: 204, body: '' });
+  });
+
+  await page.goto('/sale?view=table');
+
+  const sortButton = page.getByRole('button', { name: /Сначала новые/i });
+  await expect(sortButton).toBeVisible();
+  await sortButton.click();
+
+  const dropdown = page.locator('.absolute.top-full').filter({ has: page.getByRole('button', { name: /По просмотрам/i }) }).first();
+  await expect(dropdown).toBeVisible();
+
+  const bounds = await dropdown.boundingBox();
+  const viewport = page.viewportSize();
+  expect(bounds).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual((viewport?.width ?? 0) + 1);
+
+  const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  expect(hasHorizontalOverflow).toBeFalsy();
+
+  await testInfo.attach('mobile-sort-dropdown-viewport', {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: 'image/png',
+  });
+
+  await assertClean();
+});
+
+test('quick filter toggles restore the original result count after a second tap', async ({ page }, testInfo) => {
+  const assertClean = await attachQaGuards(page, testInfo);
+
+  await page.route('**://images.unsplash.com/**', async (route) => {
+    await route.fulfill({ status: 204, body: '' });
+  });
+
+  await page.goto('/sale');
+
+  const heading = page.locator('h2').filter({ hasText: /Объявления в продаже/i }).first();
+  const filterButton = page.getByRole('button', { name: /Без окрасов/i }).first();
+
+  const readCount = async () => {
+    const text = (await heading.textContent()) ?? '';
+    const match = text.match(/\((\d+)\)/);
+    return match ? Number(match[1]) : null;
+  };
+
+  await expect(heading).toBeVisible();
+  await expect(filterButton).toBeVisible();
+
+  const initialCount = await readCount();
+  expect(initialCount).not.toBeNull();
+
+  await filterButton.click();
+  await expect(filterButton).toHaveAttribute('aria-pressed', 'true');
+
+  await expect
+    .poll(async () => await readCount(), {
+      message: 'Quick filter should change the result count after the first tap',
+    })
+    .not.toBe(initialCount);
+
+  await filterButton.click();
+  await expect(filterButton).toHaveAttribute('aria-pressed', 'false');
+
+  await expect
+    .poll(async () => await readCount(), {
+      message: 'Quick filter should restore the original result count after the second tap',
+    })
+    .toBe(initialCount);
+
+  await testInfo.attach('quick-filter-toggle-restores-count', {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: 'image/png',
+  });
+
+  await assertClean();
+});

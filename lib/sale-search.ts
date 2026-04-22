@@ -2,6 +2,10 @@ import { formatPrice } from '@/lib/price-formatting';
 import type { ResourceStatus, SaleSearchFilters, SaleSearchSortKey, SellerType } from '@/lib/types';
 
 type SearchParamSource = URLSearchParams | Record<string, string | string[] | undefined>;
+interface ParseSaleSearchParamsOptions {
+  applyQuickFilterAliases?: boolean;
+  dedupeQuickFilterAliases?: boolean;
+}
 
 export const SALE_SEARCH_DEFAULT_LIMIT = 20;
 export const SALE_SEARCH_MAX_LIMIT = 60;
@@ -141,7 +145,10 @@ export function createDefaultSaleSearchFilters(): SaleSearchFilters {
   };
 }
 
-export function parseSaleSearchParams(source: SearchParamSource): SaleSearchFilters {
+export function parseSaleSearchParams(
+  source: SearchParamSource,
+  { applyQuickFilterAliases: shouldApplyQuickFilterAliases = true, dedupeQuickFilterAliases = false }: ParseSaleSearchParamsOptions = {}
+): SaleSearchFilters {
   const filters = createDefaultSaleSearchFilters();
 
   filters.make = normalizeArray(getParamValues(source, 'make'));
@@ -194,7 +201,14 @@ export function parseSaleSearchParams(source: SearchParamSource): SaleSearchFilt
   filters.page = page ?? 1;
   filters.limit = limit ? Math.min(limit, SALE_SEARCH_MAX_LIMIT) : SALE_SEARCH_DEFAULT_LIMIT;
 
-  applyQuickFilterAliases(filters);
+  if (dedupeQuickFilterAliases) {
+    removeQuickFilterAliasDuplicates(filters);
+  }
+
+  if (shouldApplyQuickFilterAliases) {
+    applyQuickFilterAliases(filters);
+  }
+
   return filters;
 }
 
@@ -233,6 +247,44 @@ function applyQuickFilterAliases(filters: SaleSearchFilters) {
 
   if (filters.filters.includes('no_invest')) {
     filters.noInvestment = true;
+  }
+}
+
+function removeQuickFilterAliasDuplicates(filters: SaleSearchFilters) {
+  if (filters.filters.includes('pre_resources')) {
+    filters.resourceStatus = filters.resourceStatus.filter((value) => value !== 'pre_resources');
+  }
+
+  if (filters.filters.includes('on_resources')) {
+    filters.resourceStatus = filters.resourceStatus.filter((value) => value !== 'on_resources');
+  }
+
+  if (filters.filters.includes('no_paint') && filters.paintCountMax === 0) {
+    filters.paintCountMax = undefined;
+  }
+
+  if (filters.filters.includes('owners_12') && filters.ownersMax !== undefined && filters.ownersMax <= 2) {
+    filters.ownersMax = undefined;
+  }
+
+  if (filters.filters.includes('pts_original') && filters.ptsOriginal) {
+    filters.ptsOriginal = undefined;
+  }
+
+  if (filters.filters.includes('avtoteka_green') && filters.avtotekaStatus === 'green') {
+    filters.avtotekaStatus = undefined;
+  }
+
+  if (filters.filters.includes('no_taxi') && filters.noTaxi) {
+    filters.noTaxi = undefined;
+  }
+
+  if (filters.filters.includes('price_in_hand') && filters.priceInHand) {
+    filters.priceInHand = undefined;
+  }
+
+  if (filters.filters.includes('no_invest') && filters.noInvestment) {
+    filters.noInvestment = undefined;
   }
 }
 

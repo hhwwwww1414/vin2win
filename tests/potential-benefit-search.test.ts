@@ -62,6 +62,46 @@ test('buildSaleSearchParams serializes benefit filters and benefit sort', () => 
   assert.match(query, /(?:^|&)sort=benefit_desc(?:&|$)/);
 });
 
+test('parseSaleSearchParams can keep quick filters raw for navigation updates', () => {
+  const params = new URLSearchParams([
+    ['filter', 'no_taxi'],
+    ['noTaxi', 'true'],
+    ['filter', 'pre_resources'],
+    ['resourceStatus', 'pre_resources'],
+  ]);
+
+  const filters = parseSaleSearchParams(params, {
+    applyQuickFilterAliases: false,
+    dedupeQuickFilterAliases: true,
+  });
+
+  assert.deepEqual(filters.filters, ['no_taxi', 'pre_resources']);
+  assert.equal(filters.noTaxi, undefined);
+  assert.deepEqual(filters.resourceStatus, []);
+});
+
+test('buildSaleSearchParams clears alias fields when a quick filter is toggled off', () => {
+  const current = parseSaleSearchParams(
+    new URLSearchParams([
+      ['filter', 'no_taxi'],
+      ['noTaxi', 'true'],
+    ]),
+    {
+      applyQuickFilterAliases: false,
+      dedupeQuickFilterAliases: true,
+    }
+  );
+
+  const nextQuery = buildSaleSearchParams({
+    ...current,
+    filters: [],
+    page: 1,
+  });
+
+  assert.equal(nextQuery.get('noTaxi'), null);
+  assert.deepEqual(nextQuery.getAll('filter'), []);
+});
+
 test('fixture fallback keeps only positive-benefit listings when sorting by benefit', async () => {
   ensureServerEnv();
   const { searchPublishedSaleListings } = await import('@/lib/server/marketplace');

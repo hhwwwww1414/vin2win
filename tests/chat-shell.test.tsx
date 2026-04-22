@@ -74,3 +74,18 @@ test('chat shell renders chat list, thread context, and read state without serve
   assert.doesNotMatch(markup, />\d{2}:\d{2}</);
   assert.doesNotMatch(markup, />\d{2}\.\d{2}</);
 });
+
+test('chat composer keeps mobile-safe font sizing and bottom inset padding', () => {
+  const markup = renderToStaticMarkup(
+    <ChatShell
+      currentUserId="user-1"
+      initialChats={[sampleChat]}
+      initialChat={sampleChat}
+      initialMessages={sampleMessages}
+    />,
+  );
+
+  assert.match(markup, /pb-\[calc\(env\(safe-area-inset-bottom\)\+0\.75rem\)\]/);
+  assert.match(markup, /text-base leading-6/);
+  assert.doesNotMatch(markup, /text-\[15px\] leading-6/);
+});

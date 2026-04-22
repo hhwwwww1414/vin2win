@@ -848,7 +848,7 @@ export function ChatShell({
                     </div>
                   </div>
 
-                  <div className="shrink-0 border-t border-border/60 bg-background/55 px-4 py-3 backdrop-blur sm:px-5">
+                  <div className="shrink-0 border-t border-border/60 bg-background/55 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur sm:px-5 sm:pb-3">
                     {threadError ? (
                       <div className="mb-3 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                         {threadError}
@@ -862,7 +862,7 @@ export function ChatShell({
                           onChange={(event) => setDraft(event.target.value)}
                           onKeyDown={handleComposerKeyDown}
                           placeholder="Сообщение по этому объявлению"
-                          className="min-h-[58px] max-h-36 min-w-0 resize-none border-0 bg-transparent px-4 py-3 text-[15px] leading-6 shadow-none focus-visible:ring-0"
+                          className="min-h-[58px] max-h-36 min-w-0 resize-none border-0 bg-transparent px-4 py-3 text-base leading-6 shadow-none focus-visible:ring-0"
                           maxLength={4000}
                         />
                       </div>

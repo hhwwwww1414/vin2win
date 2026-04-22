@@ -102,6 +102,10 @@ function HomeContent({
   const requestQueryString = requestParams.toString();
   const viewMode = getViewMode(searchParams);
   const loginHref = useMemo(() => `/login?next=${encodeURIComponent(buildSaleHref(searchParams.toString()))}`, [searchParams]);
+  const navigationFilters = useMemo(
+    () => parseSaleSearchParams(searchParams, { applyQuickFilterAliases: false, dedupeQuickFilterAliases: true }),
+    [searchParams]
+  );
 
   useEffect(() => {
     let active = true;
@@ -153,7 +157,7 @@ function HomeContent({
 
   const updateSearch = useCallback(
     (nextFilters: Partial<typeof filters>, nextView?: ViewMode) => {
-      const params = buildSaleSearchParams({ ...filters, ...nextFilters });
+      const params = buildSaleSearchParams({ ...navigationFilters, ...nextFilters });
       const view = nextView ?? viewMode;
       if (view !== 'cards') {
         params.set('view', view);
@@ -162,7 +166,7 @@ function HomeContent({
       const query = params.toString();
       router.replace(buildSaleHref(query), { scroll: false });
     },
-    [filters, router, viewMode]
+    [navigationFilters, router, viewMode]
   );
 
   const resetFilters = useCallback(() => {
@@ -321,7 +325,7 @@ function HomeContent({
           </button>
 
           {showSort ? (
-            <div className="absolute right-0 top-full z-20 mt-1.5 w-52 overflow-hidden rounded-xl border border-border bg-card shadow-lg dark:bg-surface-elevated">
+            <div className="absolute left-0 top-full z-20 mt-1.5 w-[min(13rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-card shadow-lg sm:left-auto sm:right-0 sm:w-52 dark:bg-surface-elevated">
               {SALE_SEARCH_SORT_OPTIONS.map((option) => (
                 <button
                   key={option.value}
