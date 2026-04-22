@@ -4,10 +4,12 @@ import { startTransition, useId, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { BirthDatePicker } from '@/components/auth/birth-date-picker';
 import { PasswordField } from '@/components/auth/password-field';
 import { MarketplaceHeader } from '@/components/marketplace/header';
 import { TelegramLoginButton } from '@/components/auth/telegram-login-button';
 import { Button } from '@/components/ui/button';
+import { BIRTH_DATE_REQUIRED_ERROR, isBirthDateErrorMessage } from '@/lib/birth-date';
 import { cn } from '@/lib/utils';
 
 type Mode = 'login' | 'register';
@@ -26,6 +28,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const searchParams = useSearchParams();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -40,9 +43,16 @@ export function AuthForm({ mode }: { mode: Mode }) {
       ? `/register?next=${encodeURIComponent(nextPath)}`
       : `/login?next=${encodeURIComponent(nextPath)}`;
   const isRegister = mode === 'register';
+  const birthDateError = isBirthDateErrorMessage(error) ? error : null;
+  const genericError = birthDateError ? null : error;
 
   const submit = async () => {
     setError(null);
+
+    if (isRegister && !birthDate) {
+      setError(BIRTH_DATE_REQUIRED_ERROR);
+      return;
+    }
 
     if (isRegister && !acceptedLegal) {
       setError(LEGAL_ACCEPTANCE_ERROR);
@@ -62,6 +72,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           body: JSON.stringify({
             name,
             phone,
+            birthDate,
             email,
             password,
             acceptedLegal,
@@ -243,6 +254,17 @@ export function AuthForm({ mode }: { mode: Mode }) {
                 placeholder="+7 999 123-45-67"
               />
             </label>
+            <BirthDatePicker
+              id={`${fieldId}-birth-date`}
+              value={birthDate}
+              error={birthDateError}
+              onChange={(nextValue) => {
+                setBirthDate(nextValue);
+                if (birthDateError) {
+                  setError(null);
+                }
+              }}
+            />
           </>
         ) : null}
 
@@ -288,9 +310,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
           </div>
         ) : null}
 
-        {error ? (
+        {genericError ? (
           <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {error}
+            {genericError}
           </div>
         ) : null}
 

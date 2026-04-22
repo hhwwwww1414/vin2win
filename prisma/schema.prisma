@@ -461,6 +461,7 @@ model User {
   passwordHash                 String
   name                         String
   phone                        String?
+  birthDate                    DateTime?          @db.Date
   telegramAuthId               String?            @unique
   telegramUsername             String?
   telegramAvatarUrl            String?

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { BIRTH_DATE_REQUIRED_ERROR, normalizeBirthDateInput } from '@/lib/birth-date';
 import { attachSessionCookie, registerUser, resolveNextPath } from '@/lib/server/auth';
 
 export const runtime = 'nodejs';
@@ -18,11 +19,16 @@ export async function POST(request: Request) {
     const email = parseString(payload.email);
     const password = parseString(payload.password);
     const phone = parseString(payload.phone);
+    const birthDate = normalizeBirthDateInput(payload.birthDate);
     const acceptedLegal = parseBoolean(payload.acceptedLegal);
     const nextPath = resolveNextPath(parseString(payload.nextPath), '/account');
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email and password are required.' }, { status: 400 });
+    }
+
+    if (!birthDate) {
+      return NextResponse.json({ error: BIRTH_DATE_REQUIRED_ERROR }, { status: 400 });
     }
 
     if (!acceptedLegal) {
@@ -37,6 +43,7 @@ export async function POST(request: Request) {
       email,
       password,
       phone: phone || undefined,
+      birthDate,
       acceptedLegal,
     });
 

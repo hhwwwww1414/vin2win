@@ -100,10 +100,11 @@ test('listing/new applies catalog modification data and resets dependent fields 
     await page.locator('label').filter({ hasText: 'Год' }).locator('select').selectOption('2020');
     await page.locator('label').filter({ hasText: 'Кузов' }).locator('select').selectOption('Внедорожник');
     await selectComboboxValue(page, 'Поколение', '2013-2022, Second generation (L494)');
-    await selectComboboxValue(page, 'Область / край', 'Алтайский край');
     await selectComboboxValue(page, 'Город', 'Барнаул');
+    await expect(page.locator('label').filter({ hasText: 'Область / край' }).locator('input')).toHaveValue(
+      'Алтайский край'
+    );
     await page.locator('label').filter({ hasText: 'Цена' }).locator('input').fill('3500000');
-    await page.getByRole('button', { name: 'Далее' }).click();
     await expect(page.locator('label').filter({ hasText: 'Двигатель' })).toBeVisible();
 
     await page.locator('label').filter({ hasText: 'Двигатель' }).locator('select').selectOption('Бензин');
@@ -177,10 +178,11 @@ test('listing/new reveals catalog-dependent fields step by step and keeps genera
     await page.keyboard.press('Escape');
 
     await selectComboboxValue(page, 'Поколение', '2013-2022, Second generation (L494)');
-    await selectComboboxValue(page, 'Область / край', 'Москва и Московская область');
     await selectComboboxValue(page, 'Город', 'Москва');
+    await expect(page.locator('label').filter({ hasText: 'Область / край' }).locator('input')).toHaveValue(
+      'Москва и Московская область'
+    );
     await page.locator('label').filter({ hasText: 'Цена' }).locator('input').fill('3500000');
-    await page.getByRole('button', { name: 'Далее' }).click();
 
     await expect(page.locator('label').filter({ hasText: 'Двигатель' })).toBeVisible();
     await expect(page.locator('label').filter({ hasText: 'Привод' })).toHaveCount(0);

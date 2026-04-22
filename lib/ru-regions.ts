@@ -103,9 +103,16 @@ for (const item of regionItems) {
 }
 
 export const RU_REGION_OPTIONS = regions;
+export const RU_CITY_OPTIONS = [...cityToRegion.keys()].sort((left, right) =>
+  left.localeCompare(right, 'ru')
+);
 
 export function getRuRegionOptions() {
   return RU_REGION_OPTIONS;
+}
+
+export function getRuCityOptions() {
+  return RU_CITY_OPTIONS;
 }
 
 export function resolveRuRegion(region: string | undefined) {

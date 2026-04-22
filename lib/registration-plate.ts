@@ -39,12 +39,7 @@ export function normalizeRegistrationPlateDigits(value: string, maxLength: numbe
 }
 
 export function normalizeRegistrationPlateRegion(value: string | null | undefined) {
-  const digits = normalizeRegistrationPlateDigits(value ?? '', 3);
-  if (digits.length === 1) {
-    return `0${digits}`;
-  }
-
-  return digits;
+  return normalizeRegistrationPlateDigits(value ?? '', 3);
 }
 
 export function buildRegistrationPlateValue(input: {

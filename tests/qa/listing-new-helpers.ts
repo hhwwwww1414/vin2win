@@ -5,6 +5,9 @@ export async function mockListingSession(page: Page) {
     await route.fulfill({
       json: {
         authenticated: true,
+        favoriteCount: 0,
+        chatUnreadCount: 0,
+        chatSoundEnabled: false,
         user: {
           id: 'qa-user',
           role: 'ADMIN',
@@ -12,6 +15,22 @@ export async function mockListingSession(page: Page) {
           phone: '+7 999 000-00-00',
         },
       },
+    });
+  });
+
+  await page.route('**/api/chat-presence*', async (route) => {
+    await route.fulfill({ status: 204, body: '' });
+  });
+
+  await page.route('**/api/realtime/chat-events*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      },
+      body: ': connected\n\n',
     });
   });
 }
@@ -43,6 +62,16 @@ async function selectFirstComboboxValue(page: Page, label: string) {
   await expect(field.getByRole('combobox')).toContainText(optionText);
 }
 
+async function selectFirstSelectValue(page: Page, label: string) {
+  const select = page.locator('label').filter({ hasText: label }).locator('select');
+  const values = await select
+    .locator('option:not([disabled])')
+    .evaluateAll((options) => options.map((option) => option.getAttribute('value') ?? '').filter(Boolean));
+
+  expect(values.length).toBeGreaterThan(0);
+  await select.selectOption(values[0]);
+}
+
 export async function fillRequiredSalePassport(page: Page) {
   await selectComboboxValue(page, 'Марка', 'Toyota');
   await selectComboboxValue(page, 'Модель', 'Camry');
@@ -56,7 +85,11 @@ export async function fillRequiredSalePassport(page: Page) {
       await generationField.locator('input').fill('I');
     }
   }
-  await selectComboboxValue(page, 'Область / край', 'Москва и Московская область');
   await selectComboboxValue(page, 'Город', 'Москва');
+  await expect(page.locator('label').filter({ hasText: 'Область / край' }).locator('input')).toHaveValue(
+    'Москва и Московская область'
+  );
   await page.locator('label').filter({ hasText: 'Цена' }).locator('input').fill('2500000');
+  await selectFirstSelectValue(page, 'Двигатель');
+  await page.locator('label').filter({ hasText: 'Пробег' }).locator('input').fill('10000');
 }

@@ -15,6 +15,7 @@ import {
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { type NextResponse } from 'next/server';
+import { parseBirthDateInput } from '@/lib/birth-date';
 import { countUnreadUserNotifications, createAdminActionLog, createUserNotification } from './admin-activity';
 import { serverEnv } from './env';
 import { prisma } from './prisma';
@@ -76,6 +77,7 @@ export interface RegisterUserInput {
   email: string;
   password: string;
   phone?: string;
+  birthDate: string;
   acceptedLegal: boolean;
 }
 
@@ -400,6 +402,7 @@ export async function registerUser(input: RegisterUserInput): Promise<AuthUser> 
   const email = normalizeEmail(input.email);
   const password = input.password.trim();
   const phone = input.phone?.trim() || undefined;
+  const birthDate = parseBirthDateInput(input.birthDate);
 
   if (!name || !email || !password) {
     throw new Error('Name, email and password are required.');
@@ -431,6 +434,7 @@ export async function registerUser(input: RegisterUserInput): Promise<AuthUser> 
       passwordHash,
       name,
       phone,
+      birthDate,
       role: UserRole.USER,
       isActive: true,
       sellerProfile: {

@@ -227,6 +227,7 @@ test('register page keeps legal consent and placeholder legal links', async ({ p
 
   await page.goto('/register');
   await expect(page.locator('main h1').first()).toBeVisible();
+  await expect(page.getByTestId('birth-date-trigger')).toBeVisible();
   await expect(page.getByRole('checkbox')).toBeVisible();
   await expect(page.locator('main a[href="/privacy-policy"]').first()).toBeVisible();
   await expect(page.locator('main a[href="/user-agreement"]').first()).toBeVisible();

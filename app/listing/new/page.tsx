@@ -36,7 +36,7 @@ import {
   isRegistrationPlateComplete,
   normalizeRegistrationPlateRegion,
 } from '@/lib/registration-plate';
-import { getCitiesForRegion, getRegionForCity, getRuRegionOptions } from '@/lib/ru-regions';
+import { getRegionForCity, getRuCityOptions } from '@/lib/ru-regions';
 import { SALE_ROUTE } from '@/lib/routes';
 import {
   DEFAULT_VEHICLE_COLORS,
@@ -58,7 +58,7 @@ import {
 } from 'lucide-react';
 
 type Scenario = 'sale' | 'wanted';
-type SaleStep = 1 | 2 | 3 | 4 | 5;
+type SaleStep = 1 | 2 | 3 | 4;
 type SubmissionMode = 'DRAFT' | 'PENDING';
 type FieldErrors = Record<string, string>;
 
@@ -139,10 +139,9 @@ type DraftPayload = {
 
 const saleSteps: { id: SaleStep; title: string }[] = [
   { id: 1, title: 'Паспорт' },
-  { id: 2, title: 'Техника' },
-  { id: 3, title: 'История и состояние' },
-  { id: 4, title: 'Фото и описание' },
-  { id: 5, title: 'Сделка и контакты' },
+  { id: 2, title: 'История и состояние' },
+  { id: 3, title: 'Фото и описание' },
+  { id: 4, title: 'Сделка и контакты' },
 ];
 
 
@@ -230,7 +229,7 @@ const MAX_LISTING_MEDIA_FILE_SIZE_BYTES = 300 * 1024 * 1024;
 const MAX_LISTING_MEDIA_FILE_SIZE_LABEL = '300 MB';
 const MAX_LISTING_PHOTO_COUNT = 20;
 const MAX_LISTING_YEAR = 2027;
-const LISTING_DRAFT_VERSION = 2;
+const LISTING_DRAFT_VERSION = 3;
 const LISTING_DRAFT_STORAGE_KEY = 'vin2win:new-listing-draft';
 
 const saleTransmissionOptions = ['АКПП', 'МКПП', 'Робот', 'Вариатор'] as const;
@@ -240,8 +239,6 @@ const saleSteeringOptions = ['Левый', 'Правый'] as const;
 const saleEngineTypeOptions = ['Бензин', 'Дизель', 'Гибрид', 'Электро', 'ГБО'] as const;
 const saleEngineDisplacementOptions = VEHICLE_ENGINE_DISPLACEMENT_OPTIONS;
 const saleColorOptions = DEFAULT_VEHICLE_COLORS;
-const saleRegionOptions = getRuRegionOptions();
-
 const SALE_ENGINE_TYPE_SET = new Set<string>(saleEngineTypeOptions);
 const SALE_ENGINE_DISPLACEMENT_SET = new Set<string>(saleEngineDisplacementOptions);
 
@@ -433,7 +430,31 @@ function joinCsv(values: string[]) {
 }
 
 function normalizeCurrentSaleStep(value: unknown): SaleStep {
-  return typeof value === 'number' && value >= 1 && value <= 5 ? (value as SaleStep) : 1;
+  return typeof value === 'number' && value >= 1 && value <= 4 ? (value as SaleStep) : 1;
+}
+
+function migrateVersionTwoSaleStep(value: unknown): SaleStep {
+  if (typeof value !== 'number') {
+    return 1;
+  }
+
+  if (value === 1 || value === 2) {
+    return 1;
+  }
+
+  if (value === 3) {
+    return 2;
+  }
+
+  if (value === 4) {
+    return 3;
+  }
+
+  if (value === 5) {
+    return 4;
+  }
+
+  return 1;
 }
 
 function migrateLegacySaleStep(value: unknown): SaleStep {
@@ -446,15 +467,19 @@ function migrateLegacySaleStep(value: unknown): SaleStep {
   }
 
   if (value === 1) {
-    return 2;
+    return migrateVersionTwoSaleStep(2);
   }
 
   if (value === 2 || value === 3) {
-    return 3;
+    return migrateVersionTwoSaleStep(3);
   }
 
-  if (value === 4 || value === 5) {
-    return value;
+  if (value === 4) {
+    return migrateVersionTwoSaleStep(4);
+  }
+
+  if (value === 5) {
+    return migrateVersionTwoSaleStep(5);
   }
 
   return 1;
@@ -568,6 +593,8 @@ function parseDraftPayload(raw: string | null): DraftPayload | null {
     const step =
       payload.version === LISTING_DRAFT_VERSION
         ? normalizeCurrentSaleStep(payload.step)
+        : payload.version === 2
+        ? migrateVersionTwoSaleStep(payload.step)
         : migrateLegacySaleStep(payload.step);
 
     return {
@@ -629,7 +656,7 @@ export default function NewListingPage() {
   const draftRestoredRef = useRef(false);
   const editBaselineRef = useRef<string | null>(null);
   const launchedSuccessSequenceRef = useRef(0);
-  const saleCityOptions = useMemo(() => getCitiesForRegion(sale.region), [sale.region]);
+  const saleCityOptions = useMemo(() => getRuCityOptions(), []);
   const wantedModelOptions = useMemo(
     () =>
       normalizeUniqueList(
@@ -760,6 +787,21 @@ export default function NewListingPage() {
     [clearError]
   );
 
+  const handleSaleCityChange = useCallback(
+    (value: string) => {
+      const nextRegion = getRegionForCity(value) ?? '';
+
+      setSale((current) => ({
+        ...current,
+        city: value,
+        region: nextRegion,
+      }));
+      clearError('sale.city');
+      clearError('sale.region');
+    },
+    [clearError]
+  );
+
   const updateWanted = useCallback(
     <K extends keyof WantedData,>(key: K, value: WantedData[K]) => {
       setWanted((current) => ({ ...current, [key]: value }));
@@ -855,7 +897,10 @@ export default function NewListingPage() {
 
     setScenario(draft.scenario);
     setStep(draft.step);
-    setSale(draft.sale);
+    setSale({
+      ...draft.sale,
+      region: draft.sale.region || getRegionForCity(draft.sale.city) || '',
+    });
     setWanted(draft.wanted);
     setDraftNotice('Черновик восстановлен из браузера. Локальные фото и видеофайл нужно загрузить заново.');
   }, [authLoading, editableListingId, requestedScenario]);
@@ -1154,36 +1199,32 @@ export default function NewListingPage() {
         ) {
           nextErrors['sale.plateNumber'] = 'Заполните госномер полностью или отметьте, что машина не стоит на учёте в ГАИ.';
         }
-      }
-
-      if (targetStep === 2) {
         if (!sale.engine.trim()) nextErrors['sale.engine'] = 'Укажите двигатель.';
         if (!sale.mileage.trim() || Number(sale.mileage) < 0) nextErrors['sale.mileage'] = 'Укажите пробег.';
       }
 
-      if (targetStep === 3) {
+      if (targetStep === 2) {
         if (!sale.owners.trim() || Number(sale.owners) < 1) nextErrors['sale.owners'] = 'Укажите владельцев.';
       }
 
-      if (targetStep === 3 && !sale.noInvestment && !sale.investmentNote.trim()) {
+      if (targetStep === 2 && !sale.noInvestment && !sale.investmentNote.trim()) {
         nextErrors['sale.investmentNote'] = 'Опишите, что требуется сделать.';
       }
 
-      if (targetStep === 4) {
+      if (targetStep === 3) {
         if (!sale.description.trim()) nextErrors['sale.description'] = 'Добавьте описание.';
       }
 
-      if (targetStep === 5) {
+      if (targetStep === 4) {
         if (!sale.sellerName.trim()) nextErrors['sale.sellerName'] = 'Укажите имя продавца.';
         if (!sale.contact.trim()) nextErrors['sale.contact'] = 'Укажите контакт.';
       }
 
       const keysByStep: Record<SaleStep, string[]> = {
-        1: ['sale.make', 'sale.model', 'sale.year', 'sale.region', 'sale.city', 'sale.plateNumber', 'sale.price', 'sale.bodyType', 'sale.generation'],
-        2: ['sale.engine', 'sale.mileage'],
-        3: ['sale.owners', 'sale.investmentNote'],
-        4: ['sale.description'],
-        5: ['sale.sellerName', 'sale.contact'],
+        1: ['sale.make', 'sale.model', 'sale.year', 'sale.region', 'sale.city', 'sale.plateNumber', 'sale.price', 'sale.bodyType', 'sale.generation', 'sale.engine', 'sale.mileage'],
+        2: ['sale.owners', 'sale.investmentNote'],
+        3: ['sale.description'],
+        4: ['sale.sellerName', 'sale.contact'],
       };
 
       updateFieldErrors(nextErrors, keysByStep[targetStep]);
@@ -1207,7 +1248,7 @@ export default function NewListingPage() {
 
   const validateSaleBeforeSubmit = useCallback(
     (mode: SubmissionMode) => {
-      const stepsToCheck: SaleStep[] = [1, 2, 3, 4, 5];
+      const stepsToCheck: SaleStep[] = [1, 2, 3, 4];
       let valid = true;
 
       stepsToCheck.forEach((currentStep) => {
@@ -1247,9 +1288,9 @@ export default function NewListingPage() {
       return;
     }
 
-    setSubmitError(null);
-    setStep((current) => Math.min(5, current + 1) as SaleStep);
-  }, [step, validateSaleStep]);
+      setSubmitError(null);
+      setStep((current) => Math.min(4, current + 1) as SaleStep);
+    }, [step, validateSaleStep]);
 
   const submit = useCallback(
     async (mode: SubmissionMode) => {
@@ -1644,37 +1685,31 @@ export default function NewListingPage() {
               />
             </Field>
 
-            <Field label="Область / край" required error={fieldErrors['sale.region']}>
-              <Combobox
-                options={saleRegionOptions}
-                value={sale.region}
-                onChange={(value) => {
-                  updateSale('region', value);
-                  if (value !== sale.region) {
-                    updateSale('city', '');
-                  }
-                }}
-                placeholder="Выберите регион"
-                searchPlaceholder="Найдите регион"
-                emptyLabel="Регион не найден"
-                clearable
-                allowCustom={false}
-                className={withFieldErrorClass('sale.region')}
-              />
-            </Field>
-
             <Field label="Город" required error={fieldErrors['sale.city']}>
               <Combobox
                 options={saleCityOptions}
                 value={sale.city}
-                onChange={(value) => updateSale('city', value)}
-                placeholder={sale.region ? 'Выберите город' : 'Сначала выберите регион'}
+                onChange={handleSaleCityChange}
+                placeholder="Выберите город"
                 searchPlaceholder="Найдите город"
-                emptyLabel={sale.region ? 'Город не найден' : 'Выберите регион'}
+                emptyLabel="Город не найден"
                 clearable
                 allowCustom={false}
-                disabled={!sale.region}
                 className={withFieldErrorClass('sale.city')}
+              />
+            </Field>
+
+            <Field
+              label="Область / край"
+              required
+              error={fieldErrors['sale.region']}
+              hint="Подтягивается автоматически по выбранному городу."
+            >
+              <input
+                className={withFieldErrorClass('sale.region')}
+                value={sale.region}
+                placeholder="Определится после выбора города"
+                readOnly
               />
             </Field>
 
@@ -1765,7 +1800,7 @@ export default function NewListingPage() {
         </>
       ) : null}
 
-      {step === 2 ? (
+      {step === 1 ? (
         <>
           <div className="space-y-5">
             <section className="rounded-[24px] border border-border/60 bg-background/55 p-4 sm:p-5">
@@ -1937,7 +1972,7 @@ export default function NewListingPage() {
         </>
       ) : null}
 
-      {step === 3 ? (
+      {step === 2 ? (
         <>
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
@@ -2036,7 +2071,7 @@ export default function NewListingPage() {
         </>
       ) : null}
 
-      {step === 5 ? (
+      {step === 4 ? (
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Имя продавца" required error={fieldErrors['sale.sellerName']}>
@@ -2095,7 +2130,7 @@ export default function NewListingPage() {
         </div>
       ) : null}
 
-      {step === 4 ? (
+      {step === 3 ? (
         <div className="space-y-4">
           <Field
             label="Фотографии"
@@ -2316,7 +2351,7 @@ export default function NewListingPage() {
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <span className="rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs font-medium text-muted-foreground dark:bg-background/10">
-                  5 шагов
+                  4 шага
                 </span>
                 <span className="rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs font-medium text-muted-foreground dark:bg-background/10">
                   Фото и видео
@@ -2397,7 +2432,7 @@ export default function NewListingPage() {
             <SaleStepRoadmap step={step} onSelectStep={handleSelectSaleStep} />
 
             <div className="mb-6 hidden justify-center sm:flex">
-              <div className="grid w-full max-w-5xl gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid w-full max-w-5xl gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {saleSteps.map((item) => (
                   <button
                     key={item.id}
@@ -2446,7 +2481,7 @@ export default function NewListingPage() {
                 Назад
               </Button>
 
-              {step < 5 ? (
+              {step < 4 ? (
                 <Button
                   size="sm"
                   disabled={isSubmitting}
