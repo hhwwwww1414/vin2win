@@ -484,7 +484,7 @@ export function ChatShell({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 sm:gap-6">
-      <ChatPushSetup className="shrink-0" />
+      <ChatPushSetup className={cn('shrink-0', currentChat ? 'hidden lg:block' : undefined)} />
       <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-stretch lg:gap-6">
         <aside className={cn('min-h-0 min-w-0', currentChat ? 'hidden lg:block' : 'flex-1 lg:block')}>
           <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[32px] border border-border/70 bg-card/92 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92">
@@ -554,7 +554,7 @@ export function ChatShell({
                             <h2 className="truncate text-lg font-semibold text-foreground">{currentChat.counterparty.name}</h2>
                             {currentChat.counterparty.verified ? <ShieldCheck className="h-4 w-4 shrink-0 text-teal-accent" /> : null}
                           </div>
-                          <p className="truncate text-sm text-muted-foreground">
+                          <p className="hidden truncate text-sm text-muted-foreground sm:block">
                             Чат привязан к конкретному объявлению и не смешивается с другими автомобилями.
                           </p>
                         </div>
@@ -562,12 +562,12 @@ export function ChatShell({
                     </div>
                   </div>
 
-                  <Link href={getListingHref(currentChat)} className="mt-4 grid min-w-0 gap-3 rounded-[24px] border border-border/70 bg-background/65 p-3 transition-colors hover:border-teal-accent/25 hover:bg-background/80 sm:grid-cols-[88px_minmax(0,1fr)]">
+                  <Link href={getListingHref(currentChat)} className="mt-3 grid min-w-0 grid-cols-[72px_minmax(0,1fr)] items-start gap-3 rounded-[24px] border border-border/70 bg-background/65 p-3 transition-colors hover:border-teal-accent/25 hover:bg-background/80 sm:mt-4 sm:grid-cols-[88px_minmax(0,1fr)]">
                     <div className="overflow-hidden rounded-2xl border border-border/70 bg-muted/20">
                       {currentChat.listing.imageUrl ? (
-                        <Image src={currentChat.listing.imageUrl} alt={currentChat.listing.title} width={88} height={88} unoptimized className="h-[88px] w-full object-cover" />
+                        <Image src={currentChat.listing.imageUrl} alt={currentChat.listing.title} width={88} height={88} unoptimized className="h-[72px] w-full object-cover sm:h-[88px]" />
                       ) : (
-                        <div className="flex h-[88px] items-center justify-center text-xs text-muted-foreground">Нет фото</div>
+                        <div className="flex h-[72px] items-center justify-center text-xs text-muted-foreground sm:h-[88px]">Нет фото</div>
                       )}
                     </div>
                     <div className="min-w-0">
