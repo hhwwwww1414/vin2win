@@ -1,9 +1,8 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowDownUp, ArrowRight, BellRing, ShieldCheck, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { ArrowDownUp } from 'lucide-react';
 import { AdvancedFilters } from '@/components/marketplace/advanced-filters';
 import { GuestListingTeaserLock } from '@/components/marketplace/guest-listing-teaser-lock';
 import { ListingCardView } from '@/components/marketplace/listing-card-view';
@@ -29,7 +28,6 @@ import { cn } from '@/lib/utils';
 
 type ViewMode = 'cards' | 'compact' | 'table';
 const PENDING_SAVED_SEARCH_KEY = 'vin2win:pending-saved-search';
-const HERO_HIGHLIGHTS = ['Проверенные продавцы', 'Полная история', 'Уведомления о новых'] as const;
 
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
@@ -250,104 +248,8 @@ function HomeContent({
 
   const pageItems = buildPageItems(result.page, result.totalPages);
   const sortLabel = getSaleSearchCurrentStepLabel(filters.sort);
-  const totalListingsLabel = result.total.toLocaleString('ru-RU');
-  const activeFilterCount = filters.filters.length;
-  const heroPanels = [
-    {
-      icon: Sparkles,
-      title: 'Живая лента',
-      value: totalListingsLabel,
-      description: 'предложений в продаже',
-    },
-    {
-      icon: SlidersHorizontal,
-      title: 'Фильтры',
-      value: activeFilterCount > 0 ? `${activeFilterCount} применено` : 'Все объявления',
-      description: activeFilterCount > 0 ? 'фильтры уже применены к выдаче' : 'настройте параметры для точного поиска',
-    },
-    {
-      icon: BellRing,
-      title: 'Уведомления',
-      value: isAuthenticated ? 'Включены' : 'После входа',
-      description: 'узнавайте о новых объявлениях первыми',
-    },
-  ];
-
   return (
     <main id="page-main" className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-      <section className="relative mb-5 overflow-hidden rounded-[var(--radius-panel)] border border-border/70 bg-[var(--surface-soft-strong)] shadow-[var(--shadow-surface)] dark:bg-[var(--surface-soft-strong)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(45,212,191,0.14),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.05),transparent_24%)]" aria-hidden="true" />
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-accent/60 to-transparent" aria-hidden="true" />
-        <div className="relative grid gap-6 p-4 sm:p-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.85fr)] lg:p-6">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-teal-accent/20 bg-[var(--accent-bg-soft)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-accent">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Маркетплейс автомобилей
-            </div>
-            <h1 className="mt-3 max-w-2xl text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-[2.35rem] lg:leading-[1.08]">
-              Автомобили в продаже для профессиональных продавцов, подборщиков и менеджеров
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Актуальные объявления с полной историей, проверенными данными и удобным сравнением.
-            </p>
-            <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
-              <button
-                type="button"
-                onClick={() => setShowAdvancedFilters(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-dark px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:opacity-95 dark:bg-teal-accent dark:text-[#09090B]"
-              >
-                Расширенный поиск
-                <ArrowRight className="h-4 w-4" />
-              </button>
-              <Link
-                href="/wanted"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-border/80 bg-background/70 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-teal-accent/40 hover:text-teal-accent dark:bg-background/10"
-              >
-                Лента запросов на подбор
-              </Link>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {HERO_HIGHLIGHTS.map((item) => (
-                <span
-                  key={item}
-                  className="rounded-full border border-border/70 bg-background/65 px-2.5 py-1 text-[11px] font-medium text-muted-foreground dark:bg-background/10"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="grid gap-2.5 sm:grid-cols-3 lg:grid-cols-1">
-            {heroPanels.map((panel) => {
-              const Icon = panel.icon;
-
-              return (
-                <div
-                  key={panel.title}
-                  className="rounded-[var(--radius-card)] border border-border/70 bg-background/70 p-3.5 dark:bg-background/10"
-                >
-                  <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    <Icon className="h-4 w-4 text-teal-accent" />
-                    {panel.title}
-                  </div>
-                  <p className="mt-2.5 text-[1.4rem] font-semibold tracking-tight text-foreground">{panel.value}</p>
-                  <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{panel.description}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-      <section className="hidden">
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-teal-accent">Маркетплейс автомобилей</p>
-        <h1 className="mt-3 max-w-3xl text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          Автомобили в продаже для профессиональных продавцов, подборщиков и менеджеров
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-          Актуальные объявления с полной историей, проверенными данными и удобным сравнением.
-        </p>
-      </section>
-
       <section className="mb-5">
         <QuickFilters
           active={filters.filters}

@@ -226,15 +226,9 @@ function ChatListItem({
             </div>
 
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                {chat.listing.price ? (
-                  <>
-                    <p className="truncate text-xs font-medium text-foreground">{formatPrice(chat.listing.price)}</p>
-                    <span className="h-1 w-1 rounded-full bg-border/80" />
-                  </>
-                ) : null}
-                <p className="truncate text-[11px] uppercase tracking-[0.14em] text-teal-accent/80">Диалог по объявлению</p>
-              </div>
+              {chat.listing.price ? (
+                <p className="truncate text-xs font-medium text-foreground">{formatPrice(chat.listing.price)}</p>
+              ) : null}
 
               <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-muted-foreground">
                 {chat.lastMessage ? `${ownLastMessage ? 'Вы: ' : ''}${chat.lastMessage.text}` : 'Диалог создан. Можно написать первым сообщением.'}
@@ -726,10 +720,6 @@ export function ChatShell({
                           <div className="flex items-center gap-1.5">
                             <h2 className="truncate text-base font-semibold text-foreground sm:text-lg">{currentChat.counterparty.name}</h2>
                             {currentChat.counterparty.verified ? <ShieldCheck className="h-4 w-4 shrink-0 text-teal-accent" /> : null}
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="h-1.5 w-1.5 rounded-full bg-teal-accent/80" />
-                            <span className="truncate">Диалог привязан к конкретному объявлению и не смешивается с другими автомобилями.</span>
                           </div>
                         </div>
                       </div>

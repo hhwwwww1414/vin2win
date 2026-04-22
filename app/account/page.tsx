@@ -9,7 +9,6 @@ import { FavoriteToggle } from '@/components/marketplace/favorite-toggle';
 import { NotificationsPanel } from '@/components/account/notifications-panel';
 import { ListingStatusActions } from '@/components/account/listing-status-actions';
 import { ListingStatusBadge } from '@/components/listing/listing-status-badge';
-import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/price-formatting';
 import { cleanSaleSearchFiltersForPersistence } from '@/lib/sale-search';
 import { getAccountOverview, requireAuthenticatedUser } from '@/lib/server/auth';
@@ -36,7 +35,6 @@ export default async function AccountPage() {
     return null;
   }
 
-  const canOpenAdmin = overview.role === 'ADMIN' || overview.role === 'MODERATOR';
   const generatedAt = overview.generatedAt.getTime();
   const savedSearches = overview.savedSearches.map((item) => ({
     id: item.id,
@@ -52,67 +50,7 @@ export default async function AccountPage() {
     <div className="min-h-full">
       <MarketplaceHeader />
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <section className="relative overflow-hidden rounded-[32px] border border-border/70 bg-card/92 shadow-[0_18px_50px_rgba(0,0,0,0.14)] dark:bg-surface-elevated/92">
-          <div
-            className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(45,212,191,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_28%)]"
-            aria-hidden="true"
-          />
-          <div
-            className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-accent/60 to-transparent"
-            aria-hidden="true"
-          />
-          <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.95fr)]">
-            <div>
-              <p className="inline-flex items-center rounded-full border border-teal-accent/20 bg-[var(--accent-bg-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-accent">
-                Личный кабинет
-              </p>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                {overview.name}
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-                {overview.email}
-                {overview.phone ? ` • ${overview.phone}` : ''}
-                {` • роль ${overview.role}`}
-              </p>
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <Button
-                  asChild
-                  className="bg-teal-dark text-white hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam"
-                >
-                  <Link href="/listing/new">Подать объявление</Link>
-                </Button>
-                {canOpenAdmin ? (
-                  <Button asChild variant="outline" className="border-border/80 bg-background/70 dark:bg-background/10">
-                    <Link href="/admin">Открыть панель</Link>
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-border/70 bg-background/70 p-4 dark:bg-background/10">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Профиль продавца</p>
-                <p className="mt-3 text-lg font-semibold text-foreground">
-                  {overview.sellerProfile?.name ?? 'Не создан'}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-background/70 p-4 dark:bg-background/10">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Непрочитанные</p>
-                <p className="mt-3 text-lg font-semibold text-foreground">{overview.unreadNotifications}</p>
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-background/70 p-4 dark:bg-background/10">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Объявлений о продаже</p>
-                <p className="mt-3 text-lg font-semibold text-foreground">{overview.saleListings.length}</p>
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-background/70 p-4 dark:bg-background/10">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Запросов в подбор</p>
-                <p className="mt-3 text-lg font-semibold text-foreground">{overview.wantedListings.length}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-8">
+        <section>
           <AccountSellerProfilePanel sellerProfile={sellerProfile} />
         </section>
 
