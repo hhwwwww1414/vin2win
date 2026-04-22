@@ -66,6 +66,7 @@ export interface ChatSummary {
   listing: ChatListingSnapshot;
   counterparty: ChatCounterparty;
   unreadCount: number;
+  counterpartyLastReadMessageId?: string;
   lastMessageAt: string;
   lastMessage?: ChatMessageItem;
 }
@@ -177,6 +178,7 @@ function mapChatSummary(record: ChatSummaryRecord, currentUserId: string): ChatS
       verified: counterpartyUser.sellerProfile?.verified ?? false,
     },
     unreadCount: currentParticipant.unreadCount,
+    counterpartyLastReadMessageId: counterpartyParticipant.lastReadMessageId ?? undefined,
     lastMessageAt: record.lastMessageAt.toISOString(),
     lastMessage: record.lastMessage ? mapMessage(record.lastMessage) : undefined,
   };

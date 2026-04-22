@@ -33,6 +33,7 @@ export interface ChatSummaryDto {
   listing: ChatListingSnapshotDto;
   counterparty: ChatCounterpartyDto;
   unreadCount: number;
+  counterpartyLastReadMessageId?: string;
   lastMessageAt: string;
   lastMessage?: ChatMessageDto;
 }

@@ -20,6 +20,7 @@ const sampleChat: ChatSummaryDto = {
     verified: true,
   },
   unreadCount: 2,
+  counterpartyLastReadMessageId: 'message-2',
   lastMessageAt: '2026-04-19T12:30:00.000Z',
   lastMessage: {
     id: 'message-last',
@@ -53,7 +54,7 @@ const sampleMessages: ChatMessageDto[] = [
   },
 ];
 
-test('chat shell renders chat list and selected thread context without server-side time labels', () => {
+test('chat shell renders chat list, thread context, and read state without server-side time labels', () => {
   const markup = renderToStaticMarkup(
     <ChatShell
       currentUserId="user-1"
@@ -67,8 +68,9 @@ test('chat shell renders chat list and selected thread context without server-si
   assert.match(markup, /Ivan Petrov/);
   assert.match(markup, /Yes, the car is still for sale\./);
   assert.match(markup, /Is it still available\?/);
-  assert.match(markup, /2 500 000 ₽/);
-  assert.match(markup, /Open listing card|Открыть карточку объявления/);
+  assert.match(markup, /2 500 000/);
+  assert.match(markup, /Открыть карточку объявления/);
+  assert.match(markup, /Прочитано/);
   assert.doesNotMatch(markup, />\d{2}:\d{2}</);
   assert.doesNotMatch(markup, />\d{2}\.\d{2}</);
 });
