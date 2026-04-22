@@ -483,11 +483,11 @@ export function ChatShell({
   );
 
   return (
-    <>
-      <ChatPushSetup />
-      <section className="grid min-w-0 gap-4 lg:h-[calc(100dvh-10rem)] lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-stretch lg:gap-6">
-        <aside className={cn('min-w-0 lg:min-h-0', currentChat ? 'hidden lg:block' : 'block')}>
-          <div className="flex h-full min-h-[calc(100dvh-8rem)] min-w-0 flex-col overflow-hidden rounded-[32px] border border-border/70 bg-card/92 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92 lg:min-h-0">
+    <div className="flex h-full min-h-0 flex-col gap-4 sm:gap-6">
+      <ChatPushSetup className="shrink-0" />
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-stretch lg:gap-6">
+        <aside className={cn('min-h-0 min-w-0', currentChat ? 'hidden lg:block' : 'flex-1 lg:block')}>
+          <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[32px] border border-border/70 bg-card/92 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92">
             <div className="shrink-0 px-5 pt-5 pb-4">
               <div className="flex items-end justify-between gap-4">
                 <div className="min-w-0">
@@ -529,8 +529,8 @@ export function ChatShell({
           </div>
         </aside>
 
-        <section className={cn('min-w-0 lg:min-h-0', !currentChat ? 'hidden lg:block' : 'block')}>
-          <div className="flex h-full min-h-[calc(100dvh-8rem)] min-w-0 flex-col overflow-hidden rounded-[32px] border border-border/70 bg-card/92 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92 lg:min-h-0">
+        <section className={cn('min-h-0 min-w-0', !currentChat ? 'hidden lg:block' : 'flex-1 lg:block')}>
+          <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[32px] border border-border/70 bg-card/92 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92">
             {currentChat ? (
               <>
                 <div className="shrink-0 border-b border-border/60 px-4 py-4 sm:px-5">
@@ -670,6 +670,6 @@ export function ChatShell({
           </div>
         </section>
       </section>
-    </>
+    </div>
   );
 }

@@ -12,20 +12,33 @@ export function isSaleListingDetailPath(pathname: string | null) {
   return /^\/listing\/[^/]+$/.test(pathname) && pathname !== '/listing/new';
 }
 
+export function isMessagesPath(pathname: string | null) {
+  if (!pathname) {
+    return false;
+  }
+
+  return pathname === '/messages' || pathname.startsWith('/messages/');
+}
+
 export function getSiteFooterClassName(pathname: string | null) {
   return cn(
     'relative z-10 mt-auto border-t border-border pt-8',
-    isSaleListingDetailPath(pathname) && 'hidden lg:block'
+    isSaleListingDetailPath(pathname) && 'hidden lg:block',
+    isMessagesPath(pathname) && 'hidden',
   );
 }
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isSaleListingDetail = isSaleListingDetailPath(pathname);
+  const isMessagesPage = isMessagesPath(pathname);
   const showMarketplaceBackground = !isSaleListingDetail;
 
   return (
-    <div className="relative flex min-h-dvh flex-col bg-background" data-sale-listing-detail={isSaleListingDetail ? 'true' : undefined}>
+    <div
+      className={cn('relative flex min-h-dvh flex-col bg-background', isMessagesPage && 'h-dvh overflow-hidden')}
+      data-sale-listing-detail={isSaleListingDetail ? 'true' : undefined}
+    >
       <a
         href="#page-main"
         className="sr-only absolute left-4 top-4 z-50 rounded-md bg-card px-3 py-2 text-sm font-medium text-foreground shadow focus:not-sr-only"
@@ -52,7 +65,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         </div>
       ) : null}
 
-      <div className="relative z-10 flex flex-1 flex-col">{children}</div>
+      <div className={cn('relative z-10 flex flex-1 flex-col', isMessagesPage && 'min-h-0 overflow-hidden')}>{children}</div>
       <CompareTray />
 
       <footer

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Bell, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import {
   detectBrowserPushSupport,
   fetchBrowserPushVapidPublicKey,
@@ -12,7 +13,11 @@ import {
   type BrowserPushSupportResult,
 } from '@/lib/push/browser';
 
-export function ChatPushSetup() {
+interface ChatPushSetupProps {
+  className?: string;
+}
+
+export function ChatPushSetup({ className }: ChatPushSetupProps) {
   const [support, setSupport] = useState<BrowserPushSupportResult | null>(null);
   const [vapidPublicKey, setVapidPublicKey] = useState<string | undefined>(undefined);
   const [pushConfigResolved, setPushConfigResolved] = useState(false);
@@ -138,7 +143,12 @@ export function ChatPushSetup() {
   };
 
   return (
-    <section className="mb-6 rounded-[28px] border border-border/70 bg-card/92 p-4 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92">
+    <section
+      className={cn(
+        'rounded-[28px] border border-border/70 bg-card/92 p-4 shadow-[0_18px_48px_rgba(8,15,27,0.12)] dark:bg-surface-elevated/92',
+        className,
+      )}
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
