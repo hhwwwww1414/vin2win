@@ -82,6 +82,7 @@ export function ListingCardView({
   const galleryImages = listing.images.slice(0, 4);
   const hiddenGalleryCount = Math.max(0, listing.images.length - galleryImages.length);
   const sellerLocation = listing.inspectionCity ?? listing.city;
+  const sellerRating = listing.seller.averageRating ? listing.seller.averageRating.toFixed(1) : null;
   const mediaLabel = listing.videoUrl
     ? listing.images.length > 0
       ? `Видео + ${listing.images.length} фото`
@@ -329,10 +330,20 @@ export function ListingCardView({
                   <span className="truncate text-[12px] font-semibold text-foreground sm:text-[13px]">
                     {listing.seller.name}
                   </span>
-                  {listing.seller.verified ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-medium text-teal-accent sm:text-[10px]">
-                      <ShieldCheck className="h-3 w-3" />
-                      Проверенный
+                  {listing.seller.verified || sellerRating ? (
+                    <span className="inline-flex items-center gap-1.5 text-[9px] font-medium sm:text-[10px]">
+                      {listing.seller.verified ? (
+                        <span className="inline-flex items-center gap-1 text-teal-accent">
+                          <ShieldCheck className="h-3 w-3" />
+                          Проверенный
+                        </span>
+                      ) : null}
+                      {sellerRating ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/25 bg-amber-400/10 px-1.5 py-0.5 leading-none text-amber-300">
+                          <RatingStarIcon className="h-2.5 w-2.5" />
+                          {sellerRating}
+                        </span>
+                      ) : null}
                     </span>
                   ) : null}
                 </div>
@@ -524,4 +535,17 @@ function getSellerInitials(name: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('');
+}
+
+function RatingStarIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      className={cn('shrink-0 text-amber-400', className)}
+    >
+      <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
+    </svg>
+  );
 }

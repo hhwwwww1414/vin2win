@@ -43,6 +43,7 @@ const listing: SaleListing = {
     verified: true,
     onPlatformSince: '2026-03',
     phone: '+7 999 000-00-00',
+    averageRating: 4.9,
   },
 };
 
@@ -57,4 +58,12 @@ test('card benefit badge keeps its content on a single line', () => {
   const markup = renderToStaticMarkup(<ListingBenefitBadge amount={170000} variant="card" />);
 
   assert.match(markup, /whitespace-nowrap/u);
+});
+
+test('listing card seller row shows rating next to the verified badge', () => {
+  const markup = renderToStaticMarkup(<ListingCardView listing={listing} />);
+
+  assert.match(markup, /Проверенный/u);
+  assert.match(markup, /4\.9/u);
+  assert.match(markup, /M11\.525 2\.295/u);
 });

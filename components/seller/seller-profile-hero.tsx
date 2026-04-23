@@ -11,6 +11,33 @@ interface SellerProfileHeroProps {
   averageRating?: number;
 }
 
+function getSellerReviewWord(count: number) {
+  const remainder10 = count % 10;
+  const remainder100 = count % 100;
+
+  if (remainder10 === 1 && remainder100 !== 11) {
+    return 'отзыв';
+  }
+
+  if (remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 12 || remainder100 > 14)) {
+    return 'отзыва';
+  }
+
+  return 'отзывов';
+}
+
+function getSellerRatingBadgeClassName(averageRating: number) {
+  if (averageRating >= 4.5) {
+    return 'border-emerald-300/34 bg-emerald-950/82 text-emerald-50 shadow-[0_12px_28px_rgba(16,185,129,0.24)]';
+  }
+
+  if (averageRating >= 3.5) {
+    return 'border-amber-300/32 bg-amber-950/78 text-amber-100 shadow-[0_12px_28px_rgba(245,158,11,0.18)]';
+  }
+
+  return 'border-rose-300/32 bg-rose-950/78 text-rose-100 shadow-[0_12px_28px_rgba(244,63,94,0.18)]';
+}
+
 export function SellerProfileHero({
   seller,
   listingCount,
@@ -32,6 +59,7 @@ export function SellerProfileHero({
     cropX: seller.coverCropX,
     cropY: seller.coverCropY,
   });
+  const reviewSummaryLabel = `${reviewCount} ${getSellerReviewWord(reviewCount)}`;
 
   return (
     <section className="overflow-hidden rounded-[32px] border border-border/70 bg-card shadow-[0_20px_54px_rgba(15,23,42,0.12)]">
@@ -86,8 +114,10 @@ export function SellerProfileHero({
                     На платформе с {seller.onPlatformSince}
                   </span>
                   {averageRating ? (
-                    <span className="rounded-full border border-teal-accent/25 bg-[var(--accent-bg-soft)] px-3 py-1 text-xs font-medium text-teal-dark">
-                      {averageRating.toFixed(1)} • {reviewCount} отзывов
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold tabular-nums ${getSellerRatingBadgeClassName(averageRating)}`}
+                    >
+                      {averageRating.toFixed(1)} • {reviewSummaryLabel}
                     </span>
                   ) : null}
                 </div>

@@ -62,6 +62,11 @@ type SellerReviewRecord = Prisma.SellerReviewGetPayload<{
   };
 }>;
 
+type SellerReviewMetrics = {
+  reviewCount: number;
+  averageRating?: number;
+};
+
 export interface UploadedListingMediaInput {
   kind: 'gallery' | 'interior' | 'video' | 'report';
   storageKey: string;
@@ -572,6 +577,66 @@ function mapSaleListing(record: SaleListingRecord): SaleListing {
     createdAt: toDateOnlyString(visibleDate),
     updatedAt: toDateOnlyString(record.updatedAt),
   };
+}
+
+async function getSellerReviewMetricsMap(sellerIds: string[]) {
+  const uniqueSellerIds = [...new Set(sellerIds.filter(Boolean))];
+  if (uniqueSellerIds.length === 0) {
+    return new Map<string, SellerReviewMetrics>();
+  }
+
+  const aggregates = await prisma.sellerReview.groupBy({
+    by: ['sellerProfileId'],
+    where: {
+      sellerProfileId: {
+        in: uniqueSellerIds,
+      },
+      status: PrismaSellerReviewStatus.PUBLISHED,
+    },
+    _avg: {
+      rating: true,
+    },
+    _count: {
+      _all: true,
+    },
+  });
+
+  return new Map<string, SellerReviewMetrics>(
+    aggregates.map((item) => [
+      item.sellerProfileId,
+      {
+        reviewCount: item._count._all,
+        averageRating: item._avg.rating ?? undefined,
+      },
+    ])
+  );
+}
+
+function applySellerReviewMetricsToSaleListings(
+  listings: SaleListing[],
+  metricsBySellerId: Map<string, SellerReviewMetrics>
+) {
+  return listings.map((listing) => {
+    const metrics = metricsBySellerId.get(listing.seller.id);
+    if (!metrics) {
+      return listing;
+    }
+
+    return {
+      ...listing,
+      seller: {
+        ...listing.seller,
+        reviewCount: metrics.reviewCount,
+        averageRating: metrics.averageRating,
+      },
+    };
+  });
+}
+
+async function mapSaleListingsWithSellerMetrics(records: SaleListingRecord[]) {
+  const listings = records.map((record) => mapSaleListing(record));
+  const metricsBySellerId = await getSellerReviewMetricsMap(records.map((record) => record.sellerId));
+  return applySellerReviewMetricsToSaleListings(listings, metricsBySellerId);
 }
 
 function mapWantedListing(record: WantedListingRecord): WantedListing {
@@ -1193,9 +1258,10 @@ export async function searchPublishedSaleListings(filtersInput: Partial<SaleSear
       skip: (safePage - 1) * limit,
       take: limit,
     });
+    const items = await mapSaleListingsWithSellerMetrics(records as SaleListingRecord[]);
 
     return {
-      items: records.map((record) => mapSaleListing(record as SaleListingRecord)),
+      items,
       total,
       page: safePage,
       limit,
@@ -1299,7 +1365,7 @@ export async function getSaleListingById(id: string, viewer?: ListingViewer): Pr
       return null;
     }
 
-    return record ? mapSaleListing(record as SaleListingRecord) : null;
+    return record ? (await mapSaleListingsWithSellerMetrics([record as SaleListingRecord]))[0] ?? null : null;
   } catch (error) {
     if (canUseFixtureMarketplaceFallback && isMarketplaceDbUnavailable(error)) {
       const fallback = saleListingFixtures.find((listing) => listing.id === id);
@@ -1349,7 +1415,7 @@ export async function getSimilarSaleListings(currentListing: SaleListing, viewer
       take: 6,
     });
 
-    return records.map((record) => mapSaleListing(record as SaleListingRecord));
+    return mapSaleListingsWithSellerMetrics(records as SaleListingRecord[]);
   } catch (error) {
     if (canUseFixtureMarketplaceFallback && isMarketplaceDbUnavailable(error)) {
       return saleListingFixtures
@@ -1379,7 +1445,7 @@ export async function getSaleListingsByIds(ids: string[], viewer?: ListingViewer
     include: buildSaleListingInclude(viewer),
   });
 
-  const mapped = records.map((record) => mapSaleListing(record as SaleListingRecord));
+  const mapped = await mapSaleListingsWithSellerMetrics(records as SaleListingRecord[]);
   return uniqueIds.map((id) => mapped.find((listing) => listing.id === id)).filter((listing): listing is SaleListing => Boolean(listing));
 }
 
@@ -1466,7 +1532,18 @@ export async function getPublicSellerProfileById(id: string, viewer?: ListingVie
         reviewCount: reviewAggregate._count._all,
         averageRating: reviewAggregate._avg.rating ?? undefined,
       }),
-      listings: seller.saleListings.map((listing) => mapSaleListing(listing as SaleListingRecord)),
+      listings: applySellerReviewMetricsToSaleListings(
+        seller.saleListings.map((listing) => mapSaleListing(listing as SaleListingRecord)),
+        new Map([
+          [
+            seller.id,
+            {
+              reviewCount: reviewAggregate._count._all,
+              averageRating: reviewAggregate._avg.rating ?? undefined,
+            },
+          ],
+        ])
+      ),
       completedDealsCount,
       reviewSummary: {
         count: reviewAggregate._count._all,

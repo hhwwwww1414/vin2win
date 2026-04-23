@@ -43,6 +43,8 @@ test('seller profile hero renders cover, avatar, trust row, and about navigation
   assert.match(markup, /Объявления/u);
   assert.match(markup, /Отзывы/u);
   assert.match(markup, /Проверенный продавец/u);
+  assert.match(markup, /5\.0 • 30 отзывов/u);
+  assert.match(markup, /text-emerald-50/u);
   assert.match(markup, /avatar\.jpg/u);
   assert.match(markup, /cover\.jpg/u);
   assert.match(markup, /object-position:60% 40%/u);
