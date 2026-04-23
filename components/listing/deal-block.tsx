@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, FileText, MapPin, MessageCircle, Phone, Shield } from 'lucide-react';
+import { ListingProposalButton } from '@/components/listing/listing-proposal-button';
 import { ListingBenefitBadge } from '@/components/marketplace/listing-benefit-badge';
 import { OpenChatButton } from '@/components/messages/open-chat-button';
 import { Button } from '@/components/ui/button';
@@ -179,6 +180,7 @@ export function DealBlock({ listing, currentUserId, className }: DealBlockProps)
           Контакт не указан
         </Button>
       )}
+      <ListingProposalButton listing={listing} />
       {listing.reportUrl ? (
         <Button
           variant="outline"

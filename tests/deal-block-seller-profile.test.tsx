@@ -46,6 +46,7 @@ test('deal block renders seller profile entry as link in desktop and mobile layo
   const markup = renderToStaticMarkup(<DealBlock listing={listing} />);
 
   assert.equal(markup.match(/href="\/seller\/seller-1"/g)?.length, 2);
+  assert.match(markup, /PDF клиенту/u);
   assert.match(markup, /Владимир Мажирин/);
   assert.doesNotMatch(markup, /Карточка продавца доступна внутри лота/);
 });
