@@ -15,6 +15,17 @@ export interface ListingProposalFact {
   tone?: ListingProposalTone;
 }
 
+export interface ListingProposalGalleryImage {
+  label: string;
+  url: string;
+}
+
+export interface ListingProposalMediaResources {
+  galleryImages: ListingProposalGalleryImage[];
+  reportUrl?: string;
+  videoUrl?: string;
+}
+
 export interface ListingProposalSummary {
   title: string;
   subtitle: string;
@@ -34,8 +45,8 @@ const PROPOSAL_DATE_FORMATTER = new Intl.DateTimeFormat('ru-RU', {
   year: 'numeric',
 });
 
-const MAX_HIGHLIGHTS = 6;
-const MAX_DESCRIPTION_LENGTH = 250;
+const MAX_HIGHLIGHTS = 4;
+const MAX_DESCRIPTION_LENGTH = 180;
 
 function sanitizeText(value: string) {
   return value.replace(/\s+/g, ' ').trim();
@@ -67,18 +78,18 @@ function getPaintTone(paintCount: number): ListingProposalTone {
 
 function buildLead(listing: SaleListing) {
   if (listing.paintCount === 0 && listing.avtotekaStatus === 'green' && !listing.accident) {
-    return 'Аккуратный вариант с чистой историей и прозрачными исходными данными для предметного просмотра.';
+    return 'Аккуратный вариант с прозрачной историей и понятными исходными данными.';
   }
 
   if (listing.paintCount === 0) {
-    return 'Ухоженный вариант без заявленных окрасов, который можно быстро вывести на осмотр.';
+    return 'Автомобиль без заявленных окрасов, подходит для быстрого показа клиенту.';
   }
 
   if (listing.needsInvestment) {
-    return 'Автомобиль требует дополнительной проверки по будущим вложениям перед финальным решением.';
+    return 'Перед покупкой стоит отдельно проверить будущие вложения и технические нюансы.';
   }
 
-  return 'Собрали ключевые данные по объявлению в клиентском формате без внутренних служебных полей.';
+  return 'Собрали клиентскую выжимку по объявлению без внутренних рабочих пометок.';
 }
 
 function buildHighlights(listing: SaleListing) {
@@ -96,16 +107,16 @@ function buildHighlights(listing: SaleListing) {
     highlights.push('Без ДТП');
   }
 
+  if (listing.keysCount && listing.keysCount >= 2) {
+    highlights.push(`${listing.keysCount} ключа`);
+  }
+
   if (!listing.taxi) {
     highlights.push('Не использовался в такси');
   }
 
   if (!listing.carsharing) {
     highlights.push('Без каршеринга');
-  }
-
-  if (listing.keysCount && listing.keysCount >= 2) {
-    highlights.push(`${listing.keysCount} ключа`);
   }
 
   if (listing.glassOriginal) {
@@ -120,15 +131,49 @@ function buildHighlights(listing: SaleListing) {
     highlights.push('Дополнительная резина');
   }
 
-  if (listing.reportUrl || listing.vin) {
-    highlights.push('VIN-отчёт доступен');
-  }
-
   if (!listing.needsInvestment) {
     highlights.push('Без заявленных вложений');
   }
 
   return [...new Set(highlights)].slice(0, MAX_HIGHLIGHTS);
+}
+
+function pushUniqueGalleryImage(
+  items: ListingProposalGalleryImage[],
+  seenUrls: Set<string>,
+  url: string | undefined,
+  label: string
+) {
+  const normalizedUrl = url?.trim();
+  if (!normalizedUrl || seenUrls.has(normalizedUrl)) {
+    return;
+  }
+
+  seenUrls.add(normalizedUrl);
+  items.push({ label, url: normalizedUrl });
+}
+
+export function collectListingProposalGalleryImages(listing: SaleListing) {
+  const images: ListingProposalGalleryImage[] = [];
+  const seenUrls = new Set<string>();
+
+  listing.images.forEach((url, index) => {
+    pushUniqueGalleryImage(images, seenUrls, url, `Фото ${index + 1}`);
+  });
+
+  (listing.interiorImages ?? []).forEach((url, index) => {
+    pushUniqueGalleryImage(images, seenUrls, url, `Салон ${index + 1}`);
+  });
+
+  return images;
+}
+
+export function getListingProposalMediaResources(listing: SaleListing): ListingProposalMediaResources {
+  return {
+    galleryImages: collectListingProposalGalleryImages(listing),
+    reportUrl: listing.reportUrl,
+    videoUrl: listing.videoUrl,
+  };
 }
 
 export function getListingProposalTitle(listing: Pick<SaleListing, 'make' | 'model' | 'year'>) {
@@ -138,7 +183,7 @@ export function getListingProposalTitle(listing: Pick<SaleListing, 'make' | 'mod
 export function getListingProposalDownloadFilename(
   listing: Pick<SaleListing, 'id' | 'year'>
 ) {
-  return `vin2win-proposal-${listing.year}-${listing.id}.pdf`;
+  return `commercial-proposal-${listing.year}-${listing.id}.pdf`;
 }
 
 export function buildListingProposalSummary(
@@ -149,7 +194,7 @@ export function buildListingProposalSummary(
 
   return {
     title: getListingProposalTitle(listing),
-    subtitle: 'Коммерческое предложение vin2win',
+    subtitle: 'Коммерческое предложение',
     priceLabel: `${formatGroupedNumber(listing.price)} руб.`,
     locationLabel: listing.inspectionCity ?? listing.city,
     generatedAtLabel: PROPOSAL_DATE_FORMATTER.format(now),
@@ -157,10 +202,7 @@ export function buildListingProposalSummary(
     description:
       description ||
       'Подробное описание, дополнительные фотографии и история проверок доступны по запросу.',
-    footerNote:
-      listing.reportUrl || listing.vin
-        ? 'VIN-отчёт и дополнительные материалы доступны по запросу через vin2win.'
-        : 'Дополнительные фотографии, видео и детали осмотра доступны по запросу через vin2win.',
+    footerNote: 'Дополнительные фотографии, видео и материалы приложены к предложению.',
     highlights: buildHighlights(listing),
     facts: [
       { label: 'Год выпуска', value: String(listing.year) },

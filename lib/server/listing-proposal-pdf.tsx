@@ -1,9 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { ReactElement, ReactNode } from 'react';
 import { ImageResponse } from 'next/og';
-import { PDFDocument } from 'pdf-lib';
+import { PDFArray, PDFDocument, PDFName, PDFString } from 'pdf-lib';
 import {
   buildListingProposalSummary,
+  collectListingProposalGalleryImages,
   type ListingProposalFact,
   type ListingProposalTone,
 } from '@/lib/listing-proposal';
@@ -15,6 +17,16 @@ const A4_IMAGE_WIDTH = 1240;
 const A4_IMAGE_HEIGHT = 1754;
 const A4_PDF_WIDTH = 595.28;
 const A4_PDF_HEIGHT = 841.89;
+const GALLERY_PAGE_SIZE = 4;
+const SUMMARY_HEADER_HEIGHT = 138;
+const SUMMARY_ROW_TOP = 56 + SUMMARY_HEADER_HEIGHT + 30;
+const SUMMARY_RIGHT_COLUMN_X = 68 + 720 + 24;
+const SUMMARY_MEDIA_CARD_TOP = SUMMARY_ROW_TOP + 190 + 18 + 236 + 18;
+const SUMMARY_MEDIA_CARD_BUTTON_X = SUMMARY_RIGHT_COLUMN_X + 24;
+const SUMMARY_MEDIA_CARD_BUTTON_WIDTH = 312;
+const SUMMARY_MEDIA_CARD_VIDEO_BUTTON_TOP = SUMMARY_MEDIA_CARD_TOP + 132;
+const SUMMARY_MEDIA_CARD_REPORT_BUTTON_TOP = SUMMARY_MEDIA_CARD_TOP + 208;
+const SUMMARY_MEDIA_CARD_BUTTON_HEIGHT = 58;
 
 const MANROPE_REGULAR_PATH = join(
   process.cwd(),
@@ -32,6 +44,12 @@ const MANROPE_BOLD_PATH = join(
 type LoadedProposalFonts = {
   regular: ArrayBuffer;
   bold: ArrayBuffer;
+};
+
+type LoadedProposalImage = {
+  dataUrl: string;
+  label: string;
+  sourceUrl: string;
 };
 
 let cachedFontsPromise: Promise<LoadedProposalFonts> | null = null;
@@ -54,176 +72,44 @@ async function loadProposalFonts() {
   return cachedFontsPromise;
 }
 
+function chunkArray<T>(items: T[], chunkSize: number) {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+
+  return chunks;
+}
+
 function getTonePalette(tone: ListingProposalTone = 'neutral') {
   switch (tone) {
     case 'positive':
       return {
         border: 'rgba(110, 231, 164, 0.28)',
         background: 'rgba(45, 122, 74, 0.16)',
-        text: '#DDF8E7',
+        text: '#DCFCE7',
       };
     case 'warning':
       return {
-        border: 'rgba(244, 196, 48, 0.24)',
-        background: 'rgba(212, 160, 23, 0.16)',
-        text: '#FFF1C2',
+        border: 'rgba(245, 158, 11, 0.28)',
+        background: 'rgba(217, 119, 6, 0.16)',
+        text: '#FDE68A',
       };
     default:
       return {
-        border: 'rgba(129, 216, 208, 0.18)',
-        background: 'rgba(129, 216, 208, 0.08)',
-        text: '#E8FAF7',
+        border: 'rgba(148, 163, 184, 0.18)',
+        background: 'rgba(255, 255, 255, 0.04)',
+        text: '#F8FAFC',
       };
   }
 }
 
-function ProposalChip({
+function PageFrame({
   children,
-  tone,
 }: {
-  children: string;
-  tone?: ListingProposalTone;
+  children: ReactNode;
 }) {
-  const palette = getTonePalette(tone);
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        borderRadius: 999,
-        border: `1px solid ${palette.border}`,
-        background: palette.background,
-        color: palette.text,
-        fontSize: 22,
-        fontWeight: 700,
-        lineHeight: 1.2,
-        padding: '12px 18px',
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function ProposalFactCard({ fact }: { fact: ListingProposalFact }) {
-  const palette = getTonePalette(fact.tone);
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        width: '48.5%',
-        minHeight: 118,
-        borderRadius: 24,
-        border: `1px solid ${palette.border}`,
-        background:
-          fact.tone && fact.tone !== 'neutral'
-            ? palette.background
-            : 'rgba(255,255,255,0.04)',
-        padding: '20px 22px',
-      }}
-    >
-      <div
-        style={{
-          color: 'rgba(232, 240, 245, 0.62)',
-          fontSize: 20,
-          fontWeight: 700,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-        }}
-      >
-        {fact.label}
-      </div>
-      <div
-        style={{
-          color: fact.tone && fact.tone !== 'neutral' ? palette.text : '#F7FBFC',
-          fontSize: 30,
-          fontWeight: 700,
-          lineHeight: 1.2,
-          marginTop: 12,
-        }}
-      >
-        {fact.value}
-      </div>
-    </div>
-  );
-}
-
-function ProposalImagePlaceholder({ title }: { title: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flex: 1,
-        width: '100%',
-        borderRadius: 28,
-        background:
-          'radial-gradient(circle at top left, rgba(129,216,208,0.38), transparent 32%), linear-gradient(135deg, rgba(45,90,90,0.92), rgba(15,18,22,0.98))',
-        padding: '36px',
-        color: '#FFFFFF',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          flex: 1,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            color: 'rgba(255,255,255,0.82)',
-            fontSize: 22,
-            fontWeight: 700,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-          }}
-        >
-          <div
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 999,
-              background: '#81D8D0',
-            }}
-          />
-          vin2win selection
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            fontSize: 62,
-            lineHeight: 1.02,
-            fontWeight: 700,
-            maxWidth: 520,
-          }}
-        >
-          {title}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ListingProposalPage({
-  listing,
-  heroImageDataUrl,
-  generatedAt,
-}: {
-  listing: SaleListing;
-  heroImageDataUrl?: string;
-  generatedAt: Date;
-}) {
-  const summary = buildListingProposalSummary(listing, generatedAt);
-  const highlights =
-    summary.highlights.length > 0 ? summary.highlights : ['Проверка и осмотр доступны по запросу'];
-
   return (
     <div
       style={{
@@ -232,141 +118,441 @@ function ListingProposalPage({
         height: '100%',
         flexDirection: 'column',
         background:
-          'radial-gradient(circle at top left, rgba(129,216,208,0.22), transparent 28%), linear-gradient(180deg, #0F1216 0%, #131920 52%, #0E1418 100%)',
+          'radial-gradient(circle at top left, rgba(125, 211, 252, 0.14), transparent 28%), linear-gradient(180deg, #0B1118 0%, #111827 48%, #0B1118 100%)',
         color: '#FFFFFF',
-        padding: '64px 68px',
+        padding: '56px 68px',
         fontFamily: 'Manrope',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Header({
+  title,
+  subtitle,
+  rightLabel,
+  rightValue,
+}: {
+  title: string;
+  subtitle: string;
+  rightLabel: string;
+  rightValue: string;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        height: SUMMARY_HEADER_HEIGHT,
       }}
     >
       <div
         style={{
           display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
+          flexDirection: 'column',
+          width: 760,
         }}
       >
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
+            color: 'rgba(226, 232, 240, 0.68)',
+            fontSize: 20,
+            fontWeight: 700,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              color: '#DDF8F4',
-              fontSize: 24,
-              fontWeight: 700,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-            }}
-          >
-            <div
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: 999,
-                background: '#81D8D0',
-                boxShadow: '0 0 0 8px rgba(129,216,208,0.12)',
-              }}
-            />
-            vin2win
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              fontSize: 58,
-              fontWeight: 700,
-              lineHeight: 1.04,
-              marginTop: 18,
-            }}
-          >
-            Коммерческое предложение
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              fontSize: 24,
-              fontWeight: 500,
-              color: 'rgba(236, 244, 248, 0.72)',
-              marginTop: 12,
-            }}
-          >
-            {summary.subtitle}
-          </div>
+          Подборка по автомобилю
         </div>
-
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
+            marginTop: 14,
+            fontSize: 58,
+            fontWeight: 700,
+            lineHeight: 1.04,
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              color: 'rgba(236, 244, 248, 0.62)',
-              fontSize: 20,
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Сформировано
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              marginTop: 12,
-              borderRadius: 999,
-              border: '1px solid rgba(129,216,208,0.24)',
-              background: 'rgba(129,216,208,0.1)',
-              padding: '14px 22px',
-              color: '#E8FAF7',
-              fontSize: 24,
-              fontWeight: 700,
-            }}
-          >
-            {summary.generatedAtLabel}
-          </div>
+          {title}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            marginTop: 12,
+            fontSize: 24,
+            fontWeight: 500,
+            color: 'rgba(226, 232, 240, 0.78)',
+          }}
+        >
+          {subtitle}
         </div>
       </div>
 
       <div
         style={{
           display: 'flex',
-          height: 1,
-          background: 'linear-gradient(90deg, rgba(129,216,208,0.24), rgba(129,216,208,0), rgba(129,216,208,0.24))',
-          marginTop: 28,
-        }}
-      />
-
-      <div
-        style={{
-          display: 'flex',
-          gap: 28,
-          marginTop: 34,
+          flexDirection: 'column',
+          alignItems: 'flex-end',
         }}
       >
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
-            flex: 1,
-            borderRadius: 34,
-            border: '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.04)',
-            padding: 24,
+            color: 'rgba(226, 232, 240, 0.62)',
+            fontSize: 18,
+            fontWeight: 700,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
           }}
         >
+          {rightLabel}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            marginTop: 12,
+            borderRadius: 999,
+            border: '1px solid rgba(148, 163, 184, 0.18)',
+            background: 'rgba(255, 255, 255, 0.06)',
+            padding: '14px 22px',
+            color: '#F8FAFC',
+            fontSize: 22,
+            fontWeight: 700,
+          }}
+        >
+          {rightValue}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Card({
+  children,
+  width,
+  height,
+  accent = false,
+}: {
+  children: React.ReactNode;
+  width?: number;
+  height?: number;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width,
+        height,
+        borderRadius: 32,
+        border: accent
+          ? '1px solid rgba(125, 211, 252, 0.18)'
+          : '1px solid rgba(255, 255, 255, 0.08)',
+        background: accent
+          ? '#172230'
+          : 'rgba(255, 255, 255, 0.04)',
+        padding: 24,
+        overflow: 'hidden',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        color: 'rgba(226, 232, 240, 0.62)',
+        fontSize: 18,
+        fontWeight: 700,
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function MetaChip({ children }: { children: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        borderRadius: 999,
+        border: '1px solid rgba(125, 211, 252, 0.18)',
+        background: 'rgba(125, 211, 252, 0.08)',
+        color: '#E0F2FE',
+        fontSize: 20,
+        fontWeight: 700,
+        lineHeight: 1.2,
+        padding: '10px 16px',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function FactRow({
+  label,
+  value,
+  tone,
+}: ListingProposalFact) {
+  const palette = getTonePalette(tone);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: '48%',
+        minHeight: 88,
+        borderRadius: 22,
+        border: `1px solid ${palette.border}`,
+        background: palette.background,
+        padding: '16px 18px',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          color: 'rgba(226, 232, 240, 0.58)',
+          fontSize: 16,
+          fontWeight: 700,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          marginTop: 10,
+          color: palette.text,
+          fontSize: 24,
+          fontWeight: 700,
+          lineHeight: 1.25,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function KeyValue({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        paddingBottom: 14,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          color: 'rgba(226, 232, 240, 0.56)',
+          fontSize: 16,
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          marginTop: 8,
+          color: '#F8FAFC',
+          fontSize: 22,
+          fontWeight: 700,
+          lineHeight: 1.25,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function MediaLink({
+  label,
+}: {
+  label: string;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 20,
+        border: '1px solid rgba(125, 211, 252, 0.18)',
+        background: 'rgba(125, 211, 252, 0.08)',
+        height: SUMMARY_MEDIA_CARD_BUTTON_HEIGHT,
+        padding: '0 16px',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          color: '#E0F2FE',
+          fontSize: 18,
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function HeroImagePlaceholder({ title }: { title: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        width: '100%',
+        height: '100%',
+        alignItems: 'flex-end',
+        borderRadius: 28,
+        background:
+          'radial-gradient(circle at top left, rgba(125, 211, 252, 0.24), transparent 30%), linear-gradient(135deg, rgba(30, 41, 59, 1), rgba(15, 23, 42, 1))',
+        padding: 30,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          maxWidth: 520,
+          color: '#FFFFFF',
+          fontSize: 52,
+          fontWeight: 700,
+          lineHeight: 1.04,
+        }}
+      >
+        {title}
+      </div>
+    </div>
+  );
+}
+
+function GalleryImageCard({
+  image,
+}: {
+  image: LoadedProposalImage;
+}) {
+  return (
+    <Card width={540} height={600}>
+      <div
+        style={{
+          display: 'flex',
+          height: 482,
+          width: '100%',
+          overflow: 'hidden',
+          borderRadius: 24,
+        }}
+      >
+        <img
+          src={image.dataUrl}
+          alt={image.label}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+          }}
+        />
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          marginTop: 18,
+          color: 'rgba(226, 232, 240, 0.62)',
+          fontSize: 16,
+          fontWeight: 700,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {image.label}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          marginTop: 10,
+          color: '#F8FAFC',
+          fontSize: 24,
+          fontWeight: 700,
+          lineHeight: 1.2,
+        }}
+      >
+        {image.sourceUrl}
+      </div>
+    </Card>
+  );
+}
+
+function SummaryPage({
+  summary,
+  heroImageDataUrl,
+  galleryCount,
+  videoUrl,
+  reportUrl,
+}: {
+  summary: ReturnType<typeof buildListingProposalSummary>;
+  heroImageDataUrl?: string;
+  galleryCount: number;
+  reportUrl?: string;
+  videoUrl?: string;
+}) {
+  const primaryFacts = summary.facts.slice(0, 8);
+
+  return (
+    <PageFrame>
+      <Header
+        title="Коммерческое предложение"
+        subtitle={summary.generatedAtLabel}
+        rightLabel="Автомобиль"
+        rightValue={summary.title}
+      />
+
+      <div
+        style={{
+          display: 'flex',
+          gap: 24,
+          marginTop: 30,
+        }}
+      >
+        <Card width={720} height={720}>
           <div
             style={{
               display: 'flex',
+              height: 470,
               width: '100%',
-              height: 640,
+              overflow: 'hidden',
+              borderRadius: 28,
             }}
           >
             {heroImageDataUrl ? (
@@ -377,11 +563,10 @@ function ListingProposalPage({
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  borderRadius: 28,
                 }}
               />
             ) : (
-              <ProposalImagePlaceholder title={summary.title} />
+              <HeroImagePlaceholder title={summary.title} />
             )}
           </div>
 
@@ -395,22 +580,10 @@ function ListingProposalPage({
             <div
               style={{
                 display: 'flex',
-                color: 'rgba(232, 240, 245, 0.62)',
-                fontSize: 20,
+                color: '#F8FAFC',
+                fontSize: 44,
                 fontWeight: 700,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Лот vin2win
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                fontSize: 42,
-                fontWeight: 700,
-                lineHeight: 1.05,
-                marginTop: 12,
+                lineHeight: 1.06,
               }}
             >
               {summary.title}
@@ -423,51 +596,33 @@ function ListingProposalPage({
                 marginTop: 16,
               }}
             >
-              {listing.generation ? <ProposalChip>{listing.generation}</ProposalChip> : null}
-              <ProposalChip>{listing.bodyType}</ProposalChip>
-              <ProposalChip>{summary.locationLabel}</ProposalChip>
+              <MetaChip>{summary.locationLabel}</MetaChip>
+              <MetaChip>{summary.facts.find((fact) => fact.label === 'Кузов')?.value ?? 'Автомобиль'}</MetaChip>
+              {summary.facts.find((fact) => fact.label === 'Пробег')?.value ? (
+                <MetaChip>{summary.facts.find((fact) => fact.label === 'Пробег')?.value ?? ''}</MetaChip>
+              ) : null}
             </div>
           </div>
-        </div>
+        </Card>
 
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
+            gap: 18,
             width: 360,
-            gap: 20,
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              borderRadius: 34,
-              border: '1px solid rgba(129,216,208,0.22)',
-              background:
-                'radial-gradient(circle at top left, rgba(129,216,208,0.18), transparent 38%), rgba(16,20,24,0.96)',
-              padding: '28px 28px 30px',
-            }}
-          >
+          <Card width={360} height={190} accent>
+            <SectionTitle>Цена по объявлению</SectionTitle>
             <div
               style={{
                 display: 'flex',
-                color: 'rgba(232, 240, 245, 0.62)',
-                fontSize: 20,
-                fontWeight: 700,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Цена по объявлению
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                fontSize: 56,
-                fontWeight: 700,
-                lineHeight: 1.02,
                 marginTop: 18,
+                color: '#F8FAFC',
+                fontSize: 46,
+                fontWeight: 700,
+                lineHeight: 1.08,
               }}
             >
               {summary.priceLabel}
@@ -475,246 +630,222 @@ function ListingProposalPage({
             <div
               style={{
                 display: 'flex',
-                marginTop: 24,
-                borderRadius: 24,
-                border: '1px solid rgba(255,255,255,0.08)',
-                background: 'rgba(255,255,255,0.04)',
-                padding: '16px 18px',
-                color: '#F2F8FA',
-                fontSize: 24,
-                fontWeight: 700,
+                marginTop: 10,
+                color: '#CBD5E1',
+                fontSize: 20,
+                fontWeight: 600,
               }}
             >
               Осмотр: {summary.locationLabel}
             </div>
+          </Card>
+
+          <Card width={360} height={236}>
+            <SectionTitle>Основные данные</SectionTitle>
             <div
               style={{
                 display: 'flex',
-                flexWrap: 'wrap',
-                gap: 10,
+                flexDirection: 'column',
+                gap: 14,
                 marginTop: 18,
               }}
             >
-              {listing.seller.verified ? (
-                <ProposalChip tone="positive">Проверенный профиль</ProposalChip>
-              ) : (
-                <ProposalChip>Источник vin2win</ProposalChip>
-              )}
+              <KeyValue label="Год выпуска" value={summary.facts[0]?.value ?? '—'} />
+              <KeyValue label="Двигатель" value={summary.facts[2]?.value ?? '—'} />
+              <KeyValue label="Коробка" value={summary.facts[4]?.value ?? '—'} />
             </div>
-          </div>
+          </Card>
 
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              borderRadius: 34,
-              border: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(255,255,255,0.04)',
-              padding: '28px 28px 30px',
-            }}
-          >
+          <Card width={360} height={258}>
+            <SectionTitle>Материалы</SectionTitle>
             <div
               style={{
                 display: 'flex',
-                color: 'rgba(232, 240, 245, 0.62)',
-                fontSize: 20,
-                fontWeight: 700,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
+                flexDirection: 'column',
+                gap: 12,
+                marginTop: 18,
               }}
             >
-              Почему обратить внимание
+              <KeyValue label="Фотографии" value={`${galleryCount}`} />
+              {videoUrl ? <MediaLink label="Открыть видео" /> : null}
+              {reportUrl ? <MediaLink label="Открыть VIN-отчёт" /> : null}
+              {!videoUrl && !reportUrl ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    color: '#CBD5E1',
+                    fontSize: 18,
+                    fontWeight: 600,
+                    lineHeight: 1.35,
+                  }}
+                >
+                  Дополнительные ссылки к объявлению отсутствуют.
+                </div>
+              ) : null}
             </div>
-            <div
-              style={{
-                display: 'flex',
-                color: '#F6FBFD',
-                fontSize: 28,
-                fontWeight: 700,
-                lineHeight: 1.35,
-                marginTop: 16,
-              }}
-            >
-              {summary.lead}
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 10,
-                marginTop: 20,
-              }}
-            >
-              {highlights.map((highlight) => (
-                <ProposalChip key={highlight}>{highlight}</ProposalChip>
-              ))}
-            </div>
-          </div>
+          </Card>
         </div>
       </div>
 
       <div
         style={{
           display: 'flex',
-          gap: 28,
-          marginTop: 28,
-          flex: 1,
+          gap: 24,
+          marginTop: 24,
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            flex: 1,
-            borderRadius: 34,
-            border: '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.04)',
-            padding: '28px 28px 30px',
-          }}
-        >
+        <Card width={720} height={692}>
+          <SectionTitle>Ключевые параметры</SectionTitle>
           <div
             style={{
               display: 'flex',
-              color: 'rgba(232, 240, 245, 0.62)',
-              fontSize: 20,
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              gap: 16,
+              marginTop: 22,
+            }}
+          >
+            {primaryFacts.map((fact) => (
+              <FactRow
+                key={fact.label}
+                label={fact.label}
+                value={fact.value}
+                tone={fact.tone}
+              />
+            ))}
+          </div>
+        </Card>
+
+        <Card width={360} height={692}>
+          <SectionTitle>Комментарий по объявлению</SectionTitle>
+          <div
+            style={{
+              display: 'flex',
+              marginTop: 18,
+              color: '#F8FAFC',
+              fontSize: 30,
               fontWeight: 700,
-              letterSpacing: '0.1em',
+              lineHeight: 1.3,
+            }}
+          >
+            {summary.lead}
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              marginTop: 18,
+              color: '#CBD5E1',
+              fontSize: 22,
+              fontWeight: 500,
+              lineHeight: 1.45,
+            }}
+          >
+            {summary.description}
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              height: 1,
+              background: 'rgba(255, 255, 255, 0.08)',
+              marginTop: 22,
+            }}
+          />
+
+          <div
+            style={{
+              display: 'flex',
+              marginTop: 22,
+              color: 'rgba(226, 232, 240, 0.62)',
+              fontSize: 18,
+              fontWeight: 700,
+              letterSpacing: '0.12em',
               textTransform: 'uppercase',
             }}
           >
-            Ключевые параметры
+            Коротко о плюсах
           </div>
           <div
             style={{
               display: 'flex',
               flexWrap: 'wrap',
-              gap: 20,
-              marginTop: 22,
+              gap: 10,
+              marginTop: 16,
             }}
           >
-            {summary.facts.map((fact) => (
-              <ProposalFactCard key={fact.label} fact={fact} />
+            {summary.highlights.map((highlight) => (
+              <MetaChip key={highlight}>{highlight}</MetaChip>
             ))}
           </div>
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            width: 360,
-            borderRadius: 34,
-            border: '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.04)',
-            padding: '28px 28px 30px',
-          }}
-        >
           <div
             style={{
               display: 'flex',
-              color: 'rgba(232, 240, 245, 0.62)',
-              fontSize: 20,
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Комментарий по объявлению
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              color: '#F7FBFC',
-              fontSize: 26,
+              marginTop: 20,
+              color: '#94A3B8',
+              fontSize: 18,
               fontWeight: 500,
-              lineHeight: 1.48,
-              marginTop: 18,
-            }}
-          >
-            {summary.description}
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              height: 1,
-              background: 'rgba(255,255,255,0.08)',
-              marginTop: 22,
-            }}
-          />
-          <div
-            style={{
-              display: 'flex',
-              color: 'rgba(232, 240, 245, 0.62)',
-              fontSize: 20,
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              marginTop: 22,
-            }}
-          >
-            Доступно по запросу
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              color: '#E8FAF7',
-              fontSize: 24,
-              fontWeight: 700,
               lineHeight: 1.4,
-              marginTop: 14,
             }}
           >
-            Осмотр, дополнительные фото, видео и проверка документов организуются через vin2win.
+            {summary.footerNote}
           </div>
-        </div>
+        </Card>
       </div>
+    </PageFrame>
+  );
+}
+
+function GalleryPage({
+  title,
+  images,
+  pageIndex,
+  pageCount,
+}: {
+  title: string;
+  images: LoadedProposalImage[];
+  pageCount: number;
+  pageIndex: number;
+}) {
+  return (
+    <PageFrame>
+      <Header
+        title="Фотографии автомобиля"
+        subtitle={title}
+        rightLabel="Страница"
+        rightValue={`${pageIndex + 1} / ${pageCount}`}
+      />
 
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
+          flexWrap: 'wrap',
           justifyContent: 'space-between',
-          gap: 20,
-          marginTop: 26,
-          paddingTop: 24,
-          borderTop: '1px solid rgba(129,216,208,0.12)',
+          rowGap: 24,
+          marginTop: 30,
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            flex: 1,
-            color: 'rgba(236, 244, 248, 0.74)',
-            fontSize: 22,
-            fontWeight: 500,
-            lineHeight: 1.4,
-          }}
-        >
-          {summary.footerNote}
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            borderRadius: 999,
-            border: '1px solid rgba(129,216,208,0.22)',
-            background: 'rgba(129,216,208,0.08)',
-            padding: '12px 18px',
-            color: '#E8FAF7',
-            fontSize: 22,
-            fontWeight: 700,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-          }}
-        >
-          vin2win.ru
-        </div>
+        {images.map((image) => (
+          <GalleryImageCard key={`${image.label}-${image.sourceUrl}`} image={image} />
+        ))}
       </div>
-    </div>
+    </PageFrame>
   );
 }
 
 function resolveAssetUrl(assetUrl: string, origin: string) {
   return new URL(assetUrl, origin).toString();
+}
+
+function toAbsoluteOptionalUrl(assetUrl: string | undefined, origin: string) {
+  if (!assetUrl) {
+    return undefined;
+  }
+
+  try {
+    return resolveAssetUrl(assetUrl, origin);
+  } catch {
+    return assetUrl;
+  }
 }
 
 async function loadImageAsDataUrl(assetUrl: string | undefined, origin: string) {
@@ -736,6 +867,106 @@ async function loadImageAsDataUrl(assetUrl: string | undefined, origin: string) 
   }
 }
 
+async function loadGalleryImages(listing: SaleListing, origin: string) {
+  const galleryImages = collectListingProposalGalleryImages(listing);
+  const loadedImages = await Promise.all(
+    galleryImages.map(async (image) => {
+      const dataUrl = await loadImageAsDataUrl(image.url, origin);
+      if (!dataUrl) {
+        return null;
+      }
+
+      return {
+        dataUrl,
+        label: image.label,
+        sourceUrl: toAbsoluteOptionalUrl(image.url, origin) ?? image.url,
+      } satisfies LoadedProposalImage;
+    })
+  );
+
+  return loadedImages.filter((image): image is LoadedProposalImage => Boolean(image));
+}
+
+async function renderProposalPage(
+  page: ReactElement,
+  fonts: LoadedProposalFonts
+) {
+  const image = new ImageResponse(page, {
+    width: A4_IMAGE_WIDTH,
+    height: A4_IMAGE_HEIGHT,
+    fonts: [
+      {
+        name: 'Manrope',
+        data: fonts.regular,
+        style: 'normal',
+        weight: 500,
+      },
+      {
+        name: 'Manrope',
+        data: fonts.bold,
+        style: 'normal',
+        weight: 700,
+      },
+    ],
+  });
+
+  return image.arrayBuffer();
+}
+
+async function appendPngPage(pdfDocument: PDFDocument, pngBytes: ArrayBuffer) {
+  const page = pdfDocument.addPage([A4_PDF_WIDTH, A4_PDF_HEIGHT]);
+  const image = await pdfDocument.embedPng(pngBytes);
+
+  page.drawImage(image, {
+    x: 0,
+    y: 0,
+    width: A4_PDF_WIDTH,
+    height: A4_PDF_HEIGHT,
+  });
+
+  return page;
+}
+
+function addUriLinkAnnotation(
+  pdfDocument: PDFDocument,
+  page: Awaited<ReturnType<typeof appendPngPage>>,
+  rect: {
+    height: number;
+    width: number;
+    x: number;
+    yTop: number;
+  },
+  uri: string
+) {
+  const scaleX = A4_PDF_WIDTH / A4_IMAGE_WIDTH;
+  const scaleY = A4_PDF_HEIGHT / A4_IMAGE_HEIGHT;
+  const x = rect.x * scaleX;
+  const y = A4_PDF_HEIGHT - (rect.yTop + rect.height) * scaleY;
+  const width = rect.width * scaleX;
+  const height = rect.height * scaleY;
+
+  const annotation = pdfDocument.context.obj({
+    Type: 'Annot',
+    Subtype: 'Link',
+    Rect: [x, y, x + width, y + height],
+    Border: [0, 0, 0],
+    A: {
+      Type: 'Action',
+      S: 'URI',
+      URI: PDFString.of(uri),
+    },
+  });
+
+  const existingAnnotations = page.node.lookupMaybe(PDFName.of('Annots'), PDFArray);
+
+  if (existingAnnotations) {
+    existingAnnotations.push(annotation);
+    return;
+  }
+
+  page.node.set(PDFName.of('Annots'), pdfDocument.context.obj([annotation]));
+}
+
 export async function createListingProposalPdf(
   listing: SaleListing,
   options: {
@@ -744,54 +975,80 @@ export async function createListingProposalPdf(
   }
 ) {
   const generatedAt = options.now ?? new Date();
-  const [fonts, heroImageDataUrl] = await Promise.all([
+  const summary = buildListingProposalSummary(listing, generatedAt);
+  const [fonts, loadedGalleryImages] = await Promise.all([
     loadProposalFonts(),
-    loadImageAsDataUrl(listing.images[0], options.origin),
+    loadGalleryImages(listing, options.origin),
   ]);
 
-  const previewImage = new ImageResponse(
-    <ListingProposalPage
-      listing={listing}
-      heroImageDataUrl={heroImageDataUrl}
-      generatedAt={generatedAt}
+  const absoluteVideoUrl = toAbsoluteOptionalUrl(listing.videoUrl, options.origin);
+  const absoluteReportUrl = toAbsoluteOptionalUrl(listing.reportUrl, options.origin);
+  const galleryCount = collectListingProposalGalleryImages(listing).length;
+  const summaryPageBytes = await renderProposalPage(
+    <SummaryPage
+      summary={summary}
+      heroImageDataUrl={loadedGalleryImages[0]?.dataUrl}
+      galleryCount={galleryCount}
+      reportUrl={absoluteReportUrl}
+      videoUrl={absoluteVideoUrl}
     />,
-    {
-      width: A4_IMAGE_WIDTH,
-      height: A4_IMAGE_HEIGHT,
-      fonts: [
-        {
-          name: 'Manrope',
-          data: fonts.regular,
-          style: 'normal',
-          weight: 500,
-        },
-        {
-          name: 'Manrope',
-          data: fonts.bold,
-          style: 'normal',
-          weight: 700,
-        },
-      ],
-    }
+    fonts
   );
 
-  const pngBytes = await previewImage.arrayBuffer();
   const pdfDocument = await PDFDocument.create();
-  pdfDocument.setTitle(buildListingProposalSummary(listing, generatedAt).title);
-  pdfDocument.setSubject('Коммерческое предложение vin2win');
-  pdfDocument.setCreator('vin2win');
-  pdfDocument.setProducer('vin2win');
+  pdfDocument.setTitle(summary.title);
+  pdfDocument.setSubject('Коммерческое предложение по автомобилю');
+  pdfDocument.setCreator('PDF generator');
+  pdfDocument.setProducer('PDF generator');
   pdfDocument.setCreationDate(generatedAt);
 
-  const page = pdfDocument.addPage([A4_PDF_WIDTH, A4_PDF_HEIGHT]);
-  const proposalImage = await pdfDocument.embedPng(pngBytes);
+  const summaryPage = await appendPngPage(pdfDocument, summaryPageBytes);
 
-  page.drawImage(proposalImage, {
-    x: 0,
-    y: 0,
-    width: A4_PDF_WIDTH,
-    height: A4_PDF_HEIGHT,
-  });
+  if (absoluteVideoUrl) {
+    addUriLinkAnnotation(
+      pdfDocument,
+      summaryPage,
+      {
+        x: SUMMARY_MEDIA_CARD_BUTTON_X,
+        yTop: SUMMARY_MEDIA_CARD_VIDEO_BUTTON_TOP,
+        width: SUMMARY_MEDIA_CARD_BUTTON_WIDTH,
+        height: SUMMARY_MEDIA_CARD_BUTTON_HEIGHT,
+      },
+      absoluteVideoUrl
+    );
+  }
+
+  if (absoluteReportUrl) {
+    addUriLinkAnnotation(
+      pdfDocument,
+      summaryPage,
+      {
+        x: SUMMARY_MEDIA_CARD_BUTTON_X,
+        yTop: SUMMARY_MEDIA_CARD_REPORT_BUTTON_TOP,
+        width: SUMMARY_MEDIA_CARD_BUTTON_WIDTH,
+        height: SUMMARY_MEDIA_CARD_BUTTON_HEIGHT,
+      },
+      absoluteReportUrl
+    );
+  }
+
+  if (loadedGalleryImages.length > 1) {
+    const galleryChunks = chunkArray(loadedGalleryImages, GALLERY_PAGE_SIZE);
+
+    for (const [pageIndex, images] of galleryChunks.entries()) {
+      const galleryPageBytes = await renderProposalPage(
+        <GalleryPage
+          title={summary.title}
+          images={images}
+          pageIndex={pageIndex}
+          pageCount={galleryChunks.length}
+        />,
+        fonts
+      );
+
+      await appendPngPage(pdfDocument, galleryPageBytes);
+    }
+  }
 
   return pdfDocument.save();
 }
