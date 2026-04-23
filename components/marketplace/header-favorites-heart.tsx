@@ -2,22 +2,10 @@ import { Heart } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
-export type HeaderFavoritesHeartState = 'default' | 'filled' | 'active';
+export type HeaderFavoritesHeartState = 'default' | 'filled';
 
-export function getHeaderFavoritesHeartState(input: {
-  favoriteCount: number;
-  pathname: string | null;
-  hash: string;
-}): HeaderFavoritesHeartState {
-  if (input.pathname === '/account' && input.hash === '#favorites') {
-    return 'active';
-  }
-
-  if (input.favoriteCount > 0) {
-    return 'filled';
-  }
-
-  return 'default';
+export function getHeaderFavoritesHeartState(favoriteCount: number): HeaderFavoritesHeartState {
+  return favoriteCount > 0 ? 'filled' : 'default';
 }
 
 export function HeaderFavoritesHeartIcon({
@@ -33,8 +21,7 @@ export function HeaderFavoritesHeartIcon({
       className={cn(
         className,
         state === 'default' && 'text-muted-foreground',
-        state === 'filled' && 'fill-current text-teal-accent',
-        state === 'active' && 'fill-current text-red-500'
+        state === 'filled' && 'fill-current text-red-500'
       )}
     />
   );

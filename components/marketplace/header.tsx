@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -38,15 +38,6 @@ type SessionUser = {
 };
 
 const emptyThemeSubscription = () => () => {};
-const subscribeToHashChanges = (onStoreChange: () => void) => {
-  if (typeof window === 'undefined') {
-    return () => {};
-  }
-
-  window.addEventListener('hashchange', onStoreChange);
-  return () => window.removeEventListener('hashchange', onStoreChange);
-};
-const getHashSnapshot = () => (typeof window === 'undefined' ? '' : window.location.hash);
 const CHAT_EVENT_TYPES = [
   'chat.message.created',
   'chat.read.updated',
@@ -212,16 +203,7 @@ function AuthControls({
 }) {
   const pathname = usePathname();
   const nextPath = pathname ? `?next=${encodeURIComponent(pathname)}` : '';
-  const currentHash = useSyncExternalStore(subscribeToHashChanges, getHashSnapshot, () => '');
-  const favoritesHeartState = useMemo(
-    () =>
-      getHeaderFavoritesHeartState({
-        favoriteCount,
-        pathname,
-        hash: currentHash,
-      }),
-    [currentHash, favoriteCount, pathname]
-  );
+  const favoritesHeartState = getHeaderFavoritesHeartState(favoriteCount);
 
   if (loading) {
     return <div className={cn('rounded-lg bg-muted/60', mobile ? 'h-9 w-full' : 'h-9 w-28 animate-pulse')} />;
