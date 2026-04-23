@@ -45,12 +45,6 @@ const RESOURCE_LABELS: Record<string, string> = {
   pre_resources: 'До ресурсов',
 };
 
-const RESOURCE_COLORS: Record<string, string> = {
-  not_listed: 'text-muted-foreground',
-  on_resources: 'text-teal-accent',
-  pre_resources: 'text-warning',
-};
-
 const RESOURCE_BADGE_STYLES: Record<string, string> = {
   not_listed: 'border-border/70 bg-background/70 text-muted-foreground dark:bg-background/10',
   on_resources: 'border-teal-accent/20 bg-[var(--accent-bg-soft)] text-teal-accent',
@@ -109,7 +103,6 @@ export function DealBlock({ listing, currentUserId, className }: DealBlockProps)
 
   const sellerLabel = SELLER_LABELS[listing.sellerType] ?? listing.sellerType;
   const resourceLabel = RESOURCE_LABELS[listing.resourceStatus] ?? listing.resourceStatus;
-  const resourceColor = RESOURCE_COLORS[listing.resourceStatus] ?? 'text-muted-foreground';
   const resourceBadgeStyle =
     RESOURCE_BADGE_STYLES[listing.resourceStatus] ?? RESOURCE_BADGE_STYLES.not_listed;
   const priceInHandLabel =
@@ -118,16 +111,19 @@ export function DealBlock({ listing, currentUserId, className }: DealBlockProps)
     listing.priceOnResources != null ? formatPrice(listing.priceOnResources) : 'Не указано';
   const sellerProfileHref = `/seller/${listing.seller.id}`;
 
-  const actionButtons = (
+  const primaryActionButton = (
+    <OpenChatButton
+      contextType="SALE_LISTING"
+      listingId={listing.id}
+      currentUserId={currentUserId}
+      ownerUserId={listing.ownerUserId}
+      nextPath={`/listing/${listing.id}`}
+      className="h-11 w-full rounded-2xl border-border/80 bg-background/70 dark:bg-background/10"
+    />
+  );
+
+  const secondaryActionButtons = (
     <>
-      <OpenChatButton
-        contextType="SALE_LISTING"
-        listingId={listing.id}
-        currentUserId={currentUserId}
-        ownerUserId={listing.ownerUserId}
-        nextPath={`/listing/${listing.id}`}
-        className="h-11 w-full rounded-2xl border-border/80 bg-background/70 dark:bg-background/10"
-      />
       {listing.seller.phone ? (
         showPhone ? (
           <>
@@ -215,6 +211,51 @@ export function DealBlock({ listing, currentUserId, className }: DealBlockProps)
         </span>
       ) : null}
     </Link>
+  );
+
+  const mobileStickySellerProfileLink = (
+    <Link
+      href={sellerProfileHref}
+      className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background/70 px-3 py-2.5 text-xs transition-colors hover:border-teal-accent/35 hover:text-foreground dark:bg-background/10"
+      aria-label={`Открыть профиль продавца ${listing.seller.name}`}
+    >
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          Профиль продавца
+        </p>
+        <p className="mt-1 truncate text-sm font-semibold text-foreground">{listing.seller.name}</p>
+      </div>
+      {listing.seller.verified ? (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2 py-1 font-medium text-success">
+          <CheckCircle className="h-3 w-3" />
+          Проверен
+        </span>
+      ) : null}
+    </Link>
+  );
+
+  const mobileSecondaryActions = (
+    <div className="overflow-hidden rounded-[28px] border border-border/70 bg-card/92 shadow-[0_12px_32px_rgba(15,23,42,0.08)] dark:bg-surface-elevated/92">
+      <div
+        className="h-px bg-gradient-to-r from-transparent via-teal-accent/60 to-transparent"
+        aria-hidden="true"
+      />
+      <div className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Связь по лоту</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Контакт, PDF и дополнительные материалы доступны ниже.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border/70 bg-card/80 p-2 text-teal-accent dark:bg-surface-elevated/80">
+            <Phone className="h-4 w-4" />
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-2">{secondaryActionButtons}</div>
+      </div>
+    </div>
   );
 
   return (
@@ -317,12 +358,19 @@ export function DealBlock({ listing, currentUserId, className }: DealBlockProps)
                 </div>
               </div>
 
-              <div className="mt-4 space-y-2">{actionButtons}</div>
+              <div className="mt-4 space-y-2">
+                {primaryActionButton}
+                {secondaryActionButtons}
+              </div>
             </div>
 
             <div className="mt-4">{sellerProfileLink}</div>
           </div>
         </div>
+      </div>
+
+      <div className="mt-4 lg:hidden" data-mobile-secondary-actions="true">
+        {mobileSecondaryActions}
       </div>
 
       <div
@@ -339,15 +387,8 @@ export function DealBlock({ listing, currentUserId, className }: DealBlockProps)
         <div className="mx-auto max-w-7xl rounded-[24px] border border-border/70 bg-card/90 p-3 shadow-[0_10px_24px_rgba(0,0,0,0.16)] dark:bg-surface-elevated/90">
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="text-lg font-semibold tabular-nums text-foreground">
-                  {formatPrice(listing.price)}
-                </div>
-              </div>
-              <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                <span>{sellerLabel}</span>
-                <span className={resourceColor}>{resourceLabel}</span>
-                <span>{listing.city}</span>
+              <div className="text-lg font-semibold tabular-nums text-foreground">
+                {formatPrice(listing.price)}
               </div>
               {listing.potentialBenefit ? (
                 <div className="mt-2">
@@ -356,8 +397,8 @@ export function DealBlock({ listing, currentUserId, className }: DealBlockProps)
               ) : null}
             </div>
           </div>
-          <div className="mt-3 space-y-2">{actionButtons}</div>
-          <div className="mt-3">{sellerProfileLink}</div>
+          <div className="mt-3">{primaryActionButton}</div>
+          <div className="mt-3">{mobileStickySellerProfileLink}</div>
         </div>
       </div>
     </>

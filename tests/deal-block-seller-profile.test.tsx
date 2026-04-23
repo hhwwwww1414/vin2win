@@ -1,5 +1,5 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
+import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DealBlock } from '@/components/listing/deal-block';
 import type { SaleListing } from '@/lib/types';
@@ -47,6 +47,25 @@ test('deal block renders seller profile entry as link in desktop and mobile layo
 
   assert.equal(markup.match(/href="\/seller\/seller-1"/g)?.length, 2);
   assert.match(markup, /PDF клиенту/u);
-  assert.match(markup, /Владимир Мажирин/);
-  assert.doesNotMatch(markup, /Карточка продавца доступна внутри лота/);
+  assert.match(markup, /Владимир Мажирин/u);
+  assert.doesNotMatch(markup, /Карточка продавца доступна внутри лота/u);
+});
+
+test('mobile sticky summary keeps only primary CTA while secondary actions stay inline', () => {
+  const markup = renderToStaticMarkup(<DealBlock listing={listing} />);
+  const secondaryStart = markup.indexOf('data-mobile-secondary-actions="true"');
+  const stickyStart = markup.indexOf('data-mobile-deal-block="true"');
+
+  assert.ok(secondaryStart >= 0);
+  assert.ok(stickyStart > secondaryStart);
+
+  const mobileSecondaryMarkup = markup.slice(secondaryStart, stickyStart);
+  const mobileStickyMarkup = markup.slice(stickyStart);
+
+  assert.match(mobileSecondaryMarkup, /Показать контакт/u);
+  assert.match(mobileSecondaryMarkup, /PDF клиенту/u);
+  assert.match(mobileStickyMarkup, /Написать/u);
+  assert.match(mobileStickyMarkup, /Профиль продавца/u);
+  assert.doesNotMatch(mobileStickyMarkup, /Показать контакт/u);
+  assert.doesNotMatch(mobileStickyMarkup, /PDF клиенту/u);
 });
