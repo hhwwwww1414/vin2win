@@ -57,7 +57,7 @@ function truncateText(value: string, maxLength: number) {
     return value;
   }
 
-  return `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+  return `${value.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
 function getAvtotekaTone(status: SaleListing['avtotekaStatus']): ListingProposalTone {
@@ -78,18 +78,18 @@ function getPaintTone(paintCount: number): ListingProposalTone {
 
 function buildLead(listing: SaleListing) {
   if (listing.paintCount === 0 && listing.avtotekaStatus === 'green' && !listing.accident) {
-    return 'Аккуратный вариант с прозрачной историей и понятными исходными данными.';
+    return 'Автомобиль в аккуратном состоянии, с прозрачной историей и понятной эксплуатацией.';
   }
 
   if (listing.paintCount === 0) {
-    return 'Автомобиль без заявленных окрасов, подходит для быстрого показа клиенту.';
+    return 'По кузову без заявленных окрасов.';
   }
 
   if (listing.needsInvestment) {
-    return 'Перед покупкой стоит отдельно проверить будущие вложения и технические нюансы.';
+    return 'Перед сделкой стоит отдельно проверить возможные вложения и технические нюансы.';
   }
 
-  return 'Собрали клиентскую выжимку по объявлению без внутренних рабочих пометок.';
+  return 'В предложении указаны ключевые данные по состоянию и комплектации автомобиля.';
 }
 
 function buildHighlights(listing: SaleListing) {
@@ -201,8 +201,8 @@ export function buildListingProposalSummary(
     lead: buildLead(listing),
     description:
       description ||
-      'Подробное описание, дополнительные фотографии и история проверок доступны по запросу.',
-    footerNote: 'Дополнительные фотографии, видео и материалы приложены к предложению.',
+      'Подробное описание, фотографии и история проверок доступны в приложенных материалах.',
+    footerNote: 'Фотографии, видео и отчёт приложены к предложению.',
     highlights: buildHighlights(listing),
     facts: [
       { label: 'Год выпуска', value: String(listing.year) },

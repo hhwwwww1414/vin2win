@@ -18,15 +18,23 @@ const A4_IMAGE_HEIGHT = 1754;
 const A4_PDF_WIDTH = 595.28;
 const A4_PDF_HEIGHT = 841.89;
 const GALLERY_PAGE_SIZE = 4;
-const SUMMARY_HEADER_HEIGHT = 138;
-const SUMMARY_ROW_TOP = 56 + SUMMARY_HEADER_HEIGHT + 30;
-const SUMMARY_RIGHT_COLUMN_X = 68 + 720 + 24;
-const SUMMARY_MEDIA_CARD_TOP = SUMMARY_ROW_TOP + 190 + 18 + 236 + 18;
-const SUMMARY_MEDIA_CARD_BUTTON_X = SUMMARY_RIGHT_COLUMN_X + 24;
-const SUMMARY_MEDIA_CARD_BUTTON_WIDTH = 312;
-const SUMMARY_MEDIA_CARD_VIDEO_BUTTON_TOP = SUMMARY_MEDIA_CARD_TOP + 132;
-const SUMMARY_MEDIA_CARD_REPORT_BUTTON_TOP = SUMMARY_MEDIA_CARD_TOP + 208;
-const SUMMARY_MEDIA_CARD_BUTTON_HEIGHT = 58;
+
+const FRAME_PADDING_TOP = 56;
+const FRAME_PADDING_X = 68;
+const SUMMARY_HEADER_HEIGHT = 220;
+const SUMMARY_CONTENT_TOP = FRAME_PADDING_TOP + SUMMARY_HEADER_HEIGHT + 30;
+const SUMMARY_LEFT_CARD_WIDTH = 720;
+const SUMMARY_RIGHT_COLUMN_WIDTH = 360;
+const SUMMARY_RIGHT_COLUMN_X = FRAME_PADDING_X + SUMMARY_LEFT_CARD_WIDTH + 24;
+const SUMMARY_PRICE_CARD_HEIGHT = 196;
+const SUMMARY_FACTS_CARD_HEIGHT = 244;
+const SUMMARY_MATERIALS_CARD_TOP =
+  SUMMARY_CONTENT_TOP + SUMMARY_PRICE_CARD_HEIGHT + 18 + SUMMARY_FACTS_CARD_HEIGHT + 18;
+const SUMMARY_MATERIALS_BUTTON_X = SUMMARY_RIGHT_COLUMN_X + 24;
+const SUMMARY_MATERIALS_BUTTON_TOP = SUMMARY_MATERIALS_CARD_TOP + 152;
+const SUMMARY_MATERIALS_BUTTON_WIDTH = 312;
+const SUMMARY_MATERIALS_BUTTON_HEIGHT = 58;
+const SUMMARY_MATERIALS_BUTTON_GAP = 14;
 
 const MANROPE_REGULAR_PATH = join(
   process.cwd(),
@@ -49,7 +57,11 @@ type LoadedProposalFonts = {
 type LoadedProposalImage = {
   dataUrl: string;
   label: string;
-  sourceUrl: string;
+};
+
+type ProposalMediaLink = {
+  label: string;
+  url: string;
 };
 
 let cachedFontsPromise: Promise<LoadedProposalFonts> | null = null;
@@ -120,7 +132,7 @@ function PageFrame({
         background:
           'radial-gradient(circle at top left, rgba(125, 211, 252, 0.14), transparent 28%), linear-gradient(180deg, #0B1118 0%, #111827 48%, #0B1118 100%)',
         color: '#FFFFFF',
-        padding: '56px 68px',
+        padding: `${FRAME_PADDING_TOP}px ${FRAME_PADDING_X}px`,
         fontFamily: 'Manrope',
       }}
     >
@@ -129,31 +141,37 @@ function PageFrame({
   );
 }
 
-function Header({
+function PageHeader({
+  eyebrow,
   title,
   subtitle,
   rightLabel,
   rightValue,
+  height,
+  titleSize = 58,
 }: {
+  eyebrow: string;
   title: string;
-  subtitle: string;
-  rightLabel: string;
-  rightValue: string;
+  subtitle?: string;
+  rightLabel?: string;
+  rightValue?: string;
+  height: number;
+  titleSize?: number;
 }) {
   return (
     <div
       style={{
         display: 'flex',
-        alignItems: 'flex-start',
         justifyContent: 'space-between',
-        height: SUMMARY_HEADER_HEIGHT,
+        alignItems: 'flex-start',
+        height,
       }}
     >
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
-          width: 760,
+          width: rightValue ? 760 : '100%',
         }}
       >
         <div
@@ -166,67 +184,80 @@ function Header({
             textTransform: 'uppercase',
           }}
         >
-          Подборка по автомобилю
+          {eyebrow}
         </div>
         <div
           style={{
             display: 'flex',
-            marginTop: 14,
-            fontSize: 58,
+            marginTop: 18,
+            color: '#F8FAFC',
+            fontSize: titleSize,
             fontWeight: 700,
             lineHeight: 1.04,
           }}
         >
           {title}
         </div>
-        <div
-          style={{
-            display: 'flex',
-            marginTop: 12,
-            fontSize: 24,
-            fontWeight: 500,
-            color: 'rgba(226, 232, 240, 0.78)',
-          }}
-        >
-          {subtitle}
-        </div>
+        {subtitle ? (
+          <div
+            style={{
+              display: 'flex',
+              marginTop: 14,
+              color: 'rgba(226, 232, 240, 0.82)',
+              fontSize: 24,
+              fontWeight: 500,
+              lineHeight: 1.3,
+            }}
+          >
+            {subtitle}
+          </div>
+        ) : null}
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-        }}
-      >
+      {rightValue ? (
         <div
           style={{
             display: 'flex',
-            color: 'rgba(226, 232, 240, 0.62)',
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            width: 240,
           }}
         >
-          {rightLabel}
+          {rightLabel ? (
+            <div
+              style={{
+                display: 'flex',
+                color: 'rgba(226, 232, 240, 0.62)',
+                fontSize: 18,
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+              }}
+            >
+              {rightLabel}
+            </div>
+          ) : null}
+          <div
+            style={{
+              display: 'flex',
+              marginTop: 12,
+              width: '100%',
+              justifyContent: 'center',
+              borderRadius: 999,
+              border: '1px solid rgba(148, 163, 184, 0.18)',
+              background: 'rgba(255, 255, 255, 0.06)',
+              padding: '14px 18px',
+              color: '#F8FAFC',
+              fontSize: 21,
+              fontWeight: 700,
+              lineHeight: 1.2,
+              textAlign: 'center',
+            }}
+          >
+            {rightValue}
+          </div>
         </div>
-        <div
-          style={{
-            display: 'flex',
-            marginTop: 12,
-            borderRadius: 999,
-            border: '1px solid rgba(148, 163, 184, 0.18)',
-            background: 'rgba(255, 255, 255, 0.06)',
-            padding: '14px 22px',
-            color: '#F8FAFC',
-            fontSize: 22,
-            fontWeight: 700,
-          }}
-        >
-          {rightValue}
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -237,7 +268,7 @@ function Card({
   height,
   accent = false,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   width?: number;
   height?: number;
   accent?: boolean;
@@ -247,17 +278,15 @@ function Card({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        width,
-        height,
         borderRadius: 32,
         border: accent
           ? '1px solid rgba(125, 211, 252, 0.18)'
           : '1px solid rgba(255, 255, 255, 0.08)',
-        background: accent
-          ? '#172230'
-          : 'rgba(255, 255, 255, 0.04)',
+        background: accent ? '#172230' : 'rgba(255, 255, 255, 0.04)',
         padding: 24,
         overflow: 'hidden',
+        ...(width ? { width } : {}),
+        ...(height ? { height } : {}),
       }}
     >
       {children}
@@ -307,7 +336,8 @@ function FactRow({
   label,
   value,
   tone,
-}: ListingProposalFact) {
+  width = 338,
+}: ListingProposalFact & { width?: number }) {
   const palette = getTonePalette(tone);
 
   return (
@@ -315,12 +345,12 @@ function FactRow({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        width: '48%',
-        minHeight: 88,
+        width,
+        minHeight: 120,
         borderRadius: 22,
         border: `1px solid ${palette.border}`,
         background: palette.background,
-        padding: '16px 18px',
+        padding: '18px 20px',
       }}
     >
       <div
@@ -338,11 +368,11 @@ function FactRow({
       <div
         style={{
           display: 'flex',
-          marginTop: 10,
+          marginTop: 12,
           color: palette.text,
-          fontSize: 24,
+          fontSize: 28,
           fontWeight: 700,
-          lineHeight: 1.25,
+          lineHeight: 1.2,
         }}
       >
         {value}
@@ -395,11 +425,7 @@ function KeyValue({
   );
 }
 
-function MediaLink({
-  label,
-}: {
-  label: string;
-}) {
+function MediaLink({ label }: { label: string }) {
   return (
     <div
       style={{
@@ -409,7 +435,7 @@ function MediaLink({
         borderRadius: 20,
         border: '1px solid rgba(125, 211, 252, 0.18)',
         background: 'rgba(125, 211, 252, 0.08)',
-        height: SUMMARY_MEDIA_CARD_BUTTON_HEIGHT,
+        height: SUMMARY_MATERIALS_BUTTON_HEIGHT,
         padding: '0 16px',
       }}
     >
@@ -465,11 +491,11 @@ function GalleryImageCard({
   image: LoadedProposalImage;
 }) {
   return (
-    <Card width={540} height={600}>
+    <Card width={540} height={588}>
       <div
         style={{
           display: 'flex',
-          height: 482,
+          height: 492,
           width: '100%',
           overflow: 'hidden',
           borderRadius: 24,
@@ -490,25 +516,13 @@ function GalleryImageCard({
           display: 'flex',
           marginTop: 18,
           color: 'rgba(226, 232, 240, 0.62)',
-          fontSize: 16,
+          fontSize: 18,
           fontWeight: 700,
           letterSpacing: '0.1em',
           textTransform: 'uppercase',
         }}
       >
         {image.label}
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          marginTop: 10,
-          color: '#F8FAFC',
-          fontSize: 24,
-          fontWeight: 700,
-          lineHeight: 1.2,
-        }}
-      >
-        {image.sourceUrl}
       </div>
     </Card>
   );
@@ -518,24 +532,31 @@ function SummaryPage({
   summary,
   heroImageDataUrl,
   galleryCount,
-  videoUrl,
-  reportUrl,
+  mediaLinks,
 }: {
   summary: ReturnType<typeof buildListingProposalSummary>;
   heroImageDataUrl?: string;
   galleryCount: number;
-  reportUrl?: string;
-  videoUrl?: string;
+  mediaLinks: ProposalMediaLink[];
 }) {
-  const primaryFacts = summary.facts.slice(0, 8);
+  const overviewFacts = [
+    summary.facts[0],
+    summary.facts[2],
+    summary.facts[4],
+    summary.facts[5],
+  ].filter(Boolean);
+  const mileageFact = summary.facts.find((fact) => fact.label === 'Пробег');
+  const bodyTypeFact = summary.facts.find((fact) => fact.label === 'Кузов');
 
   return (
     <PageFrame>
-      <Header
-        title="Коммерческое предложение"
-        subtitle={summary.generatedAtLabel}
-        rightLabel="Автомобиль"
-        rightValue={summary.title}
+      <PageHeader
+        eyebrow="Автомобиль в продаже"
+        title={summary.subtitle}
+        subtitle={summary.title}
+        rightLabel="Дата"
+        rightValue={summary.generatedAtLabel}
+        height={SUMMARY_HEADER_HEIGHT}
       />
 
       <div
@@ -545,11 +566,11 @@ function SummaryPage({
           marginTop: 30,
         }}
       >
-        <Card width={720} height={720}>
+        <Card width={SUMMARY_LEFT_CARD_WIDTH} height={752}>
           <div
             style={{
               display: 'flex',
-              height: 470,
+              height: 468,
               width: '100%',
               overflow: 'hidden',
               borderRadius: 28,
@@ -581,9 +602,9 @@ function SummaryPage({
               style={{
                 display: 'flex',
                 color: '#F8FAFC',
-                fontSize: 44,
+                fontSize: 42,
                 fontWeight: 700,
-                lineHeight: 1.06,
+                lineHeight: 1.08,
               }}
             >
               {summary.title}
@@ -597,10 +618,8 @@ function SummaryPage({
               }}
             >
               <MetaChip>{summary.locationLabel}</MetaChip>
-              <MetaChip>{summary.facts.find((fact) => fact.label === 'Кузов')?.value ?? 'Автомобиль'}</MetaChip>
-              {summary.facts.find((fact) => fact.label === 'Пробег')?.value ? (
-                <MetaChip>{summary.facts.find((fact) => fact.label === 'Пробег')?.value ?? ''}</MetaChip>
-              ) : null}
+              {bodyTypeFact?.value ? <MetaChip>{bodyTypeFact.value}</MetaChip> : null}
+              {mileageFact?.value ? <MetaChip>{mileageFact.value}</MetaChip> : null}
             </div>
           </div>
         </Card>
@@ -610,17 +629,17 @@ function SummaryPage({
             display: 'flex',
             flexDirection: 'column',
             gap: 18,
-            width: 360,
+            width: SUMMARY_RIGHT_COLUMN_WIDTH,
           }}
         >
-          <Card width={360} height={190} accent>
+          <Card width={SUMMARY_RIGHT_COLUMN_WIDTH} height={SUMMARY_PRICE_CARD_HEIGHT} accent>
             <SectionTitle>Цена по объявлению</SectionTitle>
             <div
               style={{
                 display: 'flex',
                 marginTop: 18,
                 color: '#F8FAFC',
-                fontSize: 46,
+                fontSize: 44,
                 fontWeight: 700,
                 lineHeight: 1.08,
               }}
@@ -640,7 +659,7 @@ function SummaryPage({
             </div>
           </Card>
 
-          <Card width={360} height={236}>
+          <Card width={SUMMARY_RIGHT_COLUMN_WIDTH} height={SUMMARY_FACTS_CARD_HEIGHT}>
             <SectionTitle>Основные данные</SectionTitle>
             <div
               style={{
@@ -650,26 +669,28 @@ function SummaryPage({
                 marginTop: 18,
               }}
             >
-              <KeyValue label="Год выпуска" value={summary.facts[0]?.value ?? '—'} />
-              <KeyValue label="Двигатель" value={summary.facts[2]?.value ?? '—'} />
-              <KeyValue label="Коробка" value={summary.facts[4]?.value ?? '—'} />
+              {overviewFacts.map((fact) => (
+                <KeyValue key={fact.label} label={fact.label} value={fact.value} />
+              ))}
             </div>
           </Card>
 
-          <Card width={360} height={258}>
+          <Card width={SUMMARY_RIGHT_COLUMN_WIDTH} height={276}>
             <SectionTitle>Материалы</SectionTitle>
             <div
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 12,
+                gap: 14,
                 marginTop: 18,
               }}
             >
               <KeyValue label="Фотографии" value={`${galleryCount}`} />
-              {videoUrl ? <MediaLink label="Открыть видео" /> : null}
-              {reportUrl ? <MediaLink label="Открыть VIN-отчёт" /> : null}
-              {!videoUrl && !reportUrl ? (
+              {mediaLinks.length ? (
+                mediaLinks.map((mediaLink) => (
+                  <MediaLink key={mediaLink.label} label={mediaLink.label} />
+                ))
+              ) : (
                 <div
                   style={{
                     display: 'flex',
@@ -681,51 +702,50 @@ function SummaryPage({
                 >
                   Дополнительные ссылки к объявлению отсутствуют.
                 </div>
-              ) : null}
+              )}
             </div>
           </Card>
         </div>
       </div>
+    </PageFrame>
+  );
+}
+
+function DetailsPage({
+  summary,
+}: {
+  summary: ReturnType<typeof buildListingProposalSummary>;
+}) {
+  return (
+    <PageFrame>
+      <PageHeader
+        eyebrow="Описание автомобиля"
+        title={summary.title}
+        subtitle="Ключевые данные по состоянию, комплектации и истории эксплуатации."
+        rightLabel="Город осмотра"
+        rightValue={summary.locationLabel}
+        height={188}
+        titleSize={50}
+      />
 
       <div
         style={{
           display: 'flex',
+          flexDirection: 'column',
           gap: 24,
-          marginTop: 24,
+          marginTop: 30,
         }}
       >
-        <Card width={720} height={692}>
-          <SectionTitle>Ключевые параметры</SectionTitle>
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-              gap: 16,
-              marginTop: 22,
-            }}
-          >
-            {primaryFacts.map((fact) => (
-              <FactRow
-                key={fact.label}
-                label={fact.label}
-                value={fact.value}
-                tone={fact.tone}
-              />
-            ))}
-          </div>
-        </Card>
-
-        <Card width={360} height={692}>
-          <SectionTitle>Комментарий по объявлению</SectionTitle>
+        <Card height={304}>
+          <SectionTitle>Описание</SectionTitle>
           <div
             style={{
               display: 'flex',
               marginTop: 18,
               color: '#F8FAFC',
-              fontSize: 30,
+              fontSize: 34,
               fontWeight: 700,
-              lineHeight: 1.3,
+              lineHeight: 1.28,
             }}
           >
             {summary.lead}
@@ -735,52 +755,54 @@ function SummaryPage({
               display: 'flex',
               marginTop: 18,
               color: '#CBD5E1',
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: 500,
-              lineHeight: 1.45,
+              lineHeight: 1.42,
             }}
           >
             {summary.description}
           </div>
+        </Card>
 
-          <div
-            style={{
-              display: 'flex',
-              height: 1,
-              background: 'rgba(255, 255, 255, 0.08)',
-              marginTop: 22,
-            }}
-          />
-
-          <div
-            style={{
-              display: 'flex',
-              marginTop: 22,
-              color: 'rgba(226, 232, 240, 0.62)',
-              fontSize: 18,
-              fontWeight: 700,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Коротко о плюсах
-          </div>
+        <Card height={156} accent>
+          <SectionTitle>Преимущества</SectionTitle>
           <div
             style={{
               display: 'flex',
               flexWrap: 'wrap',
-              gap: 10,
-              marginTop: 16,
+              gap: 12,
+              marginTop: 20,
             }}
           >
             {summary.highlights.map((highlight) => (
               <MetaChip key={highlight}>{highlight}</MetaChip>
             ))}
           </div>
+        </Card>
+
+        <Card height={742}>
+          <SectionTitle>Ключевые параметры</SectionTitle>
           <div
             style={{
               display: 'flex',
-              marginTop: 20,
+              flexWrap: 'wrap',
+              gap: 16,
+              marginTop: 22,
+            }}
+          >
+            {summary.facts.map((fact) => (
+              <FactRow
+                key={fact.label}
+                label={fact.label}
+                value={fact.value}
+                tone={fact.tone}
+              />
+            ))}
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              marginTop: 22,
               color: '#94A3B8',
               fontSize: 18,
               fontWeight: 500,
@@ -808,11 +830,14 @@ function GalleryPage({
 }) {
   return (
     <PageFrame>
-      <Header
-        title="Фотографии автомобиля"
-        subtitle={title}
+      <PageHeader
+        eyebrow="Фотографии автомобиля"
+        title={title}
+        subtitle="Все доступные фотографии по объявлению."
         rightLabel="Страница"
         rightValue={`${pageIndex + 1} / ${pageCount}`}
+        height={184}
+        titleSize={52}
       />
 
       <div
@@ -825,7 +850,7 @@ function GalleryPage({
         }}
       >
         {images.map((image) => (
-          <GalleryImageCard key={`${image.label}-${image.sourceUrl}`} image={image} />
+          <GalleryImageCard key={`${image.label}-${image.dataUrl.slice(0, 24)}`} image={image} />
         ))}
       </div>
     </PageFrame>
@@ -879,7 +904,6 @@ async function loadGalleryImages(listing: SaleListing, origin: string) {
       return {
         dataUrl,
         label: image.label,
-        sourceUrl: toAbsoluteOptionalUrl(image.url, origin) ?? image.url,
       } satisfies LoadedProposalImage;
     })
   );
@@ -887,10 +911,7 @@ async function loadGalleryImages(listing: SaleListing, origin: string) {
   return loadedImages.filter((image): image is LoadedProposalImage => Boolean(image));
 }
 
-async function renderProposalPage(
-  page: ReactElement,
-  fonts: LoadedProposalFonts
-) {
+async function renderProposalPage(page: ReactElement, fonts: LoadedProposalFonts) {
   const image = new ImageResponse(page, {
     width: A4_IMAGE_WIDTH,
     height: A4_IMAGE_HEIGHT,
@@ -981,19 +1002,29 @@ export async function createListingProposalPdf(
     loadGalleryImages(listing, options.origin),
   ]);
 
+  const mediaLinks: ProposalMediaLink[] = [];
   const absoluteVideoUrl = toAbsoluteOptionalUrl(listing.videoUrl, options.origin);
   const absoluteReportUrl = toAbsoluteOptionalUrl(listing.reportUrl, options.origin);
+
+  if (absoluteVideoUrl) {
+    mediaLinks.push({ label: 'Открыть видео', url: absoluteVideoUrl });
+  }
+
+  if (absoluteReportUrl) {
+    mediaLinks.push({ label: 'Открыть VIN-отчёт', url: absoluteReportUrl });
+  }
+
   const galleryCount = collectListingProposalGalleryImages(listing).length;
   const summaryPageBytes = await renderProposalPage(
     <SummaryPage
       summary={summary}
       heroImageDataUrl={loadedGalleryImages[0]?.dataUrl}
       galleryCount={galleryCount}
-      reportUrl={absoluteReportUrl}
-      videoUrl={absoluteVideoUrl}
+      mediaLinks={mediaLinks}
     />,
     fonts
   );
+  const detailsPageBytes = await renderProposalPage(<DetailsPage summary={summary} />, fonts);
 
   const pdfDocument = await PDFDocument.create();
   pdfDocument.setTitle(summary.title);
@@ -1004,33 +1035,23 @@ export async function createListingProposalPdf(
 
   const summaryPage = await appendPngPage(pdfDocument, summaryPageBytes);
 
-  if (absoluteVideoUrl) {
+  mediaLinks.forEach((mediaLink, index) => {
     addUriLinkAnnotation(
       pdfDocument,
       summaryPage,
       {
-        x: SUMMARY_MEDIA_CARD_BUTTON_X,
-        yTop: SUMMARY_MEDIA_CARD_VIDEO_BUTTON_TOP,
-        width: SUMMARY_MEDIA_CARD_BUTTON_WIDTH,
-        height: SUMMARY_MEDIA_CARD_BUTTON_HEIGHT,
+        x: SUMMARY_MATERIALS_BUTTON_X,
+        yTop:
+          SUMMARY_MATERIALS_BUTTON_TOP +
+          index * (SUMMARY_MATERIALS_BUTTON_HEIGHT + SUMMARY_MATERIALS_BUTTON_GAP),
+        width: SUMMARY_MATERIALS_BUTTON_WIDTH,
+        height: SUMMARY_MATERIALS_BUTTON_HEIGHT,
       },
-      absoluteVideoUrl
+      mediaLink.url
     );
-  }
+  });
 
-  if (absoluteReportUrl) {
-    addUriLinkAnnotation(
-      pdfDocument,
-      summaryPage,
-      {
-        x: SUMMARY_MEDIA_CARD_BUTTON_X,
-        yTop: SUMMARY_MEDIA_CARD_REPORT_BUTTON_TOP,
-        width: SUMMARY_MEDIA_CARD_BUTTON_WIDTH,
-        height: SUMMARY_MEDIA_CARD_BUTTON_HEIGHT,
-      },
-      absoluteReportUrl
-    );
-  }
+  await appendPngPage(pdfDocument, detailsPageBytes);
 
   if (loadedGalleryImages.length > 1) {
     const galleryChunks = chunkArray(loadedGalleryImages, GALLERY_PAGE_SIZE);

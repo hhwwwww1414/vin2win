@@ -1,5 +1,5 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
+import test from 'node:test';
 
 import {
   buildListingProposalSummary,
@@ -80,6 +80,9 @@ test('listing proposal summary stays generic and excludes platform branding', ()
   assert.doesNotMatch(summary.footerNote, /vin2win/i);
   assert.doesNotMatch(summary.lead, /vin2win/i);
   assert.doesNotMatch(summary.description, /vin2win/i);
+  assert.doesNotMatch(summary.lead, /клиент/u);
+  assert.doesNotMatch(summary.lead, /быстрого показа/u);
+  assert.doesNotMatch(summary.lead, /собрал|собрали/u);
   assert.doesNotMatch(summary.description, /Продавец не должен попасть в PDF/u);
   assert.equal(summary.facts.find((fact) => fact.label === 'Окрасы')?.value, 'Без окрасов');
   assert.equal(summary.facts.find((fact) => fact.label === 'Автотека')?.value, 'Зелёная');
