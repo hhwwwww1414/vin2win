@@ -4,6 +4,8 @@ import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { UserRoundPlus, ClipboardCheck, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
+const EASE = [0.22, 1, 0.36, 1] as const;
+
 const steps = [
   {
     title: 'Регистрация',
@@ -34,46 +36,52 @@ export function HowItWorks() {
     offset: ['start end', 'end start'],
   });
 
-  const lineProgress = useTransform(scrollYProgress, [0.15, 0.65], [0, 1]);
+  const lineProgress = useTransform(scrollYProgress, [0.2, 0.7], [0, 1]);
 
   return (
     <section
       ref={containerRef}
-      className="relative overflow-hidden py-14 sm:py-18 lg:py-22"
+      className="relative overflow-hidden py-12 sm:py-16 lg:py-20"
       aria-labelledby="how-it-works-heading"
     >
       {/* Background */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_50%_-10%,rgba(129,216,208,0.06),transparent)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_50%_-10%,rgba(129,216,208,0.05),transparent)]" />
       </div>
 
+      {/* Top continuity hairline */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-border/40 to-transparent sm:inset-x-16"
+      />
+
       <div className="relative">
-        {/* Compact header */}
-        <div className="mb-12 text-center lg:mb-14">
+        {/* Header */}
+        <div className="mb-10 text-center lg:mb-14">
           <motion.p
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="text-[11px] font-semibold uppercase tracking-[0.24em] text-teal-accent"
+            transition={{ duration: 0.85, ease: EASE }}
+            className="text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-accent"
           >
             Как начать
           </motion.p>
           <motion.h2
             id="how-it-works-heading"
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.65, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-            className="mx-auto mt-3 max-w-2xl font-display text-[1.75rem] font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl"
+            transition={{ duration: 0.9, delay: 0.12, ease: EASE }}
+            className="mx-auto mt-3 max-w-2xl font-display text-[1.625rem] font-bold tracking-tight text-foreground sm:text-[1.875rem] lg:text-[2.25rem]"
           >
             <span className="text-balance">От аккаунта до публикации за 4 шага</span>
           </motion.h2>
         </div>
 
-        {/* Steps timeline - tighter, more elegant */}
+        {/* Steps timeline */}
         <div className="relative mx-auto max-w-4xl">
-          {/* Connecting line - desktop (between circles) */}
+          {/* Desktop connecting line */}
           <div
             aria-hidden="true"
             className="absolute top-7 hidden h-px lg:block"
@@ -86,7 +94,7 @@ export function HowItWorks() {
             />
           </div>
 
-          {/* Connecting line - mobile (vertical, through circle centers) */}
+          {/* Mobile vertical line */}
           <div
             aria-hidden="true"
             className="absolute bottom-6 left-7 top-6 w-px bg-border/40 lg:hidden"
@@ -98,36 +106,48 @@ export function HowItWorks() {
           </div>
 
           {/* Steps */}
-          <div className="grid gap-6 lg:grid-cols-4 lg:gap-4">
+          <div className="grid gap-7 lg:grid-cols-4 lg:gap-4">
             {steps.map((step, index) => {
               const Icon = step.icon;
+              const stepNumber = String(index + 1).padStart(2, '0');
 
               return (
                 <motion.div
                   key={step.title}
-                  initial={{ opacity: 0, y: 24 }}
+                  initial={{ opacity: 0, y: 18 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-40px' }}
+                  viewport={{ once: true, margin: '-50px' }}
                   transition={{
-                    duration: 0.6,
-                    delay: index * 0.1,
-                    ease: [0.16, 1, 0.3, 1],
+                    duration: 0.85,
+                    delay: index * 0.12,
+                    ease: EASE,
                   }}
                   className="relative flex gap-4 lg:flex-col lg:items-center lg:gap-0 lg:text-center"
                 >
-                  {/* Step circle - smaller, more refined */}
+                  {/* Step circle — clean, no number bubble */}
                   <div className="relative z-10 flex-shrink-0">
-                    <div className="relative flex h-14 w-14 items-center justify-center rounded-full border border-teal-accent/30 bg-background shadow-[0_4px_20px_rgba(129,216,208,0.12)]">
-                      <Icon className="h-5 w-5 text-teal-accent" />
-                      <div className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-teal-accent text-[10px] font-bold text-accent-foreground">
-                        {index + 1}
-                      </div>
+                    <div
+                      className="
+                        relative flex h-14 w-14 items-center justify-center rounded-full
+                        border border-teal-accent/25 bg-background
+                        shadow-[0_4px_16px_rgba(129,216,208,0.1)]
+                      "
+                    >
+                      {/* Inner subtle gradient ring */}
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-0 rounded-full bg-gradient-to-b from-teal-accent/6 to-transparent"
+                      />
+                      <Icon className="relative h-5 w-5 text-teal-accent" />
                     </div>
                   </div>
 
-                  {/* Content - tighter spacing */}
+                  {/* Content — editorial step kicker */}
                   <div className="flex-1 pt-1 lg:mt-5 lg:px-2 lg:pt-0">
-                    <h3 className="font-display text-base font-bold tracking-tight text-foreground sm:text-[17px]">
+                    <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.22em] text-teal-accent/75">
+                      Шаг {stepNumber}
+                    </p>
+                    <h3 className="mt-1 font-display text-[15.5px] font-bold tracking-tight text-foreground sm:text-base">
                       {step.title}
                     </h3>
                     <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
