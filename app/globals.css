@@ -486,6 +486,106 @@ html:not(.dark) .carbon-fiber-listing {
 .text-meta { @apply text-xs text-muted-foreground; }
 .text-caption { @apply text-[11px] text-muted-foreground/80; }
 
+/* Premium landing page animations */
+@keyframes premium-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes premium-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(129, 216, 208, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(129, 216, 208, 0.25);
+  }
+}
+
+@keyframes premium-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.premium-float {
+  animation: premium-float 6s ease-in-out infinite;
+}
+
+.premium-pulse-glow {
+  animation: premium-pulse-glow 3s ease-in-out infinite;
+}
+
+.premium-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(129, 216, 208, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: premium-shimmer 3s linear infinite;
+}
+
+/* Premium section transitions */
+.premium-section-enter {
+  opacity: 0;
+  transform: translateY(40px);
+}
+
+.premium-section-visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Premium card hover lift */
+.premium-card-lift {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.premium-card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12);
+}
+
+.dark .premium-card-lift:hover {
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  
+  .premium-float,
+  .premium-pulse-glow,
+  .premium-shimmer {
+    animation: none;
+  }
+  
+  .premium-card-lift {
+    transition: none;
+  }
+  
+  .premium-card-lift:hover {
+    transform: none;
+  }
+}
+
 .guest-listing-teaser-content {
   filter: blur(10px);
   transform: scale(1.01);
