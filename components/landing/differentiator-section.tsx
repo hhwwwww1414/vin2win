@@ -80,128 +80,108 @@ export function DifferentiatorSection() {
     offset: ['start end', 'end start'],
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0.9]);
+  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0.4, 1, 1, 0.9]);
 
   return (
     <section
       ref={containerRef}
-      className="relative overflow-hidden py-20 sm:py-28 lg:py-36"
+      className="relative overflow-hidden py-14 sm:py-18 lg:py-22"
       aria-labelledby="differentiator-heading"
     >
       {/* Background */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface-elevated/40 to-transparent dark:via-surface-elevated/60" />
-        {/* Dividing line effect */}
-        <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-border/50 to-transparent" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface-elevated/30 to-transparent dark:via-surface-elevated/45" />
       </div>
 
       <motion.div style={{ opacity }} className="relative">
-        {/* Header */}
-        <div className="mb-16 text-center lg:mb-20">
+        {/* Compact header */}
+        <div className="mb-10 text-center lg:mb-12">
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
+            viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="text-meta font-semibold uppercase tracking-[0.28em] text-teal-accent"
+            className="text-[11px] font-semibold uppercase tracking-[0.24em] text-teal-accent"
           >
             Почему vin2win
           </motion.p>
           <motion.h2
             id="differentiator-heading"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="mx-auto mt-4 max-w-3xl font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl"
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.65, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="mx-auto mt-3 max-w-2xl font-display text-[1.75rem] font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl"
           >
             <span className="text-balance">Структура вместо хаоса</span>
           </motion.h2>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground"
+            transition={{ duration: 0.6, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
+            className="mx-auto mt-3 max-w-xl text-[14px] text-muted-foreground"
           >
-            Сравните работу на общих досках и профессиональной платформе
+            Сравните работу на общих досках и профессиональной платформе.
           </motion.p>
         </div>
 
         {/* Comparison cards */}
-        <div className="space-y-8">
+        <div className="mx-auto max-w-5xl space-y-4">
           {comparisons.map((comparison, compIndex) => (
             <motion.div
               key={compIndex}
-              initial={{ opacity: 0, y: 40 }}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
+              viewport={{ once: true, margin: '-40px' }}
               transition={{
-                duration: 0.7,
-                delay: compIndex * 0.1,
+                duration: 0.6,
+                delay: compIndex * 0.08,
                 ease: [0.16, 1, 0.3, 1],
               }}
-              className="grid gap-4 lg:grid-cols-2 lg:gap-6"
+              className="grid gap-3 lg:grid-cols-2 lg:gap-4"
             >
               {/* Chaos side */}
-              <div className="group relative overflow-hidden rounded-[28px] border border-destructive/20 bg-destructive/[0.03] p-6 transition-all duration-300 hover:border-destructive/30 sm:p-8">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
-                    <comparison.chaos.icon className="h-6 w-6" />
+              <div className="relative overflow-hidden rounded-2xl border border-destructive/15 bg-destructive/[0.025] p-5 transition-colors duration-300 hover:border-destructive/25 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                    <comparison.chaos.icon className="h-5 w-5" />
                   </div>
-                  <h3 className="font-display text-xl font-bold text-foreground">
+                  <h3 className="font-display text-[17px] font-bold text-foreground">
                     {comparison.chaos.title}
                   </h3>
                 </div>
-                <ul className="mt-6 space-y-3">
+                <ul className="mt-4 space-y-2">
                   {comparison.chaos.points.map((point, i) => (
-                    <motion.li
-                      key={i}
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.4, delay: compIndex * 0.1 + i * 0.05 }}
-                      className="flex items-center gap-3 text-muted-foreground"
-                    >
-                      <X className="h-4 w-4 shrink-0 text-destructive/70" />
+                    <li key={i} className="flex items-center gap-2.5 text-[13.5px] text-muted-foreground">
+                      <X className="h-3.5 w-3.5 shrink-0 text-destructive/60" strokeWidth={2.5} />
                       <span>{point}</span>
-                    </motion.li>
+                    </li>
                   ))}
                 </ul>
               </div>
 
               {/* Order side */}
-              <div className="group relative overflow-hidden rounded-[28px] border border-teal-accent/25 bg-teal-accent/[0.04] p-6 transition-all duration-300 hover:border-teal-accent/40 sm:p-8">
-                {/* Accent glow */}
+              <div className="group relative overflow-hidden rounded-2xl border border-teal-accent/25 bg-teal-accent/[0.04] p-5 transition-colors duration-300 hover:border-teal-accent/40 sm:p-6">
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute -inset-px rounded-[28px] bg-gradient-to-br from-teal-accent/10 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  className="pointer-events-none absolute -inset-px rounded-2xl bg-gradient-to-br from-teal-accent/8 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 />
-                
-                <div className="relative flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-accent/15 text-teal-accent ring-1 ring-teal-accent/20">
-                    <comparison.order.icon className="h-6 w-6" />
+
+                <div className="relative flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-accent/12 text-teal-accent ring-1 ring-teal-accent/20">
+                    <comparison.order.icon className="h-5 w-5" />
                   </div>
-                  <h3 className="font-display text-xl font-bold text-foreground">
+                  <h3 className="font-display text-[17px] font-bold text-foreground">
                     {comparison.order.title}
                   </h3>
                 </div>
-                <ul className="relative mt-6 space-y-3">
+                <ul className="relative mt-4 space-y-2">
                   {comparison.order.points.map((point, i) => (
-                    <motion.li
-                      key={i}
-                      initial={{ opacity: 0, x: 10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.4, delay: compIndex * 0.1 + i * 0.05 + 0.1 }}
-                      className="flex items-center gap-3 text-foreground"
-                    >
-                      <Check className="h-4 w-4 shrink-0 text-teal-accent" />
+                    <li key={i} className="flex items-center gap-2.5 text-[13.5px] text-foreground">
+                      <Check className="h-3.5 w-3.5 shrink-0 text-teal-accent" strokeWidth={2.5} />
                       <span>{point}</span>
-                    </motion.li>
+                    </li>
                   ))}
                 </ul>
               </div>

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
-import { Briefcase, Search, Settings2, ChevronRight } from 'lucide-react';
+import { Briefcase, Search, Settings2, Check } from 'lucide-react';
 
 const audiences = [
   {
@@ -10,45 +10,45 @@ const audiences = [
     title: 'Продавцам',
     role: 'Профессиональные дилеры',
     icon: Briefcase,
-    description: 'Публикация структурированных карточек с полной информацией о технике, истории и условиях сделки. Управление статусами и повторными публикациями из единого кабинета.',
+    description:
+      'Публикация структурированных карточек с полной информацией о технике, истории и условиях сделки. Управление статусами и повторными публикациями из единого кабинета.',
     features: [
       'Паспорт автомобиля с полной техникой',
       'История владения и состояние',
       'Управление статусами объявлений',
       'Быстрые повторные публикации',
     ],
-    gradient: 'from-teal-accent/20 via-teal-accent/5 to-transparent',
-    accentColor: 'bg-teal-accent',
+    gradient: 'from-teal-accent/15 via-teal-accent/[0.04] to-transparent',
   },
   {
     id: 'selectors',
     title: 'Подборщикам',
     role: 'Автоэксперты и подборщики',
     icon: Search,
-    description: 'Мгновенный переход от запроса клиента к shortlist лучших вариантов. Сравнение по ключевым параметрам и прямой контакт с проверенными продавцами.',
+    description:
+      'Мгновенный переход от запроса клиента к shortlist лучших вариантов. Сравнение по ключевым параметрам и прямой контакт с проверенными продавцами.',
     features: [
       'Умные фильтры под задачу клиента',
       'Shortlist с быстрым сравнением',
       'Прямой контакт с продавцом',
       'Избранное для переговоров',
     ],
-    gradient: 'from-seafoam/20 via-seafoam/5 to-transparent',
-    accentColor: 'bg-seafoam',
+    gradient: 'from-seafoam/15 via-seafoam/[0.04] to-transparent',
   },
   {
     id: 'managers',
     title: 'Менеджерам',
     role: 'Управление автопарком',
     icon: Settings2,
-    description: 'Единый рабочий контур для всех объявлений компании. Модерация, статусы, аналитика и командная работа в одном месте.',
+    description:
+      'Единый рабочий контур для всех объявлений компании. Модерация, статусы, аналитика и командная работа в одном месте.',
     features: [
       'Контроль всех объявлений команды',
       'Статусы и модерация в реальном времени',
       'Уведомления о важных событиях',
       'Командная работа и делегирование',
     ],
-    gradient: 'from-accent-strong/20 via-accent-strong/5 to-transparent',
-    accentColor: 'bg-accent-strong',
+    gradient: 'from-accent-strong/15 via-accent-strong/[0.04] to-transparent',
   },
 ];
 
@@ -60,40 +60,38 @@ export function AudienceSection() {
     offset: ['start end', 'end start'],
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0.9]);
+  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0.4, 1, 1, 0.9]);
 
   return (
     <section
       ref={containerRef}
-      className="relative overflow-hidden py-20 sm:py-28 lg:py-36"
+      className="relative overflow-hidden py-14 sm:py-18 lg:py-22"
       aria-labelledby="audience-heading"
     >
       {/* Background treatment */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface-elevated/30 to-transparent dark:via-surface-elevated/50" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface-elevated/25 to-transparent dark:via-surface-elevated/40" />
       </div>
 
       <motion.div style={{ opacity }} className="relative">
-        <div className="mb-16 text-center">
+        {/* Compact header */}
+        <div className="mb-10 text-center lg:mb-12">
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
+            viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="text-meta font-semibold uppercase tracking-[0.28em] text-teal-accent"
+            className="text-[11px] font-semibold uppercase tracking-[0.24em] text-teal-accent"
           >
             Для кого
           </motion.p>
           <motion.h2
             id="audience-heading"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-4 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl"
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.65, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-3 font-display text-[1.75rem] font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl"
           >
             Рабочая среда для профессионалов
           </motion.h2>
@@ -101,25 +99,23 @@ export function AudienceSection() {
 
         {/* Audience selector tabs */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-40px' }}
-          transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-12 flex justify-center"
+          viewport={{ once: true, margin: '-30px' }}
+          transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-8 flex justify-center"
         >
-          <div className="inline-flex gap-2 rounded-full border border-border/50 bg-surface-elevated/80 p-1.5 backdrop-blur-sm dark:bg-surface-elevated/60">
+          <div className="inline-flex gap-1 rounded-full border border-border/50 bg-surface-elevated/80 p-1 backdrop-blur-sm dark:bg-surface-elevated/60">
             {audiences.map((audience) => {
               const Icon = audience.icon;
               const isActive = activeAudience.id === audience.id;
-              
+
               return (
                 <button
                   key={audience.id}
                   onClick={() => setActiveAudience(audience)}
-                  className={`relative flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-300 ${
-                    isActive
-                      ? 'text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
+                  className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-colors duration-300 sm:px-5 ${
+                    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
                   aria-pressed={isActive}
                 >
@@ -132,7 +128,7 @@ export function AudienceSection() {
                   )}
                   <span className="relative z-10 flex items-center gap-2">
                     <Icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{audience.title}</span>
+                    <span>{audience.title}</span>
                   </span>
                 </button>
               );
@@ -144,64 +140,59 @@ export function AudienceSection() {
         <AnimatePresence mode="wait">
           <motion.div
             key={activeAudience.id}
-            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            initial={{ opacity: 0, y: 16, scale: 0.99 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.98 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="grid gap-8 lg:grid-cols-2 lg:gap-12"
+            exit={{ opacity: 0, y: -10, scale: 0.99 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[1.1fr_1fr] lg:gap-6"
           >
             {/* Left: Main content card */}
-            <div className="group relative overflow-hidden rounded-[32px] border border-border/60 bg-card/95 p-8 shadow-[var(--shadow-floating)] backdrop-blur-sm dark:bg-surface-elevated/95 sm:p-10">
-              {/* Gradient accent */}
+            <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card/95 p-6 shadow-[var(--shadow-surface)] backdrop-blur-sm dark:bg-surface-elevated/95 sm:p-8">
               <div
                 aria-hidden="true"
-                className={`absolute inset-0 bg-gradient-to-br ${activeAudience.gradient} opacity-60`}
+                className={`absolute inset-0 bg-gradient-to-br ${activeAudience.gradient} opacity-70`}
               />
-              
-              {/* Top accent line */}
               <div
                 aria-hidden="true"
-                className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-accent/50 to-transparent"
+                className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-accent/40 to-transparent"
               />
 
               <div className="relative">
-                <div className="flex items-center gap-4">
-                  <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${activeAudience.accentColor}/15 ring-1 ring-current/20`}>
-                    <activeAudience.icon className="h-7 w-7 text-teal-accent" />
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-accent/12 ring-1 ring-teal-accent/25">
+                    <activeAudience.icon className="h-5 w-5 text-teal-accent" />
                   </div>
                   <div>
-                    <h3 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                    <h3 className="font-display text-xl font-bold tracking-tight text-foreground sm:text-[1.375rem]">
                       {activeAudience.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground">{activeAudience.role}</p>
+                    <p className="text-[13px] text-muted-foreground">{activeAudience.role}</p>
                   </div>
                 </div>
 
-                <p className="mt-8 text-lg leading-relaxed text-muted-foreground">
+                <p className="mt-5 text-[15px] leading-relaxed text-muted-foreground">
                   {activeAudience.description}
                 </p>
               </div>
             </div>
 
-            {/* Right: Features list */}
-            <div className="flex flex-col justify-center">
-              <ul className="space-y-4">
-                {activeAudience.features.map((feature, i) => (
-                  <motion.li
-                    key={feature}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                    className="group flex items-center gap-4 rounded-2xl border border-border/40 bg-card/60 p-5 transition-all duration-300 hover:border-teal-accent/30 hover:bg-card/80 dark:bg-surface-elevated/60 dark:hover:bg-surface-elevated/80"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-accent/10 text-teal-accent ring-1 ring-teal-accent/20 transition-transform duration-300 group-hover:scale-110">
-                      <ChevronRight className="h-5 w-5" />
-                    </div>
-                    <span className="font-medium text-foreground">{feature}</span>
-                  </motion.li>
-                ))}
-              </ul>
-            </div>
+            {/* Right: Compact features list */}
+            <ul className="grid gap-2.5">
+              {activeAudience.features.map((feature, i) => (
+                <motion.li
+                  key={feature}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.35, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                  className="group flex items-center gap-3 rounded-2xl border border-border/40 bg-card/60 px-4 py-3 transition-colors duration-300 hover:border-teal-accent/30 hover:bg-card/80 dark:bg-surface-elevated/60 dark:hover:bg-surface-elevated/80"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-accent/10 text-teal-accent ring-1 ring-teal-accent/20">
+                    <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                  </div>
+                  <span className="text-[14px] font-medium text-foreground">{feature}</span>
+                </motion.li>
+              ))}
+            </ul>
           </motion.div>
         </AnimatePresence>
       </motion.div>

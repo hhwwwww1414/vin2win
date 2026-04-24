@@ -7,27 +7,33 @@ import { Plus, Minus } from 'lucide-react';
 const faqs = [
   {
     question: 'Для кого предназначена платформа vin2win?',
-    answer: 'vin2win создан для профессиональных участников авторынка: дилеров, подборщиков, менеджеров автопарков и трейд-ин специалистов. Платформа фокусируется на B2B-взаимодействии и не ориентирована на частных покупателей и продавцов.',
+    answer:
+      'vin2win создан для профессиональных участников авторынка: дилеров, подборщиков, менеджеров автопарков и трейд-ин специалистов. Платформа фокусируется на B2B-взаимодействии и не ориентирована на частных покупателей и продавцов.',
   },
   {
     question: 'Чем vin2win отличается от обычных досок объявлений?',
-    answer: 'В отличие от общих площадок, vin2win предлагает структурированные карточки с обязательными полями, верификацию профессиональных аккаунтов, модерацию качества и инструменты для работы: сравнение, избранное, фильтры по истории и техническому состоянию. Это рабочая среда, а не доска объявлений.',
+    answer:
+      'В отличие от общих площадок, vin2win предлагает структурированные карточки с обязательными полями, верификацию профессиональных аккаунтов, модерацию качества и инструменты для работы: сравнение, избранное, фильтры по истории и техническому состоянию. Это рабочая среда, а не доска объявлений.',
   },
   {
     question: 'Сколько стоит размещение объявлений?',
-    answer: 'Базовое размещение объявлений бесплатно для верифицированных профессиональных аккаунтов. Премиум-функции, такие как приоритетное размещение и расширенная аналитика, доступны по подписке. Актуальные тарифы можно узнать после регистрации в личном кабинете.',
+    answer:
+      'Базовое размещение объявлений бесплатно для верифицированных профессиональных аккаунтов. Премиум-функции, такие как приоритетное размещение и расширенная аналитика, доступны по подписке. Актуальные тарифы можно узнать после регистрации в личном кабинете.',
   },
   {
     question: 'Как проходит модерация объявлений?',
-    answer: 'Каждое объявление проверяется на соответствие стандартам качества: полнота данных, актуальность информации, качество фото. Модерация работает 24/7, среднее время проверки — менее 2 часов. Вы получите уведомление о статусе объявления.',
+    answer:
+      'Каждое объявление проверяется на соответствие стандартам качества: полнота данных, актуальность информации, качество фото. Модерация работает 24/7, среднее время проверки — менее 2 часов. Вы получите уведомление о статусе объявления.',
   },
   {
     question: 'Можно ли импортировать объявления с других площадок?',
-    answer: 'Да, для крупных дилеров доступен импорт каталога через API или CSV. Наша команда поможет настроить автоматическую синхронизацию с вашей CRM или учётной системой. Свяжитесь с поддержкой для подключения.',
+    answer:
+      'Да, для крупных дилеров доступен импорт каталога через API или CSV. Наша команда поможет настроить автоматическую синхронизацию с вашей CRM или учётной системой. Свяжитесь с поддержкой для подключения.',
   },
   {
     question: 'Как работает система сравнения автомобилей?',
-    answer: 'Добавляйте интересующие карточки в shortlist одним кликом. Система сравнения показывает ключевые параметры бок о бок: цену, пробег, техническое состояние, историю, окраску. Это помогает быстро выбрать лучший вариант для клиента.',
+    answer:
+      'Добавляйте интересующие карточки в shortlist одним кликом. Система сравнения показывает ключевые параметры бок о бок: цену, пробег, техническое состояние, историю, окраску. Это помогает быстро выбрать лучший вариант для клиента.',
   },
 ];
 
@@ -44,18 +50,18 @@ function FAQItem({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
+      viewport={{ once: true, margin: '-30px' }}
       transition={{
-        duration: 0.6,
-        delay: index * 0.06,
+        duration: 0.5,
+        delay: index * 0.04,
         ease: [0.16, 1, 0.3, 1],
       }}
       className="group"
     >
       <div
-        className={`overflow-hidden rounded-2xl border transition-all duration-300 ${
+        className={`overflow-hidden rounded-2xl border transition-colors duration-300 ${
           isOpen
             ? 'border-teal-accent/30 bg-teal-accent/[0.03]'
             : 'border-border/50 bg-card/60 hover:border-border hover:bg-card/80 dark:bg-surface-elevated/60 dark:hover:bg-surface-elevated/80'
@@ -63,24 +69,20 @@ function FAQItem({
       >
         <button
           onClick={onToggle}
-          className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
+          className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
           aria-expanded={isOpen}
         >
-          <h3 className="font-display text-lg font-semibold text-foreground pr-4">
+          <h3 className="font-display text-[15px] font-semibold text-foreground sm:text-base">
             {faq.question}
           </h3>
           <div
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors duration-300 ${
               isOpen
                 ? 'bg-teal-accent text-accent-foreground'
-                : 'bg-muted/50 text-muted-foreground group-hover:bg-teal-accent/20 group-hover:text-teal-accent'
+                : 'bg-muted/50 text-muted-foreground group-hover:bg-teal-accent/15 group-hover:text-teal-accent'
             }`}
           >
-            {isOpen ? (
-              <Minus className="h-5 w-5" />
-            ) : (
-              <Plus className="h-5 w-5" />
-            )}
+            {isOpen ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
           </div>
         </button>
         <AnimatePresence initial={false}>
@@ -89,10 +91,10 @@ function FAQItem({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
             >
-              <div className="border-t border-border/30 px-6 py-5">
-                <p className="text-base leading-relaxed text-muted-foreground">
+              <div className="border-t border-border/30 px-5 py-4">
+                <p className="text-[14px] leading-relaxed text-muted-foreground">
                   {faq.answer}
                 </p>
               </div>
@@ -112,7 +114,7 @@ export function PremiumFAQ() {
     offset: ['start end', 'end start'],
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0.9]);
+  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0.4, 1, 1, 0.9]);
 
   const handleToggle = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
@@ -121,43 +123,40 @@ export function PremiumFAQ() {
   return (
     <section
       ref={containerRef}
-      className="relative py-20 sm:py-28 lg:py-36"
+      className="relative py-12 sm:py-16 lg:py-20"
       aria-labelledby="faq-heading"
     >
       {/* Background */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_60%,rgba(129,216,208,0.04),transparent)]" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_35%_at_50%_60%,rgba(129,216,208,0.035),transparent)]" />
       </div>
 
       <motion.div style={{ opacity }} className="relative mx-auto max-w-3xl">
-        {/* Header */}
-        <div className="mb-12 text-center lg:mb-16">
+        {/* Tighter header */}
+        <div className="mb-8 text-center lg:mb-10">
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
+            viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="text-meta font-semibold uppercase tracking-[0.28em] text-teal-accent"
+            className="text-[11px] font-semibold uppercase tracking-[0.24em] text-teal-accent"
           >
             Вопросы и ответы
           </motion.p>
           <motion.h2
             id="faq-heading"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-4 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.65, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-3 font-display text-[1.75rem] font-bold tracking-tight text-foreground sm:text-3xl lg:text-[2rem]"
           >
             Частые вопросы
           </motion.h2>
         </div>
 
-        {/* FAQ list */}
-        <div className="space-y-4">
+        {/* FAQ list - tighter gap */}
+        <div className="space-y-2.5">
           {faqs.map((faq, index) => (
             <FAQItem
               key={index}
