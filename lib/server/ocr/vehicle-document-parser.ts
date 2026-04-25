@@ -7,6 +7,7 @@ import type {
 type UnknownRecord = Record<string, unknown>;
 
 const VIN_PATTERN = /\b[A-HJ-NPR-Z0-9]{17}\b/i;
+const VIN_SCAN_PATTERN = /(?:[A-ZА-Я0-9][\s.-]*){17}/gi;
 const YEAR_PATTERN = /\b(?:19|20)\d{2}\b/;
 
 const FIELD_LABELS = [
@@ -14,8 +15,10 @@ const FIELD_LABELS = [
   /идентификационный номер/i,
   /\bvin\b/i,
   /марка[, ]+модель/i,
+  /наименование.*тип\s*тс/i,
   /тип\s*тс/i,
   /год выпуска/i,
+  /год изготовления/i,
   /мощность двигателя/i,
   /экологический класс/i,
   /паспорт\s*тс/i,
@@ -120,8 +123,27 @@ function isLabelLine(value: string): boolean {
   return FIELD_LABELS.some((label) => label.test(value));
 }
 
+function stripLeadingFieldNoise(value: string): string {
+  return cleanText(
+    value
+      .replace(/^\s*\d{1,2}\s*[).:-]\s*/, '')
+      .replace(/^\s*\d{1,2}\s+(?=\D|$)/, '')
+      .replace(/^[):№.\-\s]+/, '')
+      .replace(/^[()]+|[()]+$/g, '')
+  );
+}
+
+function isUsableFieldValue(value: string): boolean {
+  const cleaned = stripLeadingFieldNoise(value);
+  if (!cleaned) {
+    return false;
+  }
+
+  return !/^(?:\d{1,2}|тс|т\.?\s*с\.?|наименование(?:\s*\(\s*\))?)$/i.test(cleaned);
+}
+
 function valueAfterLabel(line: string, label: RegExp): string {
-  return cleanText(line.replace(label, '').replace(/^[):№.\-\s]+/, ''));
+  return stripLeadingFieldNoise(line.replace(label, ''));
 }
 
 function findValueAfterLabel(lines: string[], labels: RegExp[]): string | undefined {
@@ -133,7 +155,7 @@ function findValueAfterLabel(lines: string[], labels: RegExp[]): string | undefi
     }
 
     const inlineValue = valueAfterLabel(line, label);
-    if (inlineValue && !isLabelLine(inlineValue)) {
+    if (isUsableFieldValue(inlineValue) && !isLabelLine(inlineValue)) {
       return inlineValue;
     }
 
@@ -143,7 +165,7 @@ function findValueAfterLabel(lines: string[], labels: RegExp[]): string | undefi
         break;
       }
       if (isLabelLine(nextLine)) {
-        continue;
+        break;
       }
       return nextLine;
     }
@@ -152,9 +174,50 @@ function findValueAfterLabel(lines: string[], labels: RegExp[]): string | undefi
   return undefined;
 }
 
+function normalizeVinAlphabet(value: string): string {
+  const replacements: Record<string, string> = {
+    А: 'A',
+    В: 'B',
+    Е: 'E',
+    К: 'K',
+    М: 'M',
+    Н: 'H',
+    Р: 'P',
+    С: 'C',
+    Т: 'T',
+    У: 'Y',
+    Х: 'X',
+    О: '0',
+    З: '3',
+  };
+
+  return value
+    .toUpperCase()
+    .replace(/[АВЕКМНОРСТУХОЗ]/g, (letter) => replacements[letter] ?? letter)
+    .replace(/O/g, '0');
+}
+
 function normalizeVin(value: string): string | undefined {
-  const normalized = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  return VIN_PATTERN.test(normalized) ? normalized.match(VIN_PATTERN)?.[0].toUpperCase() : undefined;
+  const source = normalizeVinAlphabet(value);
+  const candidates = source.match(VIN_SCAN_PATTERN) ?? [];
+
+  for (const candidate of candidates) {
+    const normalized = candidate.replace(/[^A-Z0-9]/g, '');
+    const match = normalized.match(VIN_PATTERN)?.[0];
+    if (match && /\d/.test(match)) {
+      return match.toUpperCase();
+    }
+  }
+
+  const compact = source.replace(/[^A-Z0-9]/g, '');
+  for (let index = 0; index <= compact.length - 17; index += 1) {
+    const candidate = compact.slice(index, index + 17);
+    if (VIN_PATTERN.test(candidate) && /\d/.test(candidate)) {
+      return candidate.toUpperCase();
+    }
+  }
+
+  return undefined;
 }
 
 function splitBrandModel(value: string): Pick<VehicleDocumentOcrFields, 'brand' | 'model'> {
@@ -169,6 +232,16 @@ function splitBrandModel(value: string): Pick<VehicleDocumentOcrFields, 'brand' 
     return { brand: parts[0] };
   }
 
+  const repeatedBrandIndex = parts.findIndex(
+    (part, index) => index > 0 && part.toUpperCase() === parts[0].toUpperCase()
+  );
+  if (repeatedBrandIndex > 1 && repeatedBrandIndex < parts.length - 1) {
+    return {
+      brand: parts[0],
+      model: parts.slice(repeatedBrandIndex + 1).join(' '),
+    };
+  }
+
   return {
     brand: parts[0],
     model: parts.slice(1).join(' '),
@@ -176,7 +249,7 @@ function splitBrandModel(value: string): Pick<VehicleDocumentOcrFields, 'brand' 
 }
 
 function findBrandModelValue(lines: string[]): string | undefined {
-  const labels = [/марка[, ]+модель/i];
+  const labels = [/марка[, ]+модель(?:\s*тс)?/i];
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
@@ -187,7 +260,7 @@ function findBrandModelValue(lines: string[]): string | undefined {
 
     const values: string[] = [];
     const inlineValue = valueAfterLabel(line, label);
-    if (inlineValue && !isLabelLine(inlineValue)) {
+    if (isUsableFieldValue(inlineValue) && !isLabelLine(inlineValue)) {
       values.push(inlineValue);
     }
 
@@ -251,13 +324,13 @@ function normalizePowerHp(value: string): string | undefined {
   const slashParts = normalized.split('/').map((part) => part.trim()).filter(Boolean);
   const source = slashParts.length > 1 ? slashParts[slashParts.length - 1] : normalized;
   const matches = [...source.matchAll(/\d+(?:\.\d+)?/g)];
-  const last = matches.at(-1)?.[0];
+  const power = slashParts.length > 1 ? matches.at(-1)?.[0] : matches[0]?.[0];
 
-  if (!last) {
+  if (!power) {
     return undefined;
   }
 
-  const parsed = Number(last);
+  const parsed = Number(power);
   return Number.isFinite(parsed) && parsed > 0 ? String(Math.round(parsed)) : undefined;
 }
 
@@ -291,12 +364,11 @@ export function parseVehicleDocumentOcrText(text: string): VehicleDocumentOcrRes
     .filter(Boolean);
 
   const fields: VehicleDocumentOcrFields = {};
-  const vinSource =
-    findValueAfterLabel(lines, [/идентификационный номер.*vin/i, /идентификационный номер/i, /\bvin\b/i]) ??
-    normalizedText.match(VIN_PATTERN)?.[0];
+  const vinSource = findValueAfterLabel(lines, [/идентификационный номер.*vin/i, /идентификационный номер/i, /\bvin\b/i]);
   const vin = vinSource ? normalizeVin(vinSource) : undefined;
-  if (vin) {
-    fields.vin = vin;
+  const fallbackVin = vin ?? normalizeVin(normalizedText);
+  if (fallbackVin) {
+    fields.vin = fallbackVin;
   }
 
   const brandModel = findBrandModelValue(lines);
@@ -304,19 +376,24 @@ export function parseVehicleDocumentOcrText(text: string): VehicleDocumentOcrRes
     Object.assign(fields, splitBrandModel(brandModel));
   }
 
-  const vehicleType = findValueAfterLabel(lines, [/тип\s*тс/i]);
+  const vehicleType = findValueAfterLabel(lines, [/наименование\s*\(?\s*тип\s*тс\)?/i, /тип\s*тс/i]);
   const normalizedType = vehicleType ? normalizeVehicleType(vehicleType) : undefined;
   if (normalizedType) {
     fields.vehicleType = normalizedType;
   }
 
-  const year = findValueAfterLabel(lines, [/год выпуска(?:\s*тс)?/i]) ?? normalizedText.match(YEAR_PATTERN)?.[0];
+  const year =
+    findValueAfterLabel(lines, [/год (?:выпуска|изготовления)(?:\s*тс)?/i]) ??
+    normalizedText.match(YEAR_PATTERN)?.[0];
   const normalizedYear = year ? normalizeYear(year) : undefined;
   if (normalizedYear) {
     fields.year = normalizedYear;
   }
 
-  const power = findValueAfterLabel(lines, [/мощность двигателя(?:.*л\.?\s*с\.?)?/i]);
+  const power = findValueAfterLabel(lines, [
+    /мощность двигателя.*?(?:квт\s*\/\s*л\.?\s*с\.?|л\.?\s*с\.?\s*\(?\s*квт\s*\)?|л\.?\s*с\.?)/i,
+    /мощность двигателя/i,
+  ]);
   const normalizedPower = power ? normalizePowerHp(power) : undefined;
   if (normalizedPower) {
     fields.enginePowerHp = normalizedPower;

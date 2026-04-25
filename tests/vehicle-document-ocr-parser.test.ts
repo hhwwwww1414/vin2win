@@ -106,3 +106,27 @@ test('parseVehicleDocumentOcrText extracts STS fields when brand and model value
   assert.equal(result.fields.year, '2015');
   assert.equal(result.fields.enginePowerHp, '106');
 });
+
+test('parseVehicleDocumentOcrText extracts numbered PTS fields without using labels as values', () => {
+  const text = [
+    'ПАСПОРТ ТРАНСПОРТНОГО СРЕДСТВА',
+    '1. Идентификационный номер (VIN)',
+    'XTA 210100 D3199217',
+    '2. Марка, модель ТС',
+    'LADA 219010 LADA GRANTA',
+    '3. Наименование (тип ТС)',
+    'Легковой-седан',
+    '5. Год изготовления ТС',
+    '2013',
+    '10. Мощность двигателя, л.с. (кВт) 87,0 (64,0)',
+  ].join('\n');
+
+  const result = parseVehicleDocumentOcrText(text);
+
+  assert.equal(result.fields.vin, 'XTA210100D3199217');
+  assert.equal(result.fields.brand, 'LADA');
+  assert.equal(result.fields.model, 'GRANTA');
+  assert.equal(result.fields.vehicleType, 'Седан');
+  assert.equal(result.fields.year, '2013');
+  assert.equal(result.fields.enginePowerHp, '87');
+});
