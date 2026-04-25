@@ -34,6 +34,15 @@ function cleanText(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }
 
+function cleanMultilineText(value: string): string {
+  return value
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map(cleanText)
+    .filter(Boolean)
+    .join('\n');
+}
+
 function getNestedRecord(root: unknown, path: string[]): UnknownRecord | null {
   let current: unknown = root;
 
@@ -82,11 +91,11 @@ export function extractYandexOcrText(response: unknown): string {
   }
 
   if (typeof annotation.fullText === 'string') {
-    return cleanText(annotation.fullText);
+    return cleanMultilineText(annotation.fullText);
   }
 
   if (typeof annotation.full_text === 'string') {
-    return cleanText(annotation.full_text);
+    return cleanMultilineText(annotation.full_text);
   }
 
   const blocks = Array.isArray(annotation.blocks) ? annotation.blocks : [];
@@ -164,6 +173,47 @@ function splitBrandModel(value: string): Pick<VehicleDocumentOcrFields, 'brand' 
     brand: parts[0],
     model: parts.slice(1).join(' '),
   };
+}
+
+function findBrandModelValue(lines: string[]): string | undefined {
+  const labels = [/марка[, ]+модель/i];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const label = labels.find((candidate) => candidate.test(line));
+    if (!label) {
+      continue;
+    }
+
+    const values: string[] = [];
+    const inlineValue = valueAfterLabel(line, label);
+    if (inlineValue && !isLabelLine(inlineValue)) {
+      values.push(inlineValue);
+    }
+
+    for (let offset = 1; offset <= 3; offset += 1) {
+      const nextLine = lines[index + offset];
+      if (!nextLine || isLabelLine(nextLine)) {
+        break;
+      }
+
+      const firstValueParts = values[0]?.split(' ').filter(Boolean) ?? [];
+      if (values.length > 0 && firstValueParts.length > 1) {
+        break;
+      }
+
+      values.push(nextLine);
+      if (values.length >= 2) {
+        break;
+      }
+    }
+
+    if (values.length > 0) {
+      return values.join(' ');
+    }
+  }
+
+  return undefined;
 }
 
 function toTitleCaseRu(value: string): string {
@@ -249,7 +299,7 @@ export function parseVehicleDocumentOcrText(text: string): VehicleDocumentOcrRes
     fields.vin = vin;
   }
 
-  const brandModel = findValueAfterLabel(lines, [/марка[, ]+модель/i]);
+  const brandModel = findBrandModelValue(lines);
   if (brandModel) {
     Object.assign(fields, splitBrandModel(brandModel));
   }
