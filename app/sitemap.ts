@@ -1,21 +1,15 @@
 import type { MetadataRoute } from 'next';
 import { ListingStatus } from '@prisma/client';
 import { SALE_ROUTE } from '@/lib/routes';
+import { SEO_STATIC_LAST_MODIFIED, absoluteUrl } from '@/lib/seo';
 import { prisma } from '@/lib/server/prisma';
 
-const SITE_URL =
-  (process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') || 'https://vin2win.ru').replace('://www.', '://');
-const STATIC_ROUTES = ['/', SALE_ROUTE, '/wanted'] as const;
+const STATIC_ROUTES = ['/', SALE_ROUTE, '/wanted', '/about', '/contacts', '/privacy', '/terms', '/faq'] as const;
 
 export const revalidate = 3600;
 
-function toAbsoluteUrl(path: string): string {
-  return `${SITE_URL}${path}`;
-}
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
-  const [saleListings, wantedListings] = await Promise.all([
+  const [saleListings, wantedListings, sellers] = await Promise.all([
     prisma.saleListing.findMany({
       where: {
         status: ListingStatus.PUBLISHED,
@@ -40,26 +34,51 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         updatedAt: 'desc',
       },
     }),
+    prisma.sellerProfile.findMany({
+      where: {
+        OR: [
+          {
+            saleListings: {
+              some: {
+                status: ListingStatus.PUBLISHED,
+              },
+            },
+          },
+          {
+            wantedListings: {
+              some: {
+                status: ListingStatus.PUBLISHED,
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    }),
   ]);
 
   return [
     ...STATIC_ROUTES.map((path) => ({
-      url: toAbsoluteUrl(path),
-      lastModified: now,
-      changeFrequency: 'daily' as const,
-      priority: path === '/' ? 1 : path === SALE_ROUTE ? 0.9 : 0.8,
+      url: absoluteUrl(path),
+      lastModified: SEO_STATIC_LAST_MODIFIED,
     })),
     ...saleListings.map((listing) => ({
-      url: toAbsoluteUrl(`/listing/${listing.id}`),
+      url: absoluteUrl(`/listing/${listing.id}`),
       lastModified: listing.updatedAt,
-      changeFrequency: 'daily' as const,
-      priority: 0.9,
     })),
     ...wantedListings.map((listing) => ({
-      url: toAbsoluteUrl(`/wanted/${listing.id}`),
+      url: absoluteUrl(`/wanted/${listing.id}`),
       lastModified: listing.updatedAt,
-      changeFrequency: 'daily' as const,
-      priority: 0.7,
+    })),
+    ...sellers.map((seller) => ({
+      url: absoluteUrl(`/seller/${seller.id}`),
+      lastModified: seller.updatedAt,
     })),
   ];
 }

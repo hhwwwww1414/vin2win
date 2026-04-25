@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import { HomeHero } from '@/components/landing/home-hero';
 import { BrandIntro } from '@/components/landing/brand-intro';
 import { AudienceSection } from '@/components/landing/audience-section';
@@ -7,30 +6,40 @@ import { FeaturesShowcase } from '@/components/landing/features-showcase';
 import { DifferentiatorSection } from '@/components/landing/differentiator-section';
 import { TrustSection } from '@/components/landing/trust-section';
 import { UseCasesSection } from '@/components/landing/use-cases-section';
-import { PremiumFAQ } from '@/components/landing/premium-faq';
+import {
+  HomepageFAQ,
+  HomepageSeoSections,
+  homepageFaqItems,
+} from '@/components/landing/homepage-seo-sections';
 import { FinalCTA } from '@/components/landing/final-cta';
 import { MarketplaceHeader } from '@/components/marketplace/header';
+import { SeoJsonLd } from '@/components/seo-json-ld';
+import { createPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'vin2win - профессиональный авторынок',
+export const metadata = createPageMetadata({
+  title: 'vin2win — профессиональный авторынок России',
   description:
-    'B2B-платформа для профессиональных продавцов, подборщиков и менеджеров: публикация объявлений, фильтры, сравнение и модерация без B2C-шума.',
-  alternates: {
-    canonical: '/',
-  },
-  openGraph: {
-    title: 'vin2win - профессиональный авторынок',
-    description:
-      'B2B-платформа для профессиональных продавцов, подборщиков и менеджеров: публикация объявлений, фильтры, сравнение и модерация без B2C-шума.',
-    url: '/',
-    type: 'website',
-    siteName: 'vin2win',
-  },
-};
+    'B2B-платформа для профессиональных продавцов, подборщиков и менеджеров: объявления, запросы в подбор, фильтры, сравнение и сохранение поисков.',
+  path: '/',
+});
 
 export default function LandingPage() {
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: homepageFaqItems.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  };
+
   return (
     <div className="min-h-full">
+      <SeoJsonLd data={faqJsonLd} />
       <MarketplaceHeader />
       <main id="page-main" className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Hero section - LOCKED, DO NOT MODIFY */}
@@ -46,7 +55,8 @@ export default function LandingPage() {
         <DifferentiatorSection />
         <TrustSection />
         <UseCasesSection />
-        <PremiumFAQ />
+        <HomepageSeoSections />
+        <HomepageFAQ />
         <FinalCTA />
       </main>
     </div>

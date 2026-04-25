@@ -1,14 +1,36 @@
 import type { MetadataRoute } from 'next';
+import { absoluteUrl } from '@/lib/seo';
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') || 'https://vin2win.ru';
+const PRIVATE_DISALLOW = [
+  '/admin',
+  '/api/',
+  '/_next/',
+  '/account',
+  '/messages',
+  '/listing/new',
+  '/login',
+  '/register',
+];
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: {
-      userAgent: '*',
-      allow: '/',
-      disallow: ['/admin', '/api/', '/_next/'],
-    },
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    rules: [
+      {
+        userAgent: ['GPTBot', 'OAI-SearchBot', 'ClaudeBot', 'PerplexityBot', 'Yandex'],
+        allow: '/',
+        disallow: PRIVATE_DISALLOW,
+      },
+      {
+        userAgent: 'CCBot',
+        disallow: '/',
+      },
+      {
+        userAgent: '*',
+        allow: '/',
+        disallow: PRIVATE_DISALLOW,
+      },
+    ],
+    sitemap: absoluteUrl('/sitemap.xml'),
+    host: absoluteUrl('/'),
   };
 }

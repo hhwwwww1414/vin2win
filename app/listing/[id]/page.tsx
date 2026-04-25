@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import {
   CheckCircle,
   ShieldCheck,
@@ -17,6 +17,7 @@ import { VehicleGallery } from '@/components/listing/vehicle-gallery';
 import { ViewCountBadge } from '@/components/listing/view-count-badge';
 import { VinReport } from '@/components/listing/vin-report';
 import { MarketplaceHeader } from '@/components/marketplace/header';
+import { SeoJsonLd } from '@/components/seo-json-ld';
 import {
   LISTING_STATUS_PANEL_CLASSES,
   getListingStatusLabel,
@@ -29,10 +30,18 @@ import {
   getPtsTypeLabel,
   getPtsTypeToneClassName,
 } from '@/lib/listing-utils';
-import { formatPrice } from '@/lib/price-formatting';
 import { getSessionUser } from '@/lib/server/auth';
 import { getSaleListingById, getSimilarSaleListings } from '@/lib/server/marketplace';
 import { SALE_ROUTE } from '@/lib/routes';
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_OG_IMAGE,
+  SITE_NAME,
+  absoluteUrl,
+  breadcrumbJsonLd,
+  formatRubPrice,
+  sanitizeSeoText,
+} from '@/lib/seo';
 import { cn } from '@/lib/utils';
 
 interface ListingPageProps {
@@ -43,25 +52,30 @@ export const dynamic = 'force-dynamic';
 
 type SaleListingPageRecord = NonNullable<Awaited<ReturnType<typeof getSaleListingById>>>;
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') || 'https://vin2win.ru';
-
 
 function buildListingTitle(listing: Awaited<ReturnType<typeof getSaleListingById>>) {
   if (!listing) {
-    return 'Объявление';
+    return 'Объявление vin2win';
   }
 
-  return `${listing.make} ${listing.model} ${listing.year} — ${formatPrice(listing.price)}`;
+  return `${sanitizeSeoText(listing.make, 'Автомобиль', 40)} ${sanitizeSeoText(listing.model, '', 50)} ${
+    listing.year
+  } — ${formatRubPrice(listing.price)} ₽`;
 }
 
 function buildListingDescription(listing: Awaited<ReturnType<typeof getSaleListingById>>) {
   if (!listing) {
-    return 'Карточка автомобиля на vin2win.';
+    return DEFAULT_DESCRIPTION;
   }
 
-  return `${listing.city} • ${listing.mileage.toLocaleString('ru-RU')} км • ${formatEngineSpec(listing)} • ${listing.transmission}. ${listing.description}`.slice(
-    0,
-    190
+  return sanitizeSeoText(
+    `${listing.make} ${listing.model} ${listing.year} в продаже на vin2win. Цена: ${formatRubPrice(
+      listing.price
+    )} ₽. Пробег: ${listing.mileage.toLocaleString('ru-RU')} км. Город: ${listing.city}. ${formatEngineSpec(
+      listing
+    )}, ${listing.transmission}, ${listing.drive}.`,
+    DEFAULT_DESCRIPTION,
+    180
   );
 }
 
@@ -141,7 +155,11 @@ export async function generateMetadata({ params }: ListingPageProps): Promise<Me
   if (!listing) {
     return {
       title: 'Объявление не найдено',
-      description: 'Запрошенная карточка автомобиля недоступна.',
+      description: 'Запрошенная карточка автомобиля недоступна на vin2win.',
+      robots: {
+        index: false,
+        follow: false,
+      },
     };
   }
 
@@ -153,20 +171,36 @@ export async function generateMetadata({ params }: ListingPageProps): Promise<Me
     title,
     description,
     alternates: {
-      canonical: `/listing/${listing.id}`,
+      canonical: absoluteUrl(`/listing/${listing.id}`),
     },
     openGraph: {
       title,
       description,
-      url: `/listing/${listing.id}`,
-      type: 'article',
-      images: image ? [{ url: image, alt: `${listing.make} ${listing.model} ${listing.year}` }] : undefined,
+      url: absoluteUrl(`/listing/${listing.id}`),
+      type: 'website',
+      siteName: SITE_NAME,
+      locale: 'ru_RU',
+      images: [
+        image
+          ? {
+              url: image,
+              width: 1200,
+              height: 900,
+              alt: `${listing.make} ${listing.model} ${listing.year}`,
+            }
+          : {
+              url: DEFAULT_OG_IMAGE,
+              width: 1200,
+              height: 630,
+              alt: `${SITE_NAME} — профессиональный авторынок`,
+            },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: image ? [image] : undefined,
+      images: [image ?? DEFAULT_OG_IMAGE],
     },
   };
 }
@@ -181,6 +215,10 @@ export default async function ListingPage({ params }: ListingPageProps) {
 
   if (!listing) {
     notFound();
+  }
+
+  if (id !== listing.id) {
+    permanentRedirect(`/listing/${listing.id}`);
   }
 
   const vehicle = saleListingToVehicle(listing);
@@ -209,8 +247,11 @@ export default async function ListingPage({ params }: ListingPageProps) {
   const listingJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Car',
-    name: `${listing.make} ${listing.model}`,
-    brand: listing.make,
+    name: `${listing.make} ${listing.model} ${listing.year}`,
+    brand: {
+      '@type': 'Brand',
+      name: listing.make,
+    },
     model: listing.model,
     vehicleModelDate: String(listing.year),
     mileageFromOdometer: {
@@ -218,6 +259,30 @@ export default async function ListingPage({ params }: ListingPageProps) {
       value: listing.mileage,
       unitCode: 'KMT',
     },
+    fuelType: listing.engine,
+    vehicleTransmission: listing.transmission,
+    driveWheelConfiguration: listing.drive,
+    vehicleEngine: {
+      '@type': 'EngineSpecification',
+      name: formatEngineSpec(listing),
+      engineDisplacement: listing.engineDisplacementL
+        ? {
+            '@type': 'QuantitativeValue',
+            value: listing.engineDisplacementL,
+            unitText: 'L',
+          }
+        : undefined,
+      enginePower: listing.power
+        ? {
+            '@type': 'QuantitativeValue',
+            value: listing.power,
+            unitText: 'hp',
+          }
+        : undefined,
+    },
+    vehicleIdentificationNumber: listing.vin,
+    itemCondition: 'https://schema.org/UsedCondition',
+    url: absoluteUrl(`/listing/${listing.id}`),
     bodyType: listing.bodyType,
     color: listing.color,
     offers: {
@@ -225,11 +290,22 @@ export default async function ListingPage({ params }: ListingPageProps) {
       price: listing.price,
       priceCurrency: 'RUB',
       availability: 'https://schema.org/InStock',
-      url: `${SITE_URL}/listing/${listing.id}`,
+      itemCondition: 'https://schema.org/UsedCondition',
+      url: absoluteUrl(`/listing/${listing.id}`),
+      seller: {
+        '@type': 'Organization',
+        name: SITE_NAME,
+        url: absoluteUrl('/'),
+      },
     },
-    image: listing.images.slice(0, 5),
+    image: listing.images.length > 0 ? listing.images.slice(0, 5) : undefined,
     description: buildListingDescription(listing),
   };
+  const breadcrumbsJsonLd = breadcrumbJsonLd([
+    { name: 'Главная', path: '/' },
+    { name: 'В продаже', path: SALE_ROUTE },
+    { name: `${listing.make} ${listing.model} ${listing.year}`, path: `/listing/${listing.id}` },
+  ]);
 
   return (
     <div className="relative isolate min-h-full bg-background">
@@ -240,10 +316,8 @@ export default async function ListingPage({ params }: ListingPageProps) {
         id="page-main"
         className="relative z-10 mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 sm:py-8 lg:px-8 lg:pb-8"
       >
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(listingJsonLd) }}
-        />
+        <SeoJsonLd data={listingJsonLd} />
+        <SeoJsonLd data={breadcrumbsJsonLd} />
 
         {listing.status && listing.status !== 'PUBLISHED' ? (
           <div

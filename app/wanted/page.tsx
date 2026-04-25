@@ -1,24 +1,47 @@
-import type { Metadata } from 'next';
 import { WantedPageClient } from '@/components/wanted/wanted-page-client';
+import { SeoJsonLd } from '@/components/seo-json-ld';
 import { getPublishedWantedListings } from '@/lib/server/marketplace';
+import { absoluteUrl, breadcrumbJsonLd, createPageMetadata, formatRubPrice } from '@/lib/seo';
 
-export const dynamic = 'force-dynamic';
-export const metadata: Metadata = {
-  title: 'Запросы в подбор',
-  description: 'Публичная лента заявок на подбор автомобилей с бюджетом, ограничениями и контактами.',
-  alternates: {
-    canonical: '/wanted',
-  },
-  openGraph: {
-    title: 'Запросы в подбор',
-    description: 'Публичная лента заявок на подбор автомобилей с бюджетом, ограничениями и контактами.',
-    url: '/wanted',
-    type: 'website',
-    siteName: 'vin2win',
-  },
-};
+export const revalidate = 300;
+export const metadata = createPageMetadata({
+  title: 'Запросы в подбор автомобилей',
+  description:
+    'Лента B2B-запросов на подбор автомобилей от проверенных покупателей. Фильтры по марке, бюджету и региону для профессионалов.',
+  path: '/wanted',
+});
 
 export default async function WantedPage() {
   const listings = await getPublishedWantedListings();
-  return <WantedPageClient initialListings={listings} />;
+  const breadcrumbsJsonLd = breadcrumbJsonLd([
+    { name: 'Главная', path: '/' },
+    { name: 'Запросы в подбор', path: '/wanted' },
+  ]);
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Запросы в подбор автомобилей',
+    itemListElement: listings.slice(0, 20).map((listing, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: absoluteUrl(`/wanted/${listing.id}`),
+      name: listing.models.join(', '),
+      item: {
+        '@type': 'WebPage',
+        name: `${listing.models.join(', ')} — запрос в подбор`,
+        url: absoluteUrl(`/wanted/${listing.id}`),
+        description: `Бюджет до ${formatRubPrice(listing.budgetMax)} ₽. ${
+          listing.region ? `Регион: ${listing.region}. ` : ''
+        }B2B-запрос на подбор автомобиля.`,
+      },
+    })),
+  };
+
+  return (
+    <>
+      <SeoJsonLd data={breadcrumbsJsonLd} />
+      <SeoJsonLd data={itemListJsonLd} />
+      <WantedPageClient initialListings={listings} />
+    </>
+  );
 }

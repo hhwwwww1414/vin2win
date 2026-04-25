@@ -12,6 +12,7 @@ import { prisma } from './prisma';
 import { deleteS3Objects } from './s3';
 import { notifyUsersAboutSavedSearchMatch } from './saved-searches';
 import { getSaleListingById } from './marketplace';
+import { pingIndexNow } from '@/lib/indexnow';
 
 type SaleModerationRecord = Prisma.SaleListingGetPayload<{
   include: {
@@ -414,6 +415,7 @@ export async function updateSaleListingByAdmin(input: UpdateSaleListingByAdminIn
     if (publishedListing) {
       await notifyUsersAboutSavedSearchMatch(publishedListing);
     }
+    void pingIndexNow([`/listing/${current.id}`, '/sale', '/sitemap.xml']);
   }
 
   return listing;
@@ -536,6 +538,10 @@ export async function updateWantedListingByAdmin(input: UpdateWantedListingByAdm
     title: nextTitle,
     changes: detailChanges,
   });
+
+  if (input.status === ListingStatus.PUBLISHED && current.status !== ListingStatus.PUBLISHED) {
+    void pingIndexNow([`/wanted/${current.id}`, '/wanted', '/sitemap.xml']);
+  }
 
   return listing;
 }

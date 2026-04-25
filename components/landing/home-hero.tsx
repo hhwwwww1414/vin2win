@@ -1,7 +1,5 @@
-'use client';
-
 import Image from 'next/image';
-import SpotlightCursor from '@/components/spotlight-cursor';
+import { HomeHeroSpotlight } from '@/components/landing/home-hero-spotlight';
 
 export function HomeHero() {
   return (
@@ -32,16 +30,7 @@ export function HomeHero() {
           className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/70 via-black/18 to-transparent"
         />
 
-        <SpotlightCursor
-          aria-hidden="true"
-          config={{
-            radius: 256,
-            brightness: 0.15,
-            color: '#ffffff',
-            smoothing: 0.1,
-          }}
-          className="z-20 opacity-90"
-        />
+        <HomeHeroSpotlight />
 
         <div className="relative z-30 flex min-h-[520px] items-end sm:min-h-[580px] lg:min-h-[640px]">
           <div className="w-full px-6 py-10 sm:px-8 sm:py-12 lg:max-w-[35rem] lg:px-12 lg:py-14">
@@ -50,6 +39,7 @@ export function HomeHero() {
             </p>
             <h1
               id="home-hero-heading"
+              aria-label="Продавай быстрее. Подбирай точнее."
               className="mt-5 font-display text-[2.45rem] font-semibold leading-[0.94] tracking-[-0.05em] text-white sm:text-[3.55rem] lg:text-[4.55rem]"
             >
               <span className="block">

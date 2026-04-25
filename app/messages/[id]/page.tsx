@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { ChatShell } from '@/components/messages/chat-shell';
 import { MarketplaceHeader } from '@/components/marketplace/header';
 import { type ChatMessagesPageDto, type ChatSummaryDto } from '@/lib/chat/dto';
@@ -9,6 +10,13 @@ interface MessageThreadPageProps {
 }
 
 export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'Диалог',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function MessageThreadPage({ params }: MessageThreadPageProps) {
   const currentUser = await requireAuthenticatedUser('/messages');

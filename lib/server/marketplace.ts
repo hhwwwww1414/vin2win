@@ -18,6 +18,7 @@ import { createDefaultSaleSearchFilters } from '@/lib/sale-search';
 import type { EditableSaleListingPayload, SaleListingEditMediaPlan } from '@/lib/sale-form';
 import { saleListings as saleListingFixtures, wantedListings as wantedListingFixtures } from '@/lib/marketplace-data';
 import { calculatePotentialBenefit, extractEngineDisplacement } from '@/lib/listing-utils';
+import { pingIndexNow } from '@/lib/indexnow';
 import type {
   SaleListing,
   SaleSearchFacets,
@@ -1354,9 +1355,9 @@ export async function getPublishedSaleListings(): Promise<SaleListing[]> {
 
 export async function getSaleListingById(id: string, viewer?: ListingViewer): Promise<SaleListing | null> {
   try {
-    const record = await prisma.saleListing.findUnique({
+    const record = await prisma.saleListing.findFirst({
       where: {
-        id,
+        OR: [{ id }, { legacyId: id }],
       },
       include: buildSaleListingInclude(viewer, { includePriceHistory: true }),
     });
@@ -1697,9 +1698,9 @@ export async function getPublishedWantedListings(): Promise<WantedListing[]> {
 
 export async function getWantedListingById(id: string, viewer?: ListingViewer): Promise<WantedListing | null> {
   try {
-    const record = await prisma.wantedListing.findUnique({
+    const record = await prisma.wantedListing.findFirst({
       where: {
-        id,
+        OR: [{ id }, { legacyId: id }],
       },
       include: wantedListingInclude,
     });
@@ -2157,6 +2158,7 @@ export async function createSaleListing(input: CreateSaleListingInput): Promise<
 
   if (listing.status === 'PUBLISHED') {
     await notifyUsersAboutSavedSearchMatch(listing);
+    void pingIndexNow([`/listing/${listing.id}`, '/sale', '/sitemap.xml']);
   }
 
   return listing;
@@ -2212,7 +2214,13 @@ export async function createWantedListing(input: CreateWantedListingInput): Prom
     include: wantedListingInclude,
   });
 
-  return mapWantedListing(created);
+  const listing = mapWantedListing(created);
+
+  if (listing.status === 'PUBLISHED') {
+    void pingIndexNow([`/wanted/${listing.id}`, '/wanted', '/sitemap.xml']);
+  }
+
+  return listing;
 }
 
 export async function createSeedSellerProfile(input: {

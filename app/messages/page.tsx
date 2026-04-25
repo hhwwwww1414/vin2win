@@ -1,9 +1,17 @@
+import type { Metadata } from 'next';
 import { ChatShell } from '@/components/messages/chat-shell';
 import { MarketplaceHeader } from '@/components/marketplace/header';
 import { requireAuthenticatedUser } from '@/lib/server/auth';
 import { listChatsForUser } from '@/lib/server/chats';
 
 export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'Сообщения',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function MessagesPage() {
   const currentUser = await requireAuthenticatedUser('/messages');

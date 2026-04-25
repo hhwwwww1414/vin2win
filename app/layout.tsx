@@ -2,11 +2,18 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Manrope } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { SiteShell } from '@/components/layout/site-shell';
+import { SeoJsonLd } from '@/components/seo-json-ld';
 import { Toaster } from '@/components/ui/toaster';
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_OG_IMAGE,
+  DEFAULT_TITLE,
+  SITE_NAME,
+  SITE_URL,
+  absoluteUrl,
+} from '@/lib/seo';
 import '@21st-sdk/react/styles.css';
 import './globals.css';
-
-const siteUrl = 'https://vin2win.ru';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -20,29 +27,58 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://vin2win.ru'),
+  metadataBase: new URL(SITE_URL),
   manifest: '/manifest.webmanifest',
-  applicationName: 'vin2win',
+  applicationName: SITE_NAME,
   title: {
-    default: 'vin2win — профессиональный авторынок',
-    template: '%s | vin2win',
+    default: DEFAULT_TITLE,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    'B2B-платформа для профессиональных продавцов, подборщиков и менеджеров. Быстрый поиск, публикация и сравнение объявлений без B2C-шума.',
-  keywords: ['автомобили', 'профессиональные продавцы', 'автоподбор', 'авторынок', 'продажа авто', 'купить авто', 'b2b авто'],
+  description: DEFAULT_DESCRIPTION,
+  keywords: [
+    'автомобили для профессионалов',
+    'B2B авторынок',
+    'профессиональные продавцы авто',
+    'автоподбор',
+    'автоброкеры',
+    'запросы в подбор',
+    'продажа автомобилей',
+  ],
   openGraph: {
     type: 'website',
-    siteName: 'vin2win',
-    url: siteUrl,
-    title: 'vin2win — профессиональный авторынок',
-    description:
-      'B2B-платформа для профессиональных продавцов, подборщиков и менеджеров. Быстрый поиск, публикация и сравнение объявлений без B2C-шума.',
+    locale: 'ru_RU',
+    siteName: SITE_NAME,
+    url: SITE_URL,
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    images: [
+      {
+        url: DEFAULT_OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} — профессиональный авторынок`,
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'vin2win — профессиональный авторынок',
-    description:
-      'B2B-платформа для профессиональных продавцов, подборщиков и менеджеров. Быстрый поиск, публикация и сравнение объявлений без B2C-шума.',
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    'max-snippet': -1,
+    'max-image-preview': 'large',
+    'max-video-preview': -1,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-snippet': -1,
+      'max-image-preview': 'large',
+      'max-video-preview': -1,
+    },
   },
   icons: {
     icon: [
@@ -64,7 +100,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'vin2win',
+    title: SITE_NAME,
   },
 };
 
@@ -79,9 +115,37 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const organizationJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: absoluteUrl('/icon.svg'),
+    description: 'B2B-платформа для профессиональных продавцов, подборщиков и менеджеров автомобилей в России',
+    areaServed: 'Россия',
+  };
+  const websiteJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: SITE_NAME,
+    url: SITE_URL,
+    inLanguage: 'ru-RU',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${absoluteUrl('/sale')}?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <html lang="ru" className={`${inter.variable} ${manrope.variable}`} suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://s3.twcstorage.ru" />
+        <link rel="dns-prefetch" href="https://s3.twcstorage.ru" />
+      </head>
       <body className="font-sans antialiased">
+        <SeoJsonLd data={organizationJsonLd} />
+        <SeoJsonLd data={websiteJsonLd} />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <SiteShell>{children}</SiteShell>
           <Toaster />

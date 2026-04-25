@@ -36,6 +36,12 @@ export function VehicleGallery({ vehicle }: VehicleGalleryProps) {
   }, [vehicle.imageUrl, vehicle.images]);
   const slides = useMemo<GallerySlide[]>(
     () => [
+      ...images.map((src, index) => ({
+        kind: 'image' as const,
+        key: `image:${src}:${index}`,
+        src,
+        imageIndex: index,
+      })),
       ...(vehicle.videoUrl
         ? [
             {
@@ -44,12 +50,6 @@ export function VehicleGallery({ vehicle }: VehicleGalleryProps) {
             },
           ]
         : []),
-      ...images.map((src, index) => ({
-        kind: 'image' as const,
-        key: `image:${src}:${index}`,
-        src,
-        imageIndex: index,
-      })),
     ],
     [images, vehicle.videoUrl]
   );

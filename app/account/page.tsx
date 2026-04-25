@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Copy, Eye, FilePenLine } from 'lucide-react';
@@ -15,6 +16,13 @@ import { getAccountOverview, requireAuthenticatedUser } from '@/lib/server/auth'
 import { mapSellerProfileRecord } from '@/lib/server/seller-profile';
 
 export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'Личный кабинет',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium' }).format(value);

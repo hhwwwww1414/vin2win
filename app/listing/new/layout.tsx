@@ -1,9 +1,15 @@
+import type { Metadata } from 'next';
+
 export const dynamic = 'force-dynamic';
 
-export default function NewListingLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const metadata: Metadata = {
+  title: 'Создание объявления',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
+export default function NewListingLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminEntityType, UserRole } from '@prisma/client';
 import { MarketplaceHeader } from '@/components/marketplace/header';
@@ -12,6 +13,13 @@ import { getModerationOverview } from '@/lib/server/moderation';
 import { prisma } from '@/lib/server/prisma';
 
 export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'Администрирование',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium' }).format(value);

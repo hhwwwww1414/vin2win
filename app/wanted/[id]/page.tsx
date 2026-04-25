@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import {
   ArrowLeft,
   Calendar,
@@ -20,11 +20,21 @@ import {
 import { MarketplaceHeader } from '@/components/marketplace/header';
 import { OpenChatButton } from '@/components/messages/open-chat-button';
 import { ListingStatusBadge } from '@/components/listing/listing-status-badge';
+import { SeoJsonLd } from '@/components/seo-json-ld';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/marketplace-data';
 import { LISTING_STATUS_PANEL_CLASSES, getListingStatusLabel } from '@/lib/listing-status';
 import { getSessionUser } from '@/lib/server/auth';
 import { getWantedListingById } from '@/lib/server/marketplace';
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_OG_IMAGE,
+  SITE_NAME,
+  absoluteUrl,
+  breadcrumbJsonLd,
+  formatRubPrice,
+  sanitizeSeoText,
+} from '@/lib/seo';
 import { cn } from '@/lib/utils';
 
 interface WantedPageProps {
@@ -68,31 +78,50 @@ export async function generateMetadata({ params }: WantedPageProps): Promise<Met
   if (!listing) {
     return {
       title: 'Запрос не найден',
-      description: 'Запрошенный запрос на подбор недоступен.',
+      description: 'Запрошенный запрос на подбор недоступен на vin2win.',
+      robots: {
+        index: false,
+        follow: false,
+      },
     };
   }
 
-  const title = `${listing.models.join(', ')} — запрос в подбор`;
-  const description = `${listing.region ? `${listing.region} • ` : ''}бюджет до ${formatPrice(listing.budgetMax)}. ${listing.comment ?? 'Подбор автомобиля на vin2win.'}`.slice(
-    0,
-    190
+  const models = sanitizeSeoText(listing.models.join(', '), 'Автомобиль', 80);
+  const title = `${models} — запрос в подбор`;
+  const description = sanitizeSeoText(
+    `${models} — запрос в подбор на vin2win. Бюджет: до ${formatRubPrice(
+      listing.budgetMax
+    )} ₽. B2B авторынок для профессионалов.`,
+    DEFAULT_DESCRIPTION,
+    170
   );
   return {
     title,
     description,
     alternates: {
-      canonical: `/wanted/${listing.id}`,
+      canonical: absoluteUrl(`/wanted/${listing.id}`),
     },
     openGraph: {
       title,
       description,
-      url: `/wanted/${listing.id}`,
-      type: 'article',
+      url: absoluteUrl(`/wanted/${listing.id}`),
+      type: 'website',
+      locale: 'ru_RU',
+      siteName: SITE_NAME,
+      images: [
+        {
+          url: DEFAULT_OG_IMAGE,
+          width: 1200,
+          height: 630,
+          alt: `${SITE_NAME} — запросы в подбор`,
+        },
+      ],
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title,
       description,
+      images: [DEFAULT_OG_IMAGE],
     },
   };
 }
@@ -104,6 +133,10 @@ export default async function WantedDetailPage({ params }: WantedPageProps) {
 
   if (!w) {
     notFound();
+  }
+
+  if (id !== w.id) {
+    permanentRedirect(`/wanted/${w.id}`);
   }
 
   const budgetLabel = w.budgetMin
@@ -183,9 +216,36 @@ export default async function WantedDetailPage({ params }: WantedPageProps) {
     'Чем точнее лот совпадает с брифом, тем выше шанс быстрого ответа.',
   ];
   const PrimaryActionIcon = primaryActionIcon;
+  const modelsTitle = sanitizeSeoText(w.models.join(', '), 'Автомобиль', 80);
+  const breadcrumbsJsonLd = breadcrumbJsonLd([
+    { name: 'Главная', path: '/' },
+    { name: 'Запросы в подбор', path: '/wanted' },
+    { name: modelsTitle, path: `/wanted/${w.id}` },
+  ]);
+  const wantedPageJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: `${modelsTitle} — запрос в подбор`,
+    url: absoluteUrl(`/wanted/${w.id}`),
+    inLanguage: 'ru-RU',
+    description: `${modelsTitle} — запрос в подбор на vin2win. Бюджет: до ${formatRubPrice(
+      w.budgetMax
+    )} ₽. B2B авторынок для профессионалов.`,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: SITE_NAME,
+      url: absoluteUrl('/'),
+    },
+    about: {
+      '@type': 'Thing',
+      name: modelsTitle,
+    },
+  };
 
   return (
     <div className="relative isolate min-h-full">
+      <SeoJsonLd data={breadcrumbsJsonLd} />
+      <SeoJsonLd data={wantedPageJsonLd} />
       <MarketplaceHeader />
       <main id="page-main" className="relative z-10 mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <nav className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
