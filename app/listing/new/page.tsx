@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { MarketplaceHeader } from '@/components/marketplace/header';
 import { ListingSubmissionSuccessState } from '@/components/listing/listing-submission-success-state';
 import { RegistrationPlateField } from '@/components/listing/registration-plate-field';
+import { VehicleDocumentOcrPanel } from '@/components/listing/vehicle-document-ocr-panel';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { ColorSwatchSelect } from '@/components/ui/color-swatch-select';
@@ -16,6 +17,7 @@ import { useVehicleCatalogForm } from '@/hooks/use-vehicle-catalog-form';
 import { LISTING_STATUS_BADGE_CLASSES, LISTING_STATUS_LABELS } from '@/lib/listing-status';
 import type { ListingStatusValue } from '@/lib/listing-status';
 import {
+  applyVehicleDocumentOcrToSaleData,
   buildSaleListingEditMediaPlan,
   buildSaleSubmissionPayload,
   getSaleListingFormModeCopy,
@@ -24,6 +26,7 @@ import {
   type EditableSaleListingPayload,
   type SaleData,
 } from '@/lib/sale-form';
+import type { VehicleDocumentOcrFields } from '@/lib/ocr/vehicle-document';
 import { formatEngineSpec } from '@/lib/listing-utils';
 import { formatPrice } from '@/lib/price-formatting';
 import {
@@ -710,6 +713,21 @@ export default function NewListingPage() {
     setSale,
     clearError,
   });
+
+  const handleApplyVehicleDocumentOcr = useCallback(
+    (fields: VehicleDocumentOcrFields) => {
+      setSale((current) => applyVehicleDocumentOcrToSaleData(current, fields));
+      [
+        'sale.vin',
+        'sale.make',
+        'sale.model',
+        'sale.bodyType',
+        'sale.year',
+        'sale.power',
+      ].forEach(clearError);
+    },
+    [clearError]
+  );
 
   const saleBrandOptions = useMemo(
     () => vehicleCatalog.brands.map((item) => item.label),
@@ -1575,6 +1593,8 @@ export default function NewListingPage() {
     <div className="space-y-5">
       {step === 1 ? (
         <>
+        <VehicleDocumentOcrPanel onApply={handleApplyVehicleDocumentOcr} disabled={isSubmitting} />
+
         <div className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Марка" required error={fieldErrors['sale.make']}>

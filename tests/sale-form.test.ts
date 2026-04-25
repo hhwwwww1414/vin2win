@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  applyVehicleDocumentOcrToSaleData,
   buildSaleListingEditMediaPlan,
   buildSaleSubmissionPayload,
   mergeSaleFormWithEditableListing,
@@ -130,4 +131,30 @@ test('buildSaleListingEditMediaPlan keeps final gallery order and maps new uploa
     kind: 'VIDEO',
     uploadId: 'video-new',
   });
+});
+
+test('applyVehicleDocumentOcrToSaleData fills supported vehicle fields without clearing existing data', () => {
+  const current = {
+    ...saleDefaults,
+    city: 'Москва',
+    price: '1200000',
+  };
+
+  const next = applyVehicleDocumentOcrToSaleData(current, {
+    vin: 'xth53110011025824',
+    brand: 'ГАЗ',
+    model: '3110',
+    vehicleType: 'Седан',
+    year: '2001',
+    enginePowerHp: '131',
+  });
+
+  assert.equal(next.vin, 'XTH53110011025824');
+  assert.equal(next.make, 'ГАЗ');
+  assert.equal(next.model, '3110');
+  assert.equal(next.bodyType, 'Седан');
+  assert.equal(next.year, '2001');
+  assert.equal(next.power, '131');
+  assert.equal(next.city, 'Москва');
+  assert.equal(next.price, '1200000');
 });

@@ -118,4 +118,9 @@ export const serverEnv = {
   vapidPublicKey: getOptionalEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY'),
   vapidPrivateKey: getOptionalEnv('VAPID_PRIVATE_KEY'),
   vapidSubject: getOptionalEnv('VAPID_SUBJECT') ?? 'mailto:admin@vin2win.ru',
+  yandexOcrApiKey: getOptionalEnv('YANDEX_OCR_API_KEY'),
+  yandexVisionOcrEndpoint:
+    getOptionalEnv('YANDEX_VISION_OCR_ENDPOINT') ?? 'https://ocr.api.cloud.yandex.net/ocr/v1/recognizeText',
+  ocrMaxFileSizeBytes: getPositiveIntegerEnv('OCR_MAX_FILE_SIZE_MB', 10) * 1024 * 1024,
+  ocrTimeoutMs: getPositiveIntegerEnv('OCR_TIMEOUT_MS', 30_000),
 };

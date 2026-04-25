@@ -1,4 +1,5 @@
 import type { ListingStatusValue } from '@/lib/listing-status';
+import type { VehicleDocumentOcrFields } from '@/lib/ocr/vehicle-document';
 
 export type SaleData = {
   sellerName: string;
@@ -225,6 +226,81 @@ export function buildSaleSubmissionPayload(sale: SaleData, initialStatus: Listin
     ...sale,
     initialStatus,
   };
+}
+
+function normalizeOcrVinForSale(value: string): string {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function clearCatalogVehicleSelection(current: SaleData, level: 'brand' | 'model' | 'year' | 'bodyType'): SaleData {
+  const next = { ...current };
+
+  if (level === 'brand') {
+    next.catalogBrandId = '';
+    next.model = '';
+    next.catalogModelId = '';
+  }
+
+  if (level === 'brand' || level === 'model') {
+    next.catalogModelId = '';
+  }
+
+  if (level === 'brand' || level === 'model' || level === 'year') {
+    next.generation = '';
+    next.catalogGenerationId = '';
+    next.bodyType = level === 'year' ? next.bodyType : '';
+    next.catalogBodyTypeId = '';
+  }
+
+  if (level === 'brand' || level === 'model' || level === 'year' || level === 'bodyType') {
+    next.catalogGenerationId = '';
+    next.catalogFuelTypeId = '';
+    next.engineDisplacementL = '';
+    next.catalogEngineId = '';
+    next.transmission = '';
+    next.catalogTransmissionId = '';
+    next.drive = '';
+    next.catalogDriveTypeId = '';
+    next.trim = '';
+    next.catalogModificationId = '';
+    next.catalogTrimId = '';
+  }
+
+  return next;
+}
+
+export function applyVehicleDocumentOcrToSaleData(current: SaleData, fields: VehicleDocumentOcrFields): SaleData {
+  let next = { ...current };
+
+  if (fields.vin) {
+    next.vin = normalizeOcrVinForSale(fields.vin);
+  }
+
+  if (fields.brand && fields.brand !== next.make) {
+    next = clearCatalogVehicleSelection(next, 'brand');
+    next.make = fields.brand;
+  }
+
+  if (fields.model && fields.model !== next.model) {
+    next = clearCatalogVehicleSelection(next, 'model');
+    next.model = fields.model;
+  }
+
+  if (fields.year && fields.year !== next.year) {
+    next = clearCatalogVehicleSelection(next, 'year');
+    next.year = fields.year;
+  }
+
+  if (fields.vehicleType && fields.vehicleType !== next.bodyType) {
+    next = clearCatalogVehicleSelection(next, 'bodyType');
+    next.bodyType = fields.vehicleType;
+  }
+
+  if (fields.enginePowerHp) {
+    next.power = fields.enginePowerHp;
+  }
+
+  return next;
 }
 
 export function buildSaleListingEditMediaPlan(input: {
