@@ -1,12 +1,12 @@
 import { HomePageClient } from '@/components/marketplace/home-page-client';
 import { SeoJsonLd } from '@/components/seo-json-ld';
-import { getSessionUser } from '@/lib/server/auth';
 import { buildSaleSearchParams, parseSaleSearchParams } from '@/lib/sale-search';
 import { getPublishedSaleSearchFacets, searchPublishedSaleListings } from '@/lib/server/marketplace';
 import { SALE_ROUTE } from '@/lib/routes';
 import { absoluteUrl, breadcrumbJsonLd, createPageMetadata, formatRubPrice } from '@/lib/seo';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
+
 export const metadata = createPageMetadata({
   title: 'Автомобили в продаже для профессионалов',
   description:
@@ -21,9 +21,8 @@ export default async function SalePage({
 }) {
   const params = searchParams ? await searchParams : {};
   const filters = parseSaleSearchParams(params ?? {});
-  const sessionUser = await getSessionUser();
   const [initialResult, facets] = await Promise.all([
-    searchPublishedSaleListings(filters, sessionUser ? { userId: sessionUser.id, role: sessionUser.role } : undefined),
+    searchPublishedSaleListings(filters),
     getPublishedSaleSearchFacets(),
   ]);
   const initialQueryString = buildSaleSearchParams(filters).toString();
@@ -31,7 +30,7 @@ export default async function SalePage({
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: 'Автомобили в продаже для профессионалов',
-    itemListElement: initialResult.items.slice(0, 20).map((listing, index) => ({
+    itemListElement: initialResult.items.slice(0, 30).map((listing, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       url: absoluteUrl(`/listing/${listing.id}`),
@@ -76,7 +75,7 @@ export default async function SalePage({
         initialResult={initialResult}
         initialQueryString={initialQueryString}
         facets={facets}
-        isAuthenticated={Boolean(sessionUser)}
+        isAuthenticated={false}
       />
     </>
   );

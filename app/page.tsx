@@ -17,7 +17,7 @@ import { SeoJsonLd } from '@/components/seo-json-ld';
 import { createPageMetadata } from '@/lib/seo';
 
 export const metadata = createPageMetadata({
-  title: 'vin2win — профессиональный авторынок России',
+  title: 'Профессиональный авторынок России',
   description:
     'B2B-платформа для профессиональных продавцов, подборщиков и менеджеров: объявления, запросы в подбор, фильтры, сравнение и сохранение поисков.',
   path: '/',

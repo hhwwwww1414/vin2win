@@ -19,6 +19,7 @@ import type { EditableSaleListingPayload, SaleListingEditMediaPlan } from '@/lib
 import { saleListings as saleListingFixtures, wantedListings as wantedListingFixtures } from '@/lib/marketplace-data';
 import { calculatePotentialBenefit, extractEngineDisplacement } from '@/lib/listing-utils';
 import { pingIndexNow } from '@/lib/indexnow';
+import { buildWantedListingSlug } from '@/lib/slugs';
 import type {
   SaleListing,
   SaleSearchFacets,
@@ -645,6 +646,7 @@ function mapWantedListing(record: WantedListingRecord): WantedListing {
 
   return {
     id: record.id,
+    slug: record.slug ?? undefined,
     type: 'wanted',
     models: record.models,
     budgetMin: record.budgetMin ?? undefined,
@@ -1700,14 +1702,14 @@ export async function getWantedListingById(id: string, viewer?: ListingViewer): 
   try {
     const record = await prisma.wantedListing.findFirst({
       where: {
-        OR: [{ id }, { legacyId: id }],
+        OR: [{ id }, { legacyId: id }, { slug: id }],
       },
       include: wantedListingInclude,
     });
 
     if (!record) {
       if (canUseFixtureMarketplaceFallback) {
-        const fallback = wantedListingFixtures.find((listing) => listing.id === id);
+        const fallback = wantedListingFixtures.find((listing) => listing.id === id || listing.slug === id);
         return fallback ? cloneFixtureWantedListing(fallback) : null;
       }
 
@@ -1721,7 +1723,7 @@ export async function getWantedListingById(id: string, viewer?: ListingViewer): 
     return mapWantedListing(record);
   } catch (error) {
     if (canUseFixtureMarketplaceFallback && isMarketplaceDbUnavailable(error)) {
-      const fallback = wantedListingFixtures.find((listing) => listing.id === id);
+      const fallback = wantedListingFixtures.find((listing) => listing.id === id || listing.slug === id);
       return fallback ? cloneFixtureWantedListing(fallback) : null;
     }
 
@@ -2187,7 +2189,7 @@ export async function createWantedListing(input: CreateWantedListingInput): Prom
     phone: input.contact,
   });
 
-  const created = await prisma.wantedListing.create({
+  let created = await prisma.wantedListing.create({
     data: {
       models: input.models,
       budgetMin: input.budgetMin,
@@ -2214,10 +2216,27 @@ export async function createWantedListing(input: CreateWantedListingInput): Prom
     include: wantedListingInclude,
   });
 
+  if (!created.slug) {
+    created = await prisma.wantedListing.update({
+      where: {
+        id: created.id,
+      },
+      data: {
+        slug: buildWantedListingSlug({
+          id: created.id,
+          models: created.models,
+          region: created.region,
+          budgetMax: created.budgetMax,
+        }),
+      },
+      include: wantedListingInclude,
+    });
+  }
+
   const listing = mapWantedListing(created);
 
   if (listing.status === 'PUBLISHED') {
-    void pingIndexNow([`/wanted/${listing.id}`, '/wanted', '/sitemap.xml']);
+    void pingIndexNow([`/wanted/${listing.slug ?? listing.id}`, '/wanted', '/sitemap.xml']);
   }
 
   return listing;

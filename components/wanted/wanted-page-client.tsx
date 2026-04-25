@@ -71,7 +71,7 @@ function WantedCard({ listing }: { listing: WantedListing }) {
 
   return (
     <Link
-      href={`/wanted/${listing.id}`}
+      href={`/wanted/${listing.slug ?? listing.id}`}
       className={cn(
         'group relative block overflow-hidden rounded-[26px] border border-border/70 bg-card/92 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:bg-surface-elevated/92',
         'transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:border-teal-accent/30 dark:hover:bg-surface-elevated',

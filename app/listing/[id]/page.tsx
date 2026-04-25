@@ -30,7 +30,6 @@ import {
   getPtsTypeLabel,
   getPtsTypeToneClassName,
 } from '@/lib/listing-utils';
-import { getSessionUser } from '@/lib/server/auth';
 import { getSaleListingById, getSimilarSaleListings } from '@/lib/server/marketplace';
 import { SALE_ROUTE } from '@/lib/routes';
 import {
@@ -48,7 +47,7 @@ interface ListingPageProps {
   params: Promise<{ id: string }>;
 }
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
 
 type SaleListingPageRecord = NonNullable<Awaited<ReturnType<typeof getSaleListingById>>>;
 
@@ -58,9 +57,7 @@ function buildListingTitle(listing: Awaited<ReturnType<typeof getSaleListingById
     return 'Объявление vin2win';
   }
 
-  return `${sanitizeSeoText(listing.make, 'Автомобиль', 40)} ${sanitizeSeoText(listing.model, '', 50)} ${
-    listing.year
-  } — ${formatRubPrice(listing.price)} ₽`;
+  return `${sanitizeSeoText(listing.make, 'Автомобиль', 40)} ${sanitizeSeoText(listing.model, '', 50)} ${listing.year} — ${formatRubPrice(listing.price)} ₽`;
 }
 
 function buildListingDescription(listing: Awaited<ReturnType<typeof getSaleListingById>>) {
@@ -71,9 +68,7 @@ function buildListingDescription(listing: Awaited<ReturnType<typeof getSaleListi
   return sanitizeSeoText(
     `${listing.make} ${listing.model} ${listing.year} в продаже на vin2win. Цена: ${formatRubPrice(
       listing.price
-    )} ₽. Пробег: ${listing.mileage.toLocaleString('ru-RU')} км. Город: ${listing.city}. ${formatEngineSpec(
-      listing
-    )}, ${listing.transmission}, ${listing.drive}.`,
+    )} ₽. Пробег: ${listing.mileage.toLocaleString('ru-RU')} км. Город: ${listing.city}. ${formatEngineSpec(listing)}, ${listing.transmission}, ${listing.drive}.`,
     DEFAULT_DESCRIPTION,
     180
   );
@@ -207,11 +202,7 @@ export async function generateMetadata({ params }: ListingPageProps): Promise<Me
 
 export default async function ListingPage({ params }: ListingPageProps) {
   const { id } = await params;
-  const sessionUser = await getSessionUser();
-  const listing = await getSaleListingById(
-    id,
-    sessionUser ? { userId: sessionUser.id, role: sessionUser.role } : undefined
-  );
+  const listing = await getSaleListingById(id);
 
   if (!listing) {
     notFound();
@@ -222,11 +213,9 @@ export default async function ListingPage({ params }: ListingPageProps) {
   }
 
   const vehicle = saleListingToVehicle(listing);
-  const similarListings = await getSimilarSaleListings(
-    listing,
-    sessionUser ? { userId: sessionUser.id, role: sessionUser.role } : undefined
-  );
+  const similarListings = await getSimilarSaleListings(listing);
   const loginHref = `/login?next=${encodeURIComponent(`/listing/${listing.id}`)}`;
+  const wantedSearchHref = `/wanted?model=${encodeURIComponent(`${listing.make} ${listing.model}`)}`;
   const paintLabel = formatPaintCountValue(listing.paintCount);
   const avtotekaLabel = getAvtotekaStatusLabel(listing.avtotekaStatus);
   const avtotekaTone = getAvtotekaTone(listing.avtotekaStatus);
@@ -366,7 +355,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
                   listingId={listing.id}
                   initialCount={listing.viewCount}
                   shouldTrack={
-                    listing.status === 'PUBLISHED' && listing.ownerUserId !== sessionUser?.id
+                    listing.status === 'PUBLISHED'
                   }
                 />
               </nav>
@@ -528,15 +517,31 @@ export default async function ListingPage({ params }: ListingPageProps) {
           </div>
 
           <div className="lg:col-span-4">
-            <DealBlock listing={listing} currentUserId={sessionUser?.id} />
+            <DealBlock listing={listing} currentUserId={undefined} />
           </div>
         </div>
 
         <SimilarListings
           listings={similarListings}
-          isAuthenticated={Boolean(sessionUser)}
+          isAuthenticated={false}
           loginHref={loginHref}
         />
+
+        <section className="mt-8 rounded-[28px] border border-border/70 bg-card/92 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.08)] dark:bg-surface-elevated/92 sm:p-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-accent">
+            Связанные запросы
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground">Похожие запросы в подбор</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+            Проверьте, есть ли среди профессиональных запросов покупатели под {listing.make} {listing.model}.
+          </p>
+          <Link
+            href={wantedSearchHref}
+            className="mt-4 inline-flex rounded-xl border border-teal-accent/25 bg-[var(--accent-bg-soft)] px-4 py-2.5 text-sm font-semibold text-teal-accent transition hover:border-teal-accent/50"
+          >
+            Смотреть запросы в подбор
+          </Link>
+        </section>
       </main>
 
       <footer className="relative z-10 mt-12 border-t border-border pt-6">

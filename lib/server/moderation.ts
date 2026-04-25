@@ -13,6 +13,7 @@ import { deleteS3Objects } from './s3';
 import { notifyUsersAboutSavedSearchMatch } from './saved-searches';
 import { getSaleListingById } from './marketplace';
 import { pingIndexNow } from '@/lib/indexnow';
+import { buildWantedListingSlug } from '@/lib/slugs';
 
 type SaleModerationRecord = Prisma.SaleListingGetPayload<{
   include: {
@@ -485,6 +486,15 @@ export async function updateWantedListingByAdmin(input: UpdateWantedListingByAdm
         : current.publishedAt;
   }
 
+  if (!current.slug) {
+    data.slug = buildWantedListingSlug({
+      id: current.id,
+      models: input.models ?? current.models,
+      region: input.region ?? current.region,
+      budgetMax: input.budgetMax ?? current.budgetMax,
+    });
+  }
+
   if (input.moderationNote !== undefined && nextNote !== current.moderationNote) {
     data.moderationNote = nextNote;
     if (!data.statusUpdatedAt) {
@@ -540,7 +550,7 @@ export async function updateWantedListingByAdmin(input: UpdateWantedListingByAdm
   });
 
   if (input.status === ListingStatus.PUBLISHED && current.status !== ListingStatus.PUBLISHED) {
-    void pingIndexNow([`/wanted/${current.id}`, '/wanted', '/sitemap.xml']);
+    void pingIndexNow([`/wanted/${listing.slug ?? current.id}`, '/wanted', '/sitemap.xml']);
   }
 
   return listing;

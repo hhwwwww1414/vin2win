@@ -7,7 +7,7 @@ interface ParseSaleSearchParamsOptions {
   dedupeQuickFilterAliases?: boolean;
 }
 
-export const SALE_SEARCH_DEFAULT_LIMIT = 20;
+export const SALE_SEARCH_DEFAULT_LIMIT = 30;
 export const SALE_SEARCH_MAX_LIMIT = 60;
 export const SALE_SEARCH_FILTER_PARAM = 'filter';
 

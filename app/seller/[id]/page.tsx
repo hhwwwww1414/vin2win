@@ -5,10 +5,11 @@ import { ListingCardView } from '@/components/marketplace/listing-card-view';
 import { MarketplaceHeader } from '@/components/marketplace/header';
 import { SellerProfileHero } from '@/components/seller/seller-profile-hero';
 import { SellerReviewsSection } from '@/components/seller/seller-reviews-section';
+import { SeoJsonLd } from '@/components/seo-json-ld';
 import { buildSellerProfileAboutText } from '@/lib/seller-profile';
 import { formatPrice } from '@/lib/marketplace-data';
-import { getSessionUser } from '@/lib/server/auth';
 import { getPublicSellerProfileById } from '@/lib/server/marketplace';
+import { absoluteUrl, breadcrumbJsonLd, createPageMetadata, sanitizeSeoText } from '@/lib/seo';
 
 interface SellerPageProps {
   params: Promise<{
@@ -16,9 +17,7 @@ interface SellerPageProps {
   }>;
 }
 
-export const dynamic = 'force-dynamic';
-
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') || 'https://vin2win.ru';
+export const revalidate = 600;
 
 function getSellerTypeLabel(type: 'person' | 'company') {
   return type === 'company' ? 'Компания' : 'Частный продавец';
@@ -52,52 +51,36 @@ export async function generateMetadata({ params }: SellerPageProps): Promise<Met
   const result = await getPublicSellerProfileById(id);
 
   if (!result) {
-    return {
+    return createPageMetadata({
       title: 'Продавец не найден',
       description: 'Профиль продавца недоступен.',
-    };
+      path: `/seller/${id}`,
+      noIndex: true,
+    });
   }
 
-  const ratingText = result.reviewSummary.averageRating
-    ? result.reviewSummary.averageRating.toFixed(1)
-    : 'без оценок';
-  const title = `${result.seller.name} - профиль продавца`;
+  const title = `${sanitizeSeoText(result.seller.name, 'Продавец', 80)} — продавец на vin2win`;
   const about = buildSellerProfileAboutText({
     about: result.seller.about,
     name: result.seller.name,
   });
-  const description = `${getSellerTypeLabel(result.seller.type)} на vin2win. ${result.listings.length} активных объявлений, ${result.completedDealsCount} закрытых сделок, рейтинг ${ratingText}. ${about}`.slice(
-    0,
+  const description = sanitizeSeoText(
+    `Профиль продавца ${result.seller.name} на vin2win: объявления, рейтинг, отзывы и информация для профессиональных участников авторынка. ${about}`,
+    'Профиль продавца на vin2win.',
     180
   );
 
-  return {
+  return createPageMetadata({
     title,
     description,
-    alternates: {
-      canonical: `/seller/${result.seller.id}`,
-    },
-    openGraph: {
-      title,
-      description,
-      type: 'profile',
-      url: `${SITE_URL}/seller/${result.seller.id}`,
-    },
-    twitter: {
-      card: 'summary',
-      title,
-      description,
-    },
-  };
+    path: `/seller/${result.seller.id}`,
+    image: result.seller.avatarUrl ?? undefined,
+  });
 }
 
 export default async function SellerPage({ params }: SellerPageProps) {
   const { id } = await params;
-  const sessionUser = await getSessionUser();
-  const result = await getPublicSellerProfileById(
-    id,
-    sessionUser ? { userId: sessionUser.id, role: sessionUser.role } : undefined
-  );
+  const result = await getPublicSellerProfileById(id);
 
   if (!result) {
     notFound();
@@ -124,9 +107,53 @@ export default async function SellerPage({ params }: SellerPageProps) {
       value: makes.length > 0 ? makes.join(', ') : 'Пока без активной специализации',
     },
   ];
+  const sellerPath = `/seller/${result.seller.id}`;
+  const sellerJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': result.seller.type === 'company' ? 'Organization' : 'Person',
+    name: result.seller.name,
+    url: absoluteUrl(sellerPath),
+    image: result.seller.avatarUrl ?? undefined,
+    description: about,
+    aggregateRating:
+      result.reviewSummary.averageRating && result.reviewSummary.count > 0
+        ? {
+            '@type': 'AggregateRating',
+            ratingValue: result.reviewSummary.averageRating.toFixed(1),
+            reviewCount: result.reviewSummary.count,
+            bestRating: 5,
+            worstRating: 1,
+          }
+        : undefined,
+    review:
+      result.reviews.length > 0
+        ? result.reviews.slice(0, 5).map((review) => ({
+            '@type': 'Review',
+            reviewRating: {
+              '@type': 'Rating',
+              ratingValue: review.rating,
+              bestRating: 5,
+              worstRating: 1,
+            },
+            author: {
+              '@type': 'Person',
+              name: review.authorName,
+            },
+            reviewBody: sanitizeSeoText(review.text, '', 240),
+            datePublished: review.createdAt,
+          }))
+        : undefined,
+  };
+  const breadcrumbsJsonLd = breadcrumbJsonLd([
+    { name: 'Главная', path: '/' },
+    { name: 'Продавцы', path: '/sale' },
+    { name: result.seller.name, path: sellerPath },
+  ]);
 
   return (
     <div className="min-h-full">
+      <SeoJsonLd data={sellerJsonLd} />
+      <SeoJsonLd data={breadcrumbsJsonLd} />
       <MarketplaceHeader />
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <SellerProfileHero
@@ -212,7 +239,7 @@ export default async function SellerPage({ params }: SellerPageProps) {
                       key={listing.id}
                       listing={listing}
                       priority={index < 3}
-                      isAuthenticated={Boolean(sessionUser)}
+                      isAuthenticated={false}
                       loginHref={loginHref}
                       variant="seller-preview"
                     />
@@ -233,7 +260,7 @@ export default async function SellerPage({ params }: SellerPageProps) {
                 initialReviews={result.reviews}
                 reviewSummary={result.reviewSummary}
                 viewerReviewStatus={result.viewerReviewStatus}
-                isAuthenticated={Boolean(sessionUser)}
+                isAuthenticated={false}
                 loginHref={loginHref}
               />
             </div>

@@ -164,6 +164,7 @@ export interface SaleListing {
 
 export interface WantedListing {
   id: string;
+  slug?: string;
   type: 'wanted';
   models: string[];
   budgetMin?: number;

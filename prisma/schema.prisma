@@ -635,6 +635,7 @@ model SaleListing {
 model WantedListing {
   id              String        @id @default(cuid())
   legacyId        String?       @unique
+  slug            String?       @unique
   status          ListingStatus @default(PUBLISHED)
   moderationNote  String?
   models          String[]

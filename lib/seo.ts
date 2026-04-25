@@ -21,6 +21,15 @@ export function absoluteUrl(path = '/') {
   return `${normalizeSiteUrl()}${normalizedPath === '/' ? '' : normalizedPath}`;
 }
 
+export function buildLanguageAlternates(path = '/') {
+  const url = absoluteUrl(path);
+
+  return {
+    ru: url,
+    'x-default': url,
+  };
+}
+
 export function safeJsonLd(data: unknown) {
   return JSON.stringify(data, (_key, value) => (value === undefined ? undefined : value)).replace(
     /</g,
@@ -57,6 +66,35 @@ export function buildSeoTitle(parts: Array<string | number | null | undefined>, 
   return title || fallback;
 }
 
+function isValidPublicHttpUrl(value: string | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+export function getPublicContactEmail() {
+  const email = process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim();
+  return email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined;
+}
+
+export function getPublicSocialUrls() {
+  return [
+    process.env.NEXT_PUBLIC_TELEGRAM_URL,
+    process.env.NEXT_PUBLIC_VK_URL,
+    process.env.NEXT_PUBLIC_YOUTUBE_URL,
+    process.env.NEXT_PUBLIC_DZEN_URL,
+  ]
+    .map((value) => value?.trim())
+    .filter((value): value is string => isValidPublicHttpUrl(value));
+}
+
 export function createPageMetadata({
   title,
   description = DEFAULT_DESCRIPTION,
@@ -80,6 +118,7 @@ export function createPageMetadata({
     description: cleanDescription,
     alternates: {
       canonical: url,
+      languages: buildLanguageAlternates(path),
     },
     openGraph: {
       title: cleanTitle,
@@ -93,7 +132,7 @@ export function createPageMetadata({
           url: imageUrl,
           width: 1200,
           height: 630,
-          alt: `${SITE_NAME} — профессиональный авторынок`,
+          alt: `${SITE_NAME} — профессиональный авторынок России`,
         },
       ],
     },

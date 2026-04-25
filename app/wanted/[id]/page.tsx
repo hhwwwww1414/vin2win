@@ -24,7 +24,6 @@ import { SeoJsonLd } from '@/components/seo-json-ld';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/marketplace-data';
 import { LISTING_STATUS_PANEL_CLASSES, getListingStatusLabel } from '@/lib/listing-status';
-import { getSessionUser } from '@/lib/server/auth';
 import { getWantedListingById } from '@/lib/server/marketplace';
 import {
   DEFAULT_DESCRIPTION,
@@ -41,7 +40,7 @@ interface WantedPageProps {
   params: Promise<{ id: string }>;
 }
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 function formatHumanDate(value: string) {
   return new Intl.DateTimeFormat('ru-RU', {
@@ -88,6 +87,7 @@ export async function generateMetadata({ params }: WantedPageProps): Promise<Met
 
   const models = sanitizeSeoText(listing.models.join(', '), 'Автомобиль', 80);
   const title = `${models} — запрос в подбор`;
+  const canonicalPath = `/wanted/${listing.slug ?? listing.id}`;
   const description = sanitizeSeoText(
     `${models} — запрос в подбор на vin2win. Бюджет: до ${formatRubPrice(
       listing.budgetMax
@@ -99,12 +99,16 @@ export async function generateMetadata({ params }: WantedPageProps): Promise<Met
     title,
     description,
     alternates: {
-      canonical: absoluteUrl(`/wanted/${listing.id}`),
+      canonical: absoluteUrl(canonicalPath),
+      languages: {
+        ru: absoluteUrl(canonicalPath),
+        'x-default': absoluteUrl(canonicalPath),
+      },
     },
     openGraph: {
       title,
       description,
-      url: absoluteUrl(`/wanted/${listing.id}`),
+      url: absoluteUrl(canonicalPath),
       type: 'website',
       locale: 'ru_RU',
       siteName: SITE_NAME,
@@ -128,15 +132,16 @@ export async function generateMetadata({ params }: WantedPageProps): Promise<Met
 
 export default async function WantedDetailPage({ params }: WantedPageProps) {
   const { id } = await params;
-  const sessionUser = await getSessionUser();
-  const w = await getWantedListingById(id, sessionUser ? { userId: sessionUser.id, role: sessionUser.role } : undefined);
+  const w = await getWantedListingById(id);
 
   if (!w) {
     notFound();
   }
 
-  if (id !== w.id) {
-    permanentRedirect(`/wanted/${w.id}`);
+  const canonicalPath = `/wanted/${w.slug ?? w.id}`;
+
+  if (id !== (w.slug ?? w.id)) {
+    permanentRedirect(canonicalPath);
   }
 
   const budgetLabel = w.budgetMin
@@ -217,16 +222,23 @@ export default async function WantedDetailPage({ params }: WantedPageProps) {
   ];
   const PrimaryActionIcon = primaryActionIcon;
   const modelsTitle = sanitizeSeoText(w.models.join(', '), 'Автомобиль', 80);
+  const firstModel = w.models[0] ?? '';
+  const [searchMake, ...searchModelParts] = firstModel.split(/\s+/).filter(Boolean);
+  const saleSearchParams = new URLSearchParams();
+  if (searchMake) saleSearchParams.set('make', searchMake);
+  if (searchModelParts.length > 0) saleSearchParams.set('model', searchModelParts.join(' '));
+  const saleSearchQuery = saleSearchParams.toString();
+  const similarSaleHref = saleSearchQuery ? `/sale?${saleSearchQuery}` : '/sale';
   const breadcrumbsJsonLd = breadcrumbJsonLd([
     { name: 'Главная', path: '/' },
     { name: 'Запросы в подбор', path: '/wanted' },
-    { name: modelsTitle, path: `/wanted/${w.id}` },
+    { name: modelsTitle, path: canonicalPath },
   ]);
   const wantedPageJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: `${modelsTitle} — запрос в подбор`,
-    url: absoluteUrl(`/wanted/${w.id}`),
+    url: absoluteUrl(canonicalPath),
     inLanguage: 'ru-RU',
     description: `${modelsTitle} — запрос в подбор на vin2win. Бюджет: до ${formatRubPrice(
       w.budgetMax
@@ -323,9 +335,9 @@ export default async function WantedDetailPage({ params }: WantedPageProps) {
                 <OpenChatButton
                   contextType="WANTED_LISTING"
                   listingId={w.id}
-                  currentUserId={sessionUser?.id}
+                  currentUserId={undefined}
                   ownerUserId={w.ownerUserId}
-                  nextPath={`/wanted/${w.id}`}
+                  nextPath={canonicalPath}
                   className="border-border/80 bg-background/70 dark:bg-background/10"
                 />
                 {primaryActionHref && primaryActionLabel ? (
@@ -459,6 +471,23 @@ export default async function WantedDetailPage({ params }: WantedPageProps) {
                 <p className="mt-4 text-sm leading-7 text-muted-foreground sm:text-base">{w.comment}</p>
               </section>
             ) : null}
+
+            <section className="rounded-[28px] border border-border/70 bg-card/92 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.08)] dark:bg-surface-elevated/92 sm:p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-accent">
+                Связанный каталог
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-foreground">Похожие автомобили в продаже</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Если под этот запрос уже есть подходящие автомобили, удобнее сразу открыть каталог с близким фильтром по
+                марке и модели.
+              </p>
+              <Link
+                href={similarSaleHref}
+                className="mt-4 inline-flex items-center justify-center rounded-xl border border-teal-accent/25 bg-[var(--accent-bg-soft)] px-4 py-2.5 text-sm font-semibold text-teal-accent transition hover:border-teal-accent/50"
+              >
+                Смотреть автомобили в продаже
+              </Link>
+            </section>
           </div>
 
           <aside id="wanted-contact" className="lg:sticky lg:top-20 lg:self-start">

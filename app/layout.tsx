@@ -11,6 +11,9 @@ import {
   SITE_NAME,
   SITE_URL,
   absoluteUrl,
+  buildLanguageAlternates,
+  getPublicContactEmail,
+  getPublicSocialUrls,
 } from '@/lib/seo';
 import '@21st-sdk/react/styles.css';
 import './globals.css';
@@ -44,6 +47,10 @@ export const metadata: Metadata = {
     'запросы в подбор',
     'продажа автомобилей',
   ],
+  alternates: {
+    canonical: SITE_URL,
+    languages: buildLanguageAlternates('/'),
+  },
   openGraph: {
     type: 'website',
     locale: 'ru_RU',
@@ -56,7 +63,7 @@ export const metadata: Metadata = {
         url: DEFAULT_OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: `${SITE_NAME} — профессиональный авторынок`,
+        alt: `${SITE_NAME} — профессиональный авторынок России`,
       },
     ],
   },
@@ -115,6 +122,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const sameAs = getPublicSocialUrls();
+  const contactEmail = getPublicContactEmail();
   const organizationJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -123,6 +132,18 @@ export default function RootLayout({
     logo: absoluteUrl('/icon.svg'),
     description: 'B2B-платформа для профессиональных продавцов, подборщиков и менеджеров автомобилей в России',
     areaServed: 'Россия',
+    sameAs: sameAs.length > 0 ? sameAs : undefined,
+    contactPoint: contactEmail
+      ? [
+          {
+            '@type': 'ContactPoint',
+            contactType: 'customer support',
+            email: contactEmail,
+            areaServed: 'RU',
+            availableLanguage: 'Russian',
+          },
+        ]
+      : undefined,
   };
   const websiteJsonLd = {
     '@context': 'https://schema.org',

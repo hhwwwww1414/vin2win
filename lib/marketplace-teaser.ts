@@ -1,4 +1,4 @@
-export const GUEST_LISTING_TEASER_COUNT = 3;
+export const GUEST_LISTING_TEASER_COUNT = 50;
 
 export function getGlobalListingIndex(page: number, limit: number, index: number) {
   const safePage = Number.isFinite(page) && page > 0 ? page : 1;
