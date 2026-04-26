@@ -63,7 +63,7 @@ function PlateSegmentInput({
       onKeyDown={onKeyDown}
       onChange={(event) => onChange(event.target.value)}
       className={cn(
-        'min-w-0 border-0 bg-transparent text-center font-display text-[2.7rem] font-semibold leading-none tracking-[0.08em] text-black uppercase [font-variant-numeric:tabular-nums] outline-none placeholder:text-black/14 disabled:cursor-not-allowed disabled:text-black/24 disabled:placeholder:text-black/12 sm:text-[3.05rem]',
+        'min-w-0 border-0 bg-transparent text-center font-display text-[clamp(1.85rem,8.4vw,2.35rem)] font-semibold leading-none tracking-[0.04em] text-black uppercase [font-variant-numeric:tabular-nums] outline-none placeholder:text-black/14 disabled:cursor-not-allowed disabled:text-black/24 disabled:placeholder:text-black/12 sm:text-[3.05rem] sm:tracking-[0.08em]',
         className
       )}
     />
@@ -174,8 +174,8 @@ export function RegistrationPlateField({
             error && 'ring-2 ring-destructive/25'
           )}
         >
-          <div className="grid min-h-[96px] grid-cols-[minmax(0,1fr)_110px] items-stretch sm:min-h-[108px] sm:grid-cols-[minmax(0,1fr)_120px]">
-            <div className="flex min-w-0 items-center justify-center gap-3 px-4 sm:gap-4 sm:px-6">
+          <div className="grid min-h-[92px] grid-cols-[minmax(0,1fr)_clamp(78px,23vw,100px)] items-stretch sm:min-h-[108px] sm:grid-cols-[minmax(0,1fr)_120px]">
+            <div className="grid min-w-0 grid-cols-[1.45fr_3.25fr_2.55fr] items-center gap-1 px-1.5 min-[430px]:gap-2 min-[430px]:px-3 sm:gap-4 sm:px-6">
               <PlateSegmentInput
                 value={parts.prefix}
                 placeholder="A"
@@ -183,7 +183,7 @@ export function RegistrationPlateField({
                 inputMode="text"
                 ariaLabel="Первая буква госномера"
                 inputRef={prefixRef}
-                className="w-[1.08ch]"
+                className="w-full"
                 onChange={(nextValue) => handleSegmentChange('prefix', nextValue)}
                 onKeyDown={handleSegmentKeyDown('prefix', parts.prefix)}
               />
@@ -194,7 +194,7 @@ export function RegistrationPlateField({
                 inputMode="numeric"
                 ariaLabel="Три цифры госномера"
                 inputRef={digitsRef}
-                className="w-[3.2ch]"
+                className="w-full"
                 onChange={(nextValue) => handleSegmentChange('digits', nextValue)}
                 onKeyDown={handleSegmentKeyDown('digits', parts.digits)}
               />
@@ -205,13 +205,13 @@ export function RegistrationPlateField({
                 inputMode="text"
                 ariaLabel="Последние две буквы госномера"
                 inputRef={suffixRef}
-                className="w-[2.16ch]"
+                className="w-full"
                 onChange={(nextValue) => handleSegmentChange('suffix', nextValue)}
                 onKeyDown={handleSegmentKeyDown('suffix', parts.suffix)}
               />
             </div>
 
-            <div className="flex min-w-0 flex-col justify-between border-l-2 border-black px-2 py-2.5 sm:px-3 sm:py-3">
+            <div className="flex min-w-0 flex-col justify-between border-l-2 border-black px-1.5 py-2.5 sm:px-3 sm:py-3">
               <input
                 ref={regionRef}
                 value={region}
@@ -225,7 +225,7 @@ export function RegistrationPlateField({
                 onFocus={(event) => event.currentTarget.select()}
                 onKeyDown={handleRegionKeyDown}
                 onChange={(event) => onRegionChange(normalizeRegistrationPlateRegion(event.target.value))}
-                className="w-full border-0 bg-transparent text-center font-display text-[1.9rem] font-semibold leading-none text-black [font-variant-numeric:tabular-nums] outline-none placeholder:text-black/18 disabled:cursor-not-allowed disabled:text-black/24 disabled:placeholder:text-black/14 sm:text-[2.15rem]"
+                className="w-full border-0 bg-transparent text-center font-display text-[clamp(1.35rem,6.4vw,1.75rem)] font-semibold leading-none text-black [font-variant-numeric:tabular-nums] outline-none placeholder:text-black/18 disabled:cursor-not-allowed disabled:text-black/24 disabled:placeholder:text-black/14 sm:text-[2.15rem]"
               />
 
               <div className="flex justify-center pt-2">
@@ -234,7 +234,7 @@ export function RegistrationPlateField({
                   alt=""
                   width={63}
                   height={15}
-                  className="h-[15px] w-[63px] select-none"
+                  className="h-auto w-[52px] select-none min-[430px]:w-[60px] sm:w-[63px]"
                 />
               </div>
             </div>

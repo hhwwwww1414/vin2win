@@ -10,3 +10,9 @@ test('vehicle document OCR panel renders upload controls without applying fields
   assert.match(markup, /accept="image\/jpeg,image\/png"/);
   assert.doesNotMatch(markup, /data-ocr-auto-apply="true"/);
 });
+
+test('vehicle document OCR panel does not force mobile camera capture', () => {
+  const markup = renderToStaticMarkup(<VehicleDocumentOcrPanel onApply={() => undefined} />);
+
+  assert.doesNotMatch(markup, /\bcapture=/);
+});

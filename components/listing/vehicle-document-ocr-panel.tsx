@@ -161,7 +161,6 @@ export function VehicleDocumentOcrPanel({ onApply, disabled = false }: VehicleDo
             ref={inputRef}
             type="file"
             accept="image/jpeg,image/png"
-            capture="environment"
             className="sr-only"
             disabled={disabled || loading}
             onChange={(event) => {
