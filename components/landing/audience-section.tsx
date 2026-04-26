@@ -105,7 +105,10 @@ export function AudienceSection() {
           transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
           className="mb-8 flex justify-center"
         >
-          <div className="inline-flex gap-1 rounded-full border border-border/50 bg-surface-elevated/80 p-1 backdrop-blur-sm dark:bg-surface-elevated/60">
+          <div
+            data-audience-tab-list="true"
+            className="grid w-full max-w-full grid-cols-3 gap-1 rounded-2xl border border-border/50 bg-surface-elevated/80 p-1 backdrop-blur-sm dark:bg-surface-elevated/60 sm:inline-flex sm:w-auto sm:rounded-full"
+          >
             {audiences.map((audience) => {
               const Icon = audience.icon;
               const isActive = activeAudience.id === audience.id;
@@ -114,7 +117,8 @@ export function AudienceSection() {
                 <button
                   key={audience.id}
                   onClick={() => setActiveAudience(audience)}
-                  className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-colors duration-300 sm:px-5 ${
+                  data-audience-tab="true"
+                  className={`relative flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-1.5 py-2 text-center text-[11px] font-medium leading-none transition-colors duration-300 sm:gap-2 sm:rounded-full sm:px-5 sm:text-[13px] ${
                     isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
                   aria-pressed={isActive}
@@ -122,12 +126,12 @@ export function AudienceSection() {
                   {isActive && (
                     <motion.div
                       layoutId="audience-tab-bg"
-                      className="absolute inset-0 rounded-full bg-teal-accent/15 ring-1 ring-teal-accent/30"
+                      className="absolute inset-0 rounded-xl bg-teal-accent/15 ring-1 ring-teal-accent/30 sm:rounded-full"
                       transition={{ type: 'spring', bounce: 0.15, duration: 0.5 }}
                     />
                   )}
-                  <span className="relative z-10 flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
+                  <span className="relative z-10 flex min-w-0 items-center justify-center gap-1.5 sm:gap-2">
+                    <Icon data-audience-tab-icon="true" className="hidden h-4 w-4 shrink-0 sm:block" />
                     <span>{audience.title}</span>
                   </span>
                 </button>
