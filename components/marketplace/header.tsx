@@ -394,6 +394,8 @@ export function MarketplaceHeader() {
   const lastPresenceSentAtRef = useRef(0);
   const presenceRequestInFlightRef = useRef<string | null>(null);
   const playChatSound = useChatSound(chatSoundEnabled);
+  const activeChatId = pathname?.match(/^\/messages\/([^/]+)$/)?.[1] ?? null;
+  const presencePathname = activeChatId ? pathname : null;
 
   const applySessionPayload = useCallback((payload: HeaderSessionPayload | null) => {
     const authenticated = Boolean(payload?.authenticated);
@@ -590,7 +592,6 @@ export function MarketplaceHeader() {
     }
 
     cancelScheduledChatPresenceCleanup();
-    const activeChatId = pathname?.match(/^\/messages\/([^/]+)$/)?.[1] ?? null;
     let closed = false;
 
     const sendPresence = async (options: { force?: boolean } = {}) => {
@@ -601,7 +602,7 @@ export function MarketplaceHeader() {
       const payload = {
         clientId,
         activeChatId,
-        pathname,
+        pathname: presencePathname,
         visibilityState: document.visibilityState,
       };
       const signature = JSON.stringify(payload);
@@ -663,7 +664,7 @@ export function MarketplaceHeader() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       scheduleChatPresenceCleanup(clientId);
     };
-  }, [clientId, pathname, sessionUser?.id]);
+  }, [activeChatId, clientId, presencePathname, sessionUser?.id]);
 
   useEffect(() => {
     if (!sessionUser?.id) {

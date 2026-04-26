@@ -157,6 +157,7 @@ export function ListingCardView({
     return (
       <Link
         href={`/listing/${listing.id}`}
+        prefetch={false}
         className={cn(
           'group block overflow-hidden rounded-[22px] border border-border/70 bg-card/95 shadow-[var(--shadow-surface)] transition-all duration-200',
           'hover:-translate-y-0.5 hover:border-teal-accent/30 hover:shadow-[var(--shadow-floating)]',
@@ -213,6 +214,7 @@ export function ListingCardView({
   return (
     <Link
       href={`/listing/${listing.id}`}
+      prefetch={false}
       className={cn(
         'group relative block overflow-hidden rounded-[24px] border border-border/70 bg-card/95 text-card-foreground shadow-[var(--shadow-surface)] transition-[transform,box-shadow,border-color] duration-200',
         'hover:-translate-y-0.5 hover:border-teal-accent/18 hover:shadow-[var(--shadow-floating)]',

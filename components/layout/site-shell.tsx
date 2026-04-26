@@ -88,7 +88,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               { href: '/terms', label: 'Правила' },
               { href: '/faq', label: 'FAQ' },
             ].map((link) => (
-              <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground">
+              <Link key={link.href} href={link.href} prefetch={false} className="transition-colors hover:text-foreground">
                 {link.label}
               </Link>
             ))}

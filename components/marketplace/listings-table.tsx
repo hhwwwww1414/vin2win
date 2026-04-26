@@ -249,7 +249,7 @@ function ListingTableRow({
   return (
     <tr className="border-b border-border/50 transition-colors duration-150 hover:bg-muted/40 dark:hover:bg-white/[0.06]">
       <td className={`${CELL_CLASS} w-[72px]`}>
-        <Link href={`/listing/${listing.id}`} className="block">
+        <Link href={`/listing/${listing.id}`} prefetch={false} className="block">
           <div className="relative h-10 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
             {coverImage ? (
               <Image
@@ -269,7 +269,7 @@ function ListingTableRow({
 
       <td className={CELL_CLASS}>
         <div className="flex items-start justify-between gap-2">
-          <Link href={`/listing/${listing.id}`} className={`${CELL_LINK} truncate font-medium text-foreground`}>
+          <Link href={`/listing/${listing.id}`} prefetch={false} className={`${CELL_LINK} truncate font-medium text-foreground`}>
             {title}
           </Link>
           <div className="flex items-center gap-1">
@@ -286,19 +286,19 @@ function ListingTableRow({
       </td>
 
       <td data-col="year" className={cn(CELL_CLASS, 'text-right tabular-nums text-muted-foreground', isSortedColumn('year', sortKey) && 'bg-teal-accent/[0.04] dark:bg-teal-accent/[0.06]')}>
-        <Link href={`/listing/${listing.id}`} className={CELL_LINK}>
+        <Link href={`/listing/${listing.id}`} prefetch={false} className={CELL_LINK}>
           {listing.year}
         </Link>
       </td>
 
       <td data-col="price" className={cn(CELL_CLASS, 'text-right tabular-nums font-medium text-foreground', isSortedColumn('price', sortKey) && 'bg-teal-accent/[0.04] dark:bg-teal-accent/[0.06]')}>
-        <Link href={`/listing/${listing.id}`} className={CELL_LINK}>
+        <Link href={`/listing/${listing.id}`} prefetch={false} className={CELL_LINK}>
           {formatPrice(listing.price)}
         </Link>
       </td>
 
       <td className={`${CELL_CLASS} text-right text-xs text-muted-foreground tabular-nums`}>
-        <Link href={`/listing/${listing.id}`} className={CELL_LINK}>
+        <Link href={`/listing/${listing.id}`} prefetch={false} className={CELL_LINK}>
           {listing.priceInHand ? formatPrice(listing.priceInHand) : '—'}
         </Link>
       </td>
@@ -311,45 +311,45 @@ function ListingTableRow({
           isSortedColumn('benefit', sortKey) && 'bg-teal-accent/[0.04] dark:bg-teal-accent/[0.06]'
         )}
       >
-        <Link href={`/listing/${listing.id}`} className="flex w-full justify-end">
+        <Link href={`/listing/${listing.id}`} prefetch={false} className="flex w-full justify-end">
           <ListingBenefitBadge amount={listing.potentialBenefit} variant="table" />
           {!listing.potentialBenefit ? <span className="text-xs text-muted-foreground/50">—</span> : null}
         </Link>
       </td>
 
       <td className={`${CELL_CLASS} text-xs text-muted-foreground`}>
-        <Link href={`/listing/${listing.id}`} className={`${CELL_LINK} truncate`}>
+        <Link href={`/listing/${listing.id}`} prefetch={false} className={`${CELL_LINK} truncate`}>
           {listing.city}
         </Link>
       </td>
 
       <td data-col="mileage" className={cn(CELL_CLASS, 'text-right text-xs text-muted-foreground tabular-nums', isSortedColumn('mileage', sortKey) && 'bg-teal-accent/[0.04] dark:bg-teal-accent/[0.06]')}>
-        <Link href={`/listing/${listing.id}`} className={CELL_LINK}>
+        <Link href={`/listing/${listing.id}`} prefetch={false} className={CELL_LINK}>
           {formatMileage(listing.mileage)}
         </Link>
       </td>
 
       <td data-col="views" className={cn(CELL_CLASS, 'text-right text-xs text-muted-foreground', isSortedColumn('views', sortKey) && 'bg-teal-accent/[0.04] dark:bg-teal-accent/[0.06]')}>
-        <Link href={`/listing/${listing.id}`} className="inline-flex w-full items-center justify-end gap-1">
+        <Link href={`/listing/${listing.id}`} prefetch={false} className="inline-flex w-full items-center justify-end gap-1">
           <Eye className="h-3.5 w-3.5 shrink-0 opacity-60" />
           {listing.viewCount.toLocaleString('ru-RU')}
         </Link>
       </td>
 
       <td className={`${CELL_CLASS} hidden text-xs text-muted-foreground md:table-cell`}>
-        <Link href={`/listing/${listing.id}`} className={`${CELL_LINK} truncate`}>
+        <Link href={`/listing/${listing.id}`} prefetch={false} className={`${CELL_LINK} truncate`}>
           {engineTrans}
         </Link>
       </td>
 
       <td className={`${CELL_CLASS} text-right text-xs text-muted-foreground tabular-nums`}>
-        <Link href={`/listing/${listing.id}`} className={CELL_LINK}>
+        <Link href={`/listing/${listing.id}`} prefetch={false} className={CELL_LINK}>
           {listing.owners}
         </Link>
       </td>
 
       <td className={`${CELL_CLASS} text-xs text-muted-foreground`}>
-        <Link href={`/listing/${listing.id}`} className={CELL_LINK}>
+        <Link href={`/listing/${listing.id}`} prefetch={false} className={CELL_LINK}>
           <span className={cn(listing.paintCount === 0 ? 'text-success' : 'text-warning')}>
             {paintLabel}
           </span>
@@ -357,13 +357,13 @@ function ListingTableRow({
       </td>
 
       <td className={`${CELL_CLASS} text-xs text-muted-foreground`}>
-        <Link href={`/listing/${listing.id}`} className={`${CELL_LINK} truncate`}>
+        <Link href={`/listing/${listing.id}`} prefetch={false} className={`${CELL_LINK} truncate`}>
           {sellerLabel}
         </Link>
       </td>
 
       <td className={CELL_CLASS}>
-        <Link href={`/listing/${listing.id}`} className={CELL_LINK}>
+        <Link href={`/listing/${listing.id}`} prefetch={false} className={CELL_LINK}>
           {onResources ? (
             <span className={cn(RESOURCE_BADGE_CLASS, 'border-teal-accent/20 bg-teal-accent/10 text-teal-accent')}>На ресурсах</span>
           ) : listing.resourceStatus === 'pre_resources' ? (

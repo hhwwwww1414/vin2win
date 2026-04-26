@@ -75,6 +75,7 @@ export function PublishedInfoPage({
             <Link
               key={link.href}
               href={link.href}
+              prefetch={false}
               className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/65 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-teal-accent/35 hover:text-teal-accent dark:bg-background/10"
             >
               {link.label}

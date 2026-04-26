@@ -73,3 +73,47 @@ test('chat shell uses realtime events instead of immediate aggressive polling', 
   const source = await readFile('components/messages/chat-shell.tsx', 'utf8');
   assert.doesNotMatch(source, /\n\s*runRefresh\(\);\s*\n\s*const intervalId/u);
 });
+
+test('marketplace listing links do not auto-prefetch detail routes from dense lists', async () => {
+  const files = [
+    'components/marketplace/listing-card-view.tsx',
+    'components/marketplace/listing-compact-row.tsx',
+    'components/marketplace/listings-table.tsx',
+  ];
+  const listingLinkPattern = /<Link\b(?=[^>]*href=\{`\/listing\/\$\{listing\.id\}`\})[^>]*>/gu;
+
+  for (const file of files) {
+    const source = await readFile(file, 'utf8');
+    const links = [...source.matchAll(listingLinkPattern)].map((match) => match[0]);
+    const linksWithAutoPrefetch = links.filter((link) => !link.includes('prefetch={false}'));
+
+    assert.ok(links.length > 0, `${file} should contain listing detail links`);
+    assert.deepEqual(linksWithAutoPrefetch, [], `${file} has listing links without prefetch={false}`);
+  }
+});
+
+test('low-priority informational link groups do not auto-prefetch pages on mobile', async () => {
+  const files = [
+    'components/layout/site-shell.tsx',
+    'components/landing/homepage-seo-sections.tsx',
+    'components/legal/published-info-page.tsx',
+  ];
+  const mappedLinkPattern = /<Link\b(?=[^>]*href=\{link\.href\})[^>]*>/gu;
+
+  for (const file of files) {
+    const source = await readFile(file, 'utf8');
+    const links = [...source.matchAll(mappedLinkPattern)].map((match) => match[0]);
+    const linksWithAutoPrefetch = links.filter((link) => !link.includes('prefetch={false}'));
+
+    assert.ok(links.length > 0, `${file} should contain mapped informational links`);
+    assert.deepEqual(linksWithAutoPrefetch, [], `${file} has informational links without prefetch={false}`);
+  }
+});
+
+test('chat presence does not resend just because a non-chat route changed', async () => {
+  const source = await readFile('components/marketplace/header.tsx', 'utf8');
+
+  assert.match(source, /const presencePathname = activeChatId \? pathname : null;/u);
+  assert.match(source, /pathname: presencePathname,/u);
+  assert.match(source, /\}, \[activeChatId, clientId, presencePathname, sessionUser\?\.id\]\);/u);
+});

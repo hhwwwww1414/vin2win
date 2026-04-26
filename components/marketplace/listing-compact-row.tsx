@@ -48,6 +48,7 @@ export function ListingCompactRow({
   return (
     <Link
       href={`/listing/${listing.id}`}
+      prefetch={false}
       data-testid="listing-compact-row"
       className={cn(
         'card-interactive-subtle relative block overflow-hidden rounded-xl border border-border bg-card/95 backdrop-blur-sm transition-[border-color,background-color] duration-200',
