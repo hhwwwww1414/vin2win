@@ -28,6 +28,18 @@ export interface BrowserPushSupportResult {
 const INVALID_VAPID_PUBLIC_KEY_MESSAGE =
   'Push-канал настроен некорректно: публичный VAPID-ключ не похож на браузерный P-256 ключ.';
 
+export const PUSH_PUBLIC_KEY_CACHE_TTL_MS = 10 * 60_000;
+
+let browserPushPublicKeyCache: { value: string | undefined; timestamp: number } | null = null;
+let browserPushPublicKeyRequest: Promise<string | undefined> | null = null;
+
+function isBrowserPushPublicKeyCacheFresh() {
+  return Boolean(
+    browserPushPublicKeyCache &&
+      Date.now() - browserPushPublicKeyCache.timestamp < PUSH_PUBLIC_KEY_CACHE_TTL_MS,
+  );
+}
+
 function isAppleMobileUserAgent(userAgent: string) {
   return /iPhone|iPad|iPod/i.test(userAgent);
 }
@@ -379,7 +391,7 @@ export function getPushSubscriptionErrorMessage(error: unknown) {
   return 'Не удалось подключить браузерные уведомления.';
 }
 
-export async function fetchBrowserPushVapidPublicKey() {
+async function requestBrowserPushVapidPublicKey() {
   const response = await fetch('/api/push/public-key', {
     cache: 'no-store',
   });
@@ -396,7 +408,25 @@ export async function fetchBrowserPushVapidPublicKey() {
     );
   }
 
-  return typeof payload?.publicKey === 'string' ? payload.publicKey : undefined;
+  const value = typeof payload?.publicKey === 'string' ? payload.publicKey : undefined;
+  browserPushPublicKeyCache = {
+    value,
+    timestamp: Date.now(),
+  };
+
+  return value;
+}
+
+export async function fetchBrowserPushVapidPublicKey() {
+  if (isBrowserPushPublicKeyCacheFresh()) {
+    return browserPushPublicKeyCache?.value;
+  }
+
+  browserPushPublicKeyRequest ??= requestBrowserPushVapidPublicKey().finally(() => {
+    browserPushPublicKeyRequest = null;
+  });
+
+  return browserPushPublicKeyRequest;
 }
 
 export async function savePushSubscription(

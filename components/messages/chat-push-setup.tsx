@@ -17,6 +17,63 @@ interface ChatPushSetupProps {
   className?: string;
 }
 
+type ChatPushSetupState = {
+  pushSubscribed: boolean;
+  chatPushEnabled: boolean;
+};
+
+export const CHAT_PUSH_SETUP_STATE_CACHE_TTL_MS = 60_000;
+
+let chatPushSetupStateCache: { value: ChatPushSetupState; timestamp: number } | null = null;
+let chatPushSetupStateRequest: Promise<ChatPushSetupState> | null = null;
+
+function isChatPushSetupStateCacheFresh() {
+  return Boolean(
+    chatPushSetupStateCache &&
+      Date.now() - chatPushSetupStateCache.timestamp < CHAT_PUSH_SETUP_STATE_CACHE_TTL_MS,
+  );
+}
+
+async function fetchChatPushSetupState() {
+  if (isChatPushSetupStateCacheFresh()) {
+    return chatPushSetupStateCache?.value ?? { pushSubscribed: false, chatPushEnabled: false };
+  }
+
+  chatPushSetupStateRequest ??= fetch('/api/account/notification-settings', {
+    cache: 'no-store',
+  })
+    .then(async (response) => {
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            browserPushEnabled?: boolean;
+            chatPushEnabled?: boolean;
+            pushSubscriptionCount?: number;
+          }
+        | null;
+
+      if (!response.ok) {
+        throw new Error('Failed to load notification settings');
+      }
+
+      const value = {
+        pushSubscribed: (payload?.pushSubscriptionCount ?? 0) > 0,
+        chatPushEnabled: Boolean(payload?.browserPushEnabled) && Boolean(payload?.chatPushEnabled),
+      };
+
+      chatPushSetupStateCache = {
+        value,
+        timestamp: Date.now(),
+      };
+
+      return value;
+    })
+    .finally(() => {
+      chatPushSetupStateRequest = null;
+    });
+
+  return chatPushSetupStateRequest;
+}
+
 export function ChatPushSetup({ className }: ChatPushSetupProps) {
   const [support, setSupport] = useState<BrowserPushSupportResult | null>(null);
   const [vapidPublicKey, setVapidPublicKey] = useState<string | undefined>(undefined);
@@ -63,23 +120,14 @@ export function ChatPushSetup({ className }: ChatPushSetupProps) {
 
     async function loadState() {
       try {
-        const response = await fetch('/api/account/notification-settings', {
-          cache: 'no-store',
-        });
-        const payload = (await response.json().catch(() => null)) as
-          | {
-              browserPushEnabled?: boolean;
-              chatPushEnabled?: boolean;
-              pushSubscriptionCount?: number;
-            }
-          | null;
+        const state = await fetchChatPushSetupState();
 
         if (!active) {
           return;
         }
 
-        setPushSubscribed((payload?.pushSubscriptionCount ?? 0) > 0);
-        setChatPushEnabled(Boolean(payload?.browserPushEnabled) && Boolean(payload?.chatPushEnabled));
+        setPushSubscribed(state.pushSubscribed);
+        setChatPushEnabled(state.chatPushEnabled);
       } catch {
         if (active) {
           setPushSubscribed(false);
@@ -120,6 +168,13 @@ export function ChatPushSetup({ className }: ChatPushSetupProps) {
         vapidPublicKey,
         enableChatPush: true,
       });
+      chatPushSetupStateCache = {
+        value: {
+          pushSubscribed: true,
+          chatPushEnabled: true,
+        },
+        timestamp: Date.now(),
+      };
       setSupport(detectBrowserPushSupport(vapidPublicKey));
       setPushSubscribed(true);
       setChatPushEnabled(true);

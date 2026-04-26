@@ -27,6 +27,8 @@ type OutgoingMessageStatus = 'sent' | 'read';
 
 const EMPTY_MESSAGES: ChatMessageDto[] = [];
 const MESSAGE_GROUP_GAP_MS = 10 * 60 * 1000;
+export const CHAT_THREAD_REFRESH_INTERVAL_MS = 15_000;
+export const CHAT_LIST_REFRESH_INTERVAL_MS = 30_000;
 
 function formatMessageTime(value: string) {
   return new Intl.DateTimeFormat('ru-RU', {
@@ -443,8 +445,10 @@ export function ChatShell({
       }
     };
 
-    runRefresh();
-    const intervalId = window.setInterval(runRefresh, currentChatId ? 4_000 : 6_000);
+    const intervalId = window.setInterval(
+      runRefresh,
+      currentChatId ? CHAT_THREAD_REFRESH_INTERVAL_MS : CHAT_LIST_REFRESH_INTERVAL_MS,
+    );
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {

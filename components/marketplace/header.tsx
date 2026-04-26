@@ -36,6 +36,13 @@ type SessionUser = {
   name: string;
   role: 'USER' | 'MODERATOR' | 'ADMIN';
 };
+type HeaderSessionPayload = {
+  authenticated?: boolean;
+  user?: SessionUser | null;
+  favoriteCount?: number;
+  chatUnreadCount?: number;
+  chatSoundEnabled?: boolean;
+};
 
 const emptyThemeSubscription = () => () => {};
 const CHAT_EVENT_TYPES = [
@@ -44,7 +51,65 @@ const CHAT_EVENT_TYPES = [
   'chat.list.updated',
   'chat.unread.updated',
 ] as const;
+export const HEADER_SESSION_CACHE_TTL_MS = 30_000;
 export const HEADER_SESSION_REFRESH_INTERVAL_MS = 60_000;
+export const CHAT_PRESENCE_NAVIGATION_CLEANUP_DELAY_MS = 10_000;
+
+let headerSessionCache: { payload: HeaderSessionPayload | null; timestamp: number } | null = null;
+let headerSessionRequest: Promise<HeaderSessionPayload | null> | null = null;
+let sharedChatPresenceClientId: string | null = null;
+let chatPresenceCleanupTimer: number | null = null;
+
+function getChatPresenceClientId() {
+  sharedChatPresenceClientId ??=
+    globalThis.crypto?.randomUUID?.() ?? `chat-client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  return sharedChatPresenceClientId;
+}
+
+function isHeaderSessionCacheFresh() {
+  return Boolean(headerSessionCache && Date.now() - headerSessionCache.timestamp < HEADER_SESSION_CACHE_TTL_MS);
+}
+
+async function fetchHeaderSessionPayload() {
+  headerSessionRequest ??= fetch('/api/auth/session', {
+    cache: 'no-store',
+  })
+    .then((response) => response.json().catch(() => null) as Promise<HeaderSessionPayload | null>)
+    .finally(() => {
+      headerSessionRequest = null;
+    });
+
+  return headerSessionRequest;
+}
+
+function clearHeaderSessionCache() {
+  headerSessionCache = null;
+}
+
+function cancelScheduledChatPresenceCleanup() {
+  if (!chatPresenceCleanupTimer) {
+    return;
+  }
+
+  window.clearTimeout(chatPresenceCleanupTimer);
+  chatPresenceCleanupTimer = null;
+}
+
+function deleteChatPresence(clientId: string) {
+  void fetch(`/api/chat-presence?clientId=${encodeURIComponent(clientId)}`, {
+    method: 'DELETE',
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
+function scheduleChatPresenceCleanup(clientId: string) {
+  cancelScheduledChatPresenceCleanup();
+  chatPresenceCleanupTimer = window.setTimeout(() => {
+    chatPresenceCleanupTimer = null;
+    deleteChatPresence(clientId);
+  }, CHAT_PRESENCE_NAVIGATION_CLEANUP_DELAY_MS);
+}
 
 function StableThemeToggle({ compact = false }: { compact?: boolean }) {
   const { resolvedTheme, setTheme } = useTheme();
@@ -317,7 +382,7 @@ export function MarketplaceHeader() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [clientId] = useState(() => globalThis.crypto?.randomUUID?.() ?? `chat-client-${Date.now()}`);
+  const [clientId] = useState(getChatPresenceClientId);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
@@ -330,49 +395,52 @@ export function MarketplaceHeader() {
   const presenceRequestInFlightRef = useRef<string | null>(null);
   const playChatSound = useChatSound(chatSoundEnabled);
 
-  const loadSession = useCallback(async (options: { silent?: boolean } = {}) => {
+  const applySessionPayload = useCallback((payload: HeaderSessionPayload | null) => {
+    const authenticated = Boolean(payload?.authenticated);
+    const nextUser = authenticated ? payload?.user ?? null : null;
+    setSessionUser((current) => {
+      if (!current && !nextUser) {
+        return current;
+      }
+
+      if (
+        current &&
+        nextUser &&
+        current.id === nextUser.id &&
+        current.name === nextUser.name &&
+        current.role === nextUser.role
+      ) {
+        return current;
+      }
+
+      return nextUser;
+    });
+    setFavoriteCount(authenticated ? payload?.favoriteCount ?? 0 : 0);
+    setChatUnreadCount(authenticated ? payload?.chatUnreadCount ?? 0 : 0);
+    setChatSoundEnabled(authenticated ? payload?.chatSoundEnabled ?? true : true);
+  }, []);
+
+  const loadSession = useCallback(async (options: { silent?: boolean; force?: boolean } = {}) => {
     if (!options.silent) {
       setSessionLoading(true);
     }
 
     try {
-      const response = await fetch('/api/auth/session', {
-        cache: 'no-store',
-      });
-      const payload = (await response.json().catch(() => null)) as
-        | {
-            authenticated?: boolean;
-            user?: SessionUser | null;
-            favoriteCount?: number;
-            chatUnreadCount?: number;
-            chatSoundEnabled?: boolean;
-          }
-        | null;
+      if (!options.force && isHeaderSessionCacheFresh()) {
+        applySessionPayload(headerSessionCache?.payload ?? null);
+        return;
+      }
 
-      const authenticated = Boolean(payload?.authenticated);
-      const nextUser = authenticated ? payload?.user ?? null : null;
-      setSessionUser((current) => {
-        if (!current && !nextUser) {
-          return current;
-        }
-
-        if (
-          current &&
-          nextUser &&
-          current.id === nextUser.id &&
-          current.name === nextUser.name &&
-          current.role === nextUser.role
-        ) {
-          return current;
-        }
-
-        return nextUser;
-      });
-      setFavoriteCount(authenticated ? payload?.favoriteCount ?? 0 : 0);
-      setChatUnreadCount(authenticated ? payload?.chatUnreadCount ?? 0 : 0);
-      setChatSoundEnabled(authenticated ? payload?.chatSoundEnabled ?? true : true);
+      const payload = await fetchHeaderSessionPayload();
+      headerSessionCache = {
+        payload,
+        timestamp: Date.now(),
+      };
+      applySessionPayload(payload);
     } catch {
-      if (!options.silent) {
+      if (isHeaderSessionCacheFresh()) {
+        applySessionPayload(headerSessionCache?.payload ?? null);
+      } else if (!options.silent) {
         setSessionUser(null);
         setFavoriteCount(0);
         setChatUnreadCount(0);
@@ -384,7 +452,7 @@ export function MarketplaceHeader() {
         setSessionLoading(false);
       }
     }
-  }, []);
+  }, [applySessionPayload]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
@@ -407,7 +475,7 @@ export function MarketplaceHeader() {
 
   useEffect(() => {
     void loadSession({ silent: sessionBootstrappedRef.current });
-  }, [loadSession, pathname]);
+  }, [loadSession]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -423,12 +491,12 @@ export function MarketplaceHeader() {
         return;
       }
 
-      void loadSession({ silent: true });
+      void loadSession({ silent: true, force: true });
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        void loadSession({ silent: true });
+        void loadSession({ silent: true, force: true });
       }
     };
 
@@ -521,6 +589,7 @@ export function MarketplaceHeader() {
       return;
     }
 
+    cancelScheduledChatPresenceCleanup();
     const activeChatId = pathname?.match(/^\/messages\/([^/]+)$/)?.[1] ?? null;
     let closed = false;
 
@@ -592,17 +661,33 @@ export function MarketplaceHeader() {
       closed = true;
       window.clearInterval(heartbeatId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      void fetch(`/api/chat-presence?clientId=${encodeURIComponent(clientId)}`, {
-        method: 'DELETE',
-        keepalive: true,
-      }).catch(() => undefined);
+      scheduleChatPresenceCleanup(clientId);
     };
   }, [clientId, pathname, sessionUser?.id]);
+
+  useEffect(() => {
+    if (!sessionUser?.id) {
+      return;
+    }
+
+    const handlePageHide = () => {
+      cancelScheduledChatPresenceCleanup();
+      deleteChatPresence(clientId);
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [clientId, sessionUser?.id]);
 
   const submitHref = sessionUser ? '/listing/new' : '/login?next=%2Flisting%2Fnew';
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    clearHeaderSessionCache();
+    cancelScheduledChatPresenceCleanup();
+    deleteChatPresence(clientId);
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
