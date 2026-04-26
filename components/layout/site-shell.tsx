@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CompareTray } from '@/components/marketplace/compare-tray';
+import { MarketplaceHeader } from '@/components/marketplace/header';
+import { MarketplaceRuntimeProvider } from '@/components/marketplace/marketplace-runtime-provider';
 import { cn } from '@/lib/utils';
 
 export function isSaleListingDetailPath(pathname: string | null) {
@@ -40,64 +42,67 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       className={cn('relative flex min-h-dvh flex-col bg-background', isMessagesPage && 'h-dvh overflow-hidden')}
       data-sale-listing-detail={isSaleListingDetail ? 'true' : undefined}
     >
-      <a
-        href="#page-main"
-        className="sr-only absolute left-4 top-4 z-50 rounded-md bg-card px-3 py-2 text-sm font-medium text-foreground shadow focus:not-sr-only"
-      >
-        Перейти к содержимому
-      </a>
-      {showMarketplaceBackground ? (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 top-14 z-0 overflow-hidden opacity-0 dark:opacity-100"
+      <MarketplaceRuntimeProvider>
+        <MarketplaceHeader />
+        <a
+          href="#page-main"
+          className="sr-only absolute left-4 top-4 z-50 rounded-md bg-card px-3 py-2 text-sm font-medium text-foreground shadow focus:not-sr-only"
         >
+          Перейти к содержимому
+        </a>
+        {showMarketplaceBackground ? (
           <div
-            className="absolute inset-0 carbon-fiber-center"
-            style={{ transform: 'translate3d(0px, 0px, 0px)', opacity: 0.12 }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{ background: 'radial-gradient(72% 44% at 50% 0%, rgba(129,216,208,0.035) 0%, transparent 58%)' }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.06))' }}
-          />
-        </div>
-      ) : null}
-
-      <div className={cn('relative z-10 flex flex-1 flex-col', isMessagesPage && 'min-h-0 overflow-hidden')}>{children}</div>
-      <CompareTray />
-
-      <footer
-        data-site-footer
-        className={getSiteFooterClassName(pathname)}
-      >
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 pb-8 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-dark dark:bg-teal-accent">
-              <span className="text-xs font-bold text-white dark:text-[#070809]">V2</span>
-            </div>
-            <span className="text-sm font-semibold text-foreground">vin2win</span>
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 top-14 z-0 overflow-hidden opacity-0 dark:opacity-100"
+          >
+            <div
+              className="absolute inset-0 carbon-fiber-center"
+              style={{ transform: 'translate3d(0px, 0px, 0px)', opacity: 0.12 }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{ background: 'radial-gradient(72% 44% at 50% 0%, rgba(129,216,208,0.035) 0%, transparent 58%)' }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.06))' }}
+            />
           </div>
-          <nav className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground" aria-label="Подвал">
-            {[
-              { href: '/about', label: 'О проекте' },
-              { href: '/contacts', label: 'Контакты' },
-              { href: '/privacy', label: 'Политика' },
-              { href: '/terms', label: 'Правила' },
-              { href: '/faq', label: 'FAQ' },
-            ].map((link) => (
-              <Link key={link.href} href={link.href} prefetch={false} className="transition-colors hover:text-foreground">
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-          <p className="text-center text-sm text-muted-foreground">
-            © 2025-2026 vin2win. Профессиональный авторынок.
-          </p>
-        </div>
-      </footer>
+        ) : null}
+
+        <div className={cn('relative z-10 flex flex-1 flex-col', isMessagesPage && 'min-h-0 overflow-hidden')}>{children}</div>
+        <CompareTray />
+
+        <footer
+          data-site-footer
+          className={getSiteFooterClassName(pathname)}
+        >
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 pb-8 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-dark dark:bg-teal-accent">
+                <span className="text-xs font-bold text-white dark:text-[#070809]">V2</span>
+              </div>
+              <span className="text-sm font-semibold text-foreground">vin2win</span>
+            </div>
+            <nav className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground" aria-label="Подвал">
+              {[
+                { href: '/about', label: 'О проекте' },
+                { href: '/contacts', label: 'Контакты' },
+                { href: '/privacy', label: 'Политика' },
+                { href: '/terms', label: 'Правила' },
+                { href: '/faq', label: 'FAQ' },
+              ].map((link) => (
+                <Link key={link.href} href={link.href} prefetch={false} className="transition-colors hover:text-foreground">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+            <p className="text-center text-sm text-muted-foreground">
+              © 2025-2026 vin2win. Профессиональный авторынок.
+            </p>
+          </div>
+        </footer>
+      </MarketplaceRuntimeProvider>
     </div>
   );
 }

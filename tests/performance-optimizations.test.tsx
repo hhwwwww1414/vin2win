@@ -92,6 +92,16 @@ test('marketplace listing links do not auto-prefetch detail routes from dense li
   }
 });
 
+test('account repeated listing links do not auto-prefetch detail routes', async () => {
+  const source = await readFile('app/account/page.tsx', 'utf8');
+  const listingLinkPattern = /<Link\b(?=[^>]*href=\{`\/listing\/\$\{listing\.id\}`\})[^>]*>/gu;
+  const links = [...source.matchAll(listingLinkPattern)].map((match) => match[0]);
+  const linksWithAutoPrefetch = links.filter((link) => !link.includes('prefetch={false}'));
+
+  assert.ok(links.length > 0, 'app/account/page.tsx should contain account listing detail links');
+  assert.deepEqual(linksWithAutoPrefetch, [], 'account listing links should opt out of auto prefetch');
+});
+
 test('low-priority informational link groups do not auto-prefetch pages on mobile', async () => {
   const files = [
     'components/layout/site-shell.tsx',
@@ -111,9 +121,74 @@ test('low-priority informational link groups do not auto-prefetch pages on mobil
 });
 
 test('chat presence does not resend just because a non-chat route changed', async () => {
-  const source = await readFile('components/marketplace/header.tsx', 'utf8');
+  const source = await readFile('components/marketplace/marketplace-runtime-provider.tsx', 'utf8');
 
   assert.match(source, /const presencePathname = activeChatId \? pathname : null;/u);
   assert.match(source, /pathname: presencePathname,/u);
   assert.match(source, /\}, \[activeChatId, clientId, presencePathname, sessionUser\?\.id\]\);/u);
+});
+
+test('marketplace header is mounted only by the persistent site shell', async () => {
+  const { readdir } = await import('node:fs/promises');
+  const path = await import('node:path');
+  const roots = ['app', 'components'];
+  const offenders: string[] = [];
+
+  async function walk(directory: string) {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(directory, entry.name);
+      const normalized = fullPath.replaceAll(path.sep, '/');
+
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+        continue;
+      }
+
+      if (!/\.(tsx|ts)$/u.test(entry.name) || /\.bak-/u.test(entry.name)) {
+        continue;
+      }
+
+      if (
+        normalized === 'components/layout/site-shell.tsx' ||
+        normalized === 'components/marketplace/header.tsx'
+      ) {
+        continue;
+      }
+
+      const source = await readFile(fullPath, 'utf8');
+      if (source.includes("components/marketplace/header") || source.includes('@/components/marketplace/header')) {
+        offenders.push(normalized);
+      }
+    }
+  }
+
+  for (const root of roots) {
+    await walk(root);
+  }
+
+  assert.deepEqual(offenders, [], 'MarketplaceHeader should be mounted once from components/layout/site-shell.tsx');
+});
+
+test('marketplace realtime and presence side effects live in the runtime provider', async () => {
+  const provider = await readFile('components/marketplace/marketplace-runtime-provider.tsx', 'utf8');
+  const header = await readFile('components/marketplace/header.tsx', 'utf8');
+
+  assert.match(provider, /new EventSource\('\/api\/realtime\/chat-events'\)/u);
+  assert.match(provider, /fetch\('\/api\/chat-presence'/u);
+  assert.doesNotMatch(header, /new EventSource\('\/api\/realtime\/chat-events'\)/u);
+  assert.doesNotMatch(header, /fetch\('\/api\/chat-presence'/u);
+});
+
+test('auth flows notify the persistent runtime to refresh session state after login', async () => {
+  const provider = await readFile('components/marketplace/marketplace-runtime-provider.tsx', 'utf8');
+  const passwordAuth = await readFile('components/auth/auth-form.tsx', 'utf8');
+  const telegramAuth = await readFile('components/auth/telegram-login-button.tsx', 'utf8');
+
+  assert.match(provider, /MARKETPLACE_SESSION_REFRESH_EVENT/u);
+  assert.match(provider, /addEventListener\(MARKETPLACE_SESSION_REFRESH_EVENT/u);
+  assert.match(passwordAuth, /MARKETPLACE_SESSION_REFRESH_EVENT/u);
+  assert.match(passwordAuth, /dispatchEvent\(new Event\(MARKETPLACE_SESSION_REFRESH_EVENT\)\)/u);
+  assert.match(telegramAuth, /MARKETPLACE_SESSION_REFRESH_EVENT/u);
+  assert.match(telegramAuth, /dispatchEvent\(new Event\(MARKETPLACE_SESSION_REFRESH_EVENT\)\)/u);
 });

@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { shouldRunChatPresenceCleanup } from './chat-presence-cleanup';
 
 export const CHAT_PRESENCE_TTL_MS = 90_000;
 
@@ -46,9 +47,17 @@ export async function cleanupExpiredChatPresence() {
   });
 }
 
+export async function cleanupExpiredChatPresenceIfDue() {
+  if (!shouldRunChatPresenceCleanup()) {
+    return null;
+  }
+
+  return cleanupExpiredChatPresence();
+}
+
 export async function upsertChatPresence(input: UpsertChatPresenceInput) {
   await assertActiveChatAccess(input.userId, input.activeChatId);
-  await cleanupExpiredChatPresence();
+  await cleanupExpiredChatPresenceIfDue();
 
   return prisma.chatPresence.upsert({
     where: {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { Suspense, useEffect, useState, useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -24,92 +24,25 @@ import {
   getHeaderFavoritesHeartState,
 } from '@/components/marketplace/header-favorites-heart';
 import { Button } from '@/components/ui/button';
-import { FAVORITES_CHANGED_EVENT } from '@/components/marketplace/favorite-toggle';
-import { type ChatRealtimeEvent, CHAT_WINDOW_EVENT_NAME } from '@/lib/chat/realtime';
+import {
+  CHAT_PRESENCE_NAVIGATION_CLEANUP_DELAY_MS,
+  HEADER_SESSION_CACHE_TTL_MS,
+  HEADER_SESSION_REFRESH_INTERVAL_MS,
+  type SessionUser,
+  useMarketplaceRuntime,
+} from '@/components/marketplace/marketplace-runtime-provider';
 import { SALE_ROUTE } from '@/lib/routes';
 import { cn } from '@/lib/utils';
-import { useChatSound } from '@/hooks/use-chat-sound';
+
+export {
+  CHAT_PRESENCE_NAVIGATION_CLEANUP_DELAY_MS,
+  HEADER_SESSION_CACHE_TTL_MS,
+  HEADER_SESSION_REFRESH_INTERVAL_MS,
+};
 
 type ViewMode = 'cards' | 'compact' | 'table';
-type SessionUser = {
-  id: string;
-  name: string;
-  role: 'USER' | 'MODERATOR' | 'ADMIN';
-};
-type HeaderSessionPayload = {
-  authenticated?: boolean;
-  user?: SessionUser | null;
-  favoriteCount?: number;
-  chatUnreadCount?: number;
-  chatSoundEnabled?: boolean;
-};
 
 const emptyThemeSubscription = () => () => {};
-const CHAT_EVENT_TYPES = [
-  'chat.message.created',
-  'chat.read.updated',
-  'chat.list.updated',
-  'chat.unread.updated',
-] as const;
-export const HEADER_SESSION_CACHE_TTL_MS = 30_000;
-export const HEADER_SESSION_REFRESH_INTERVAL_MS = 60_000;
-export const CHAT_PRESENCE_NAVIGATION_CLEANUP_DELAY_MS = 10_000;
-
-let headerSessionCache: { payload: HeaderSessionPayload | null; timestamp: number } | null = null;
-let headerSessionRequest: Promise<HeaderSessionPayload | null> | null = null;
-let sharedChatPresenceClientId: string | null = null;
-let chatPresenceCleanupTimer: number | null = null;
-
-function getChatPresenceClientId() {
-  sharedChatPresenceClientId ??=
-    globalThis.crypto?.randomUUID?.() ?? `chat-client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-  return sharedChatPresenceClientId;
-}
-
-function isHeaderSessionCacheFresh() {
-  return Boolean(headerSessionCache && Date.now() - headerSessionCache.timestamp < HEADER_SESSION_CACHE_TTL_MS);
-}
-
-async function fetchHeaderSessionPayload() {
-  headerSessionRequest ??= fetch('/api/auth/session', {
-    cache: 'no-store',
-  })
-    .then((response) => response.json().catch(() => null) as Promise<HeaderSessionPayload | null>)
-    .finally(() => {
-      headerSessionRequest = null;
-    });
-
-  return headerSessionRequest;
-}
-
-function clearHeaderSessionCache() {
-  headerSessionCache = null;
-}
-
-function cancelScheduledChatPresenceCleanup() {
-  if (!chatPresenceCleanupTimer) {
-    return;
-  }
-
-  window.clearTimeout(chatPresenceCleanupTimer);
-  chatPresenceCleanupTimer = null;
-}
-
-function deleteChatPresence(clientId: string) {
-  void fetch(`/api/chat-presence?clientId=${encodeURIComponent(clientId)}`, {
-    method: 'DELETE',
-    keepalive: true,
-  }).catch(() => undefined);
-}
-
-function scheduleChatPresenceCleanup(clientId: string) {
-  cancelScheduledChatPresenceCleanup();
-  chatPresenceCleanupTimer = window.setTimeout(() => {
-    chatPresenceCleanupTimer = null;
-    deleteChatPresence(clientId);
-  }, CHAT_PRESENCE_NAVIGATION_CLEANUP_DELAY_MS);
-}
 
 function StableThemeToggle({ compact = false }: { compact?: boolean }) {
   const { resolvedTheme, setTheme } = useTheme();
@@ -221,7 +154,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 function MessageLink({ unreadCount, mobile = false, onNavigate }: { unreadCount: number; mobile?: boolean; onNavigate?: () => void }) {
   if (mobile) {
     return (
-      <Link href="/messages" onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
+      <Link href="/messages" prefetch={false} onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
         <MessageCircle className="mr-2 h-4 w-4 text-teal-accent" />
         Сообщения
         {unreadCount > 0 ? (
@@ -235,7 +168,7 @@ function MessageLink({ unreadCount, mobile = false, onNavigate }: { unreadCount:
 
   return (
     <Button asChild variant="ghost" size="sm" className="h-9 px-3 text-xs font-medium text-muted-foreground hover:text-foreground">
-      <Link href="/messages">
+      <Link href="/messages" prefetch={false}>
         <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
         Сообщения
         {unreadCount > 0 ? (
@@ -280,13 +213,13 @@ function AuthControls({
       return (
         <div className="grid gap-2 border-t border-border/50 pt-3">
           <Button asChild variant="outline" className="justify-start" onClick={onNavigate}>
-            <Link href={`/login${nextPath}`}>
+            <Link href={`/login${nextPath}`} prefetch={false}>
               <LogIn className="mr-2 h-4 w-4" />
               Войти
             </Link>
           </Button>
           <Button asChild className="justify-start bg-teal-dark text-white hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam" onClick={onNavigate}>
-            <Link href={`/register${nextPath}`}>
+            <Link href={`/register${nextPath}`} prefetch={false}>
               <UserCircle2 className="mr-2 h-4 w-4" />
               Регистрация
             </Link>
@@ -298,13 +231,13 @@ function AuthControls({
     return (
       <div className="flex items-center gap-1">
         <Button asChild variant="ghost" size="sm" className="h-9 px-3 text-xs font-medium text-muted-foreground hover:text-foreground">
-          <Link href={`/login${nextPath}`}>
+          <Link href={`/login${nextPath}`} prefetch={false}>
             <LogIn className="mr-1.5 h-3.5 w-3.5" />
             Войти
           </Link>
         </Button>
         <Button asChild size="sm" className="h-9 bg-teal-dark px-3 text-xs font-semibold text-white hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam">
-          <Link href={`/register${nextPath}`}>Регистрация</Link>
+          <Link href={`/register${nextPath}`} prefetch={false}>Регистрация</Link>
         </Button>
       </div>
     );
@@ -313,7 +246,7 @@ function AuthControls({
   if (mobile) {
     return (
       <div className="grid gap-2 border-t border-border/50 pt-3">
-        <Link href="/account#favorites" onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
+        <Link href="/account#favorites" prefetch={false} onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
           <HeaderFavoritesHeartIcon state={favoritesHeartState} className="mr-2 h-4 w-4" />
           Избранное
           <span className="ml-auto rounded-full border border-border/70 bg-background/70 px-2 py-0.5 text-xs text-muted-foreground">
@@ -321,12 +254,12 @@ function AuthControls({
           </span>
         </Link>
         <MessageLink unreadCount={chatUnreadCount} mobile onNavigate={onNavigate} />
-        <Link href="/account" onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
+        <Link href="/account" prefetch={false} onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
           <UserCircle2 className="mr-2 h-4 w-4 text-teal-accent" />
           Кабинет
         </Link>
         {sessionUser.role !== 'USER' ? (
-          <Link href="/admin" onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
+          <Link href="/admin" prefetch={false} onClick={onNavigate} className="flex items-center rounded-lg border border-border px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40">
             <Shield className="mr-2 h-4 w-4 text-teal-accent" />
             Панель
           </Link>
@@ -347,7 +280,7 @@ function AuthControls({
   return (
     <div className="flex items-center gap-1">
       <Button asChild variant="ghost" size="sm" className="h-9 px-3 text-xs font-medium text-muted-foreground hover:text-foreground">
-        <Link href="/account#favorites">
+        <Link href="/account#favorites" prefetch={false}>
           <HeaderFavoritesHeartIcon state={favoritesHeartState} className="mr-1.5 h-3.5 w-3.5" />
           Избранное
           <span className="ml-1 rounded-full border border-border/70 bg-background/70 px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
@@ -358,14 +291,14 @@ function AuthControls({
       <MessageLink unreadCount={chatUnreadCount} />
       {sessionUser.role !== 'USER' ? (
         <Button asChild variant="ghost" size="sm" className="h-9 px-3 text-xs font-medium text-muted-foreground hover:text-foreground">
-          <Link href="/admin">
+          <Link href="/admin" prefetch={false}>
             <Shield className="mr-1.5 h-3.5 w-3.5" />
             Панель
           </Link>
         </Button>
       ) : null}
       <Button asChild variant="ghost" size="sm" className="h-9 px-3 text-xs font-medium text-muted-foreground hover:text-foreground">
-        <Link href="/account">
+        <Link href="/account" prefetch={false}>
           <UserCircle2 className="mr-1.5 h-3.5 w-3.5" />
           {sessionUser.name.split(' ')[0] || 'Кабинет'}
         </Link>
@@ -382,79 +315,14 @@ export function MarketplaceHeader() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [clientId] = useState(getChatPresenceClientId);
-  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
-  const [favoriteCount, setFavoriteCount] = useState(0);
-  const [chatUnreadCount, setChatUnreadCount] = useState(0);
-  const [chatSoundEnabled, setChatSoundEnabled] = useState(true);
-  const [sessionLoading, setSessionLoading] = useState(true);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const sessionBootstrappedRef = useRef(false);
-  const lastPresenceSignatureRef = useRef<string | null>(null);
-  const lastPresenceSentAtRef = useRef(0);
-  const presenceRequestInFlightRef = useRef<string | null>(null);
-  const playChatSound = useChatSound(chatSoundEnabled);
-  const activeChatId = pathname?.match(/^\/messages\/([^/]+)$/)?.[1] ?? null;
-  const presencePathname = activeChatId ? pathname : null;
-
-  const applySessionPayload = useCallback((payload: HeaderSessionPayload | null) => {
-    const authenticated = Boolean(payload?.authenticated);
-    const nextUser = authenticated ? payload?.user ?? null : null;
-    setSessionUser((current) => {
-      if (!current && !nextUser) {
-        return current;
-      }
-
-      if (
-        current &&
-        nextUser &&
-        current.id === nextUser.id &&
-        current.name === nextUser.name &&
-        current.role === nextUser.role
-      ) {
-        return current;
-      }
-
-      return nextUser;
-    });
-    setFavoriteCount(authenticated ? payload?.favoriteCount ?? 0 : 0);
-    setChatUnreadCount(authenticated ? payload?.chatUnreadCount ?? 0 : 0);
-    setChatSoundEnabled(authenticated ? payload?.chatSoundEnabled ?? true : true);
-  }, []);
-
-  const loadSession = useCallback(async (options: { silent?: boolean; force?: boolean } = {}) => {
-    if (!options.silent) {
-      setSessionLoading(true);
-    }
-
-    try {
-      if (!options.force && isHeaderSessionCacheFresh()) {
-        applySessionPayload(headerSessionCache?.payload ?? null);
-        return;
-      }
-
-      const payload = await fetchHeaderSessionPayload();
-      headerSessionCache = {
-        payload,
-        timestamp: Date.now(),
-      };
-      applySessionPayload(payload);
-    } catch {
-      if (isHeaderSessionCacheFresh()) {
-        applySessionPayload(headerSessionCache?.payload ?? null);
-      } else if (!options.silent) {
-        setSessionUser(null);
-        setFavoriteCount(0);
-        setChatUnreadCount(0);
-        setChatSoundEnabled(true);
-      }
-    } finally {
-      sessionBootstrappedRef.current = true;
-      if (!options.silent) {
-        setSessionLoading(false);
-      }
-    }
-  }, [applySessionPayload]);
+  const {
+    sessionUser,
+    favoriteCount,
+    chatUnreadCount,
+    sessionLoading,
+    isLoggingOut,
+    logout,
+  } = useMarketplaceRuntime();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
@@ -476,227 +344,23 @@ export function MarketplaceHeader() {
   }, [mobileOpen]);
 
   useEffect(() => {
-    void loadSession({ silent: sessionBootstrappedRef.current });
-  }, [loadSession]);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!sessionUser?.id) {
+    if (!mobileOpen) {
       return;
     }
 
-    const refreshSession = () => {
-      if (document.visibilityState === 'hidden') {
-        return;
-      }
-
-      void loadSession({ silent: true, force: true });
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void loadSession({ silent: true, force: true });
-      }
-    };
-
-    const intervalId = window.setInterval(refreshSession, HEADER_SESSION_REFRESH_INTERVAL_MS);
-    window.addEventListener('focus', refreshSession);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const closeMenuId = window.setTimeout(() => {
+      setMobileOpen(false);
+    }, 0);
 
     return () => {
-      window.clearInterval(intervalId);
-      window.removeEventListener('focus', refreshSession);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearTimeout(closeMenuId);
     };
-  }, [loadSession, sessionUser?.id]);
-
-  useEffect(() => {
-    const handleFavoritesChanged = (event: Event) => {
-      const detail = (event as CustomEvent<{ active?: boolean }>).detail;
-      if (typeof detail?.active !== 'boolean') {
-        return;
-      }
-
-      setFavoriteCount((current) => Math.max(0, current + (detail.active ? 1 : -1)));
-    };
-
-    window.addEventListener(FAVORITES_CHANGED_EVENT, handleFavoritesChanged as EventListener);
-    return () => {
-      window.removeEventListener(FAVORITES_CHANGED_EVENT, handleFavoritesChanged as EventListener);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleChatSettingsUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<{ chatSoundEnabled?: boolean; chatUnreadCount?: number }>).detail;
-      if (typeof detail?.chatSoundEnabled === 'boolean') {
-        setChatSoundEnabled(detail.chatSoundEnabled);
-      }
-      if (typeof detail?.chatUnreadCount === 'number') {
-        setChatUnreadCount(detail.chatUnreadCount);
-      }
-    };
-
-    window.addEventListener('vin2win:chat-settings-updated', handleChatSettingsUpdated as EventListener);
-    return () => {
-      window.removeEventListener('vin2win:chat-settings-updated', handleChatSettingsUpdated as EventListener);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!sessionUser?.id) {
-      return;
-    }
-
-    const source = new EventSource('/api/realtime/chat-events');
-    const handleEvent = (rawEvent: MessageEvent<string>) => {
-      try {
-        const event = JSON.parse(rawEvent.data) as ChatRealtimeEvent;
-        window.dispatchEvent(new CustomEvent(CHAT_WINDOW_EVENT_NAME, { detail: event }));
-
-        const totalUnreadCount = Number(event.payload.totalUnreadCount);
-        if (Number.isFinite(totalUnreadCount)) {
-          setChatUnreadCount(totalUnreadCount);
-        }
-
-        if (
-          event.type === 'chat.message.created' &&
-          event.payload.senderId !== sessionUser.id &&
-          document.visibilityState === 'visible'
-        ) {
-          void playChatSound();
-        }
-      } catch {
-        // noop
-      }
-    };
-
-    for (const eventType of CHAT_EVENT_TYPES) {
-      source.addEventListener(eventType, handleEvent as EventListener);
-    }
-
-    return () => {
-      for (const eventType of CHAT_EVENT_TYPES) {
-        source.removeEventListener(eventType, handleEvent as EventListener);
-      }
-      source.close();
-    };
-  }, [playChatSound, sessionUser?.id]);
-
-  useEffect(() => {
-    if (!sessionUser?.id) {
-      return;
-    }
-
-    cancelScheduledChatPresenceCleanup();
-    let closed = false;
-
-    const sendPresence = async (options: { force?: boolean } = {}) => {
-      if (closed) {
-        return;
-      }
-
-      const payload = {
-        clientId,
-        activeChatId,
-        pathname: presencePathname,
-        visibilityState: document.visibilityState,
-      };
-      const signature = JSON.stringify(payload);
-      const now = Date.now();
-
-      if (
-        !options.force &&
-        lastPresenceSignatureRef.current === signature &&
-        now - lastPresenceSentAtRef.current < 15_000
-      ) {
-        return;
-      }
-
-      if (presenceRequestInFlightRef.current === signature) {
-        return;
-      }
-
-      presenceRequestInFlightRef.current = signature;
-
-      await fetch('/api/chat-presence', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        keepalive: true,
-      })
-        .then(() => {
-          lastPresenceSignatureRef.current = signature;
-          lastPresenceSentAtRef.current = Date.now();
-        })
-        .catch(() => undefined)
-        .finally(() => {
-          if (presenceRequestInFlightRef.current === signature) {
-            presenceRequestInFlightRef.current = null;
-          }
-        });
-    };
-
-    void sendPresence({
-      force: true,
-    });
-
-    const heartbeatId = window.setInterval(() => {
-      void sendPresence();
-    }, 30_000);
-
-    const handleVisibilityChange = () => {
-      void sendPresence({
-        force: true,
-      });
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      closed = true;
-      window.clearInterval(heartbeatId);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      scheduleChatPresenceCleanup(clientId);
-    };
-  }, [activeChatId, clientId, presencePathname, sessionUser?.id]);
-
-  useEffect(() => {
-    if (!sessionUser?.id) {
-      return;
-    }
-
-    const handlePageHide = () => {
-      cancelScheduledChatPresenceCleanup();
-      deleteChatPresence(clientId);
-    };
-
-    window.addEventListener('pagehide', handlePageHide);
-    return () => {
-      window.removeEventListener('pagehide', handlePageHide);
-    };
-  }, [clientId, sessionUser?.id]);
+  }, [mobileOpen, pathname]);
 
   const submitHref = sessionUser ? '/listing/new' : '/login?next=%2Flisting%2Fnew';
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    clearHeaderSessionCache();
-    cancelScheduledChatPresenceCleanup();
-    deleteChatPresence(clientId);
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      window.location.href = '/';
-    } finally {
-      setIsLoggingOut(false);
-    }
+  const handleLogout = () => {
+    void logout();
   };
 
   return (
@@ -738,7 +402,7 @@ export function MarketplaceHeader() {
                 onLogout={handleLogout}
               />
               <Button size="sm" className="h-9 bg-teal-dark px-3 text-xs font-semibold text-white hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam" asChild>
-                <Link href={submitHref}>
+                <Link href={submitHref} prefetch={false}>
                   <Plus className="mr-1.5 h-3.5 w-3.5" />
                   Подать
                 </Link>
@@ -749,6 +413,7 @@ export function MarketplaceHeader() {
               {sessionUser ? (
                 <Link
                   href="/messages"
+                  prefetch={false}
                   className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-border/70 bg-background/60 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground dark:bg-background/10"
                 >
                   <MessageCircle className="h-4 w-4" />
@@ -761,7 +426,7 @@ export function MarketplaceHeader() {
               ) : null}
               <StableThemeToggle compact />
               <Button size="sm" className="h-9 bg-teal-dark px-3 text-xs font-semibold text-white hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam" asChild>
-                <Link href={submitHref} onClick={() => setMobileOpen(false)}>
+                <Link href={submitHref} prefetch={false} onClick={() => setMobileOpen(false)}>
                   <Plus className="mr-1 h-3.5 w-3.5" />
                   Подать
                 </Link>

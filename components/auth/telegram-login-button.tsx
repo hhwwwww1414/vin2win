@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { MessageCircle, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { MARKETPLACE_SESSION_REFRESH_EVENT } from '@/components/marketplace/marketplace-runtime-events';
 import { cn } from '@/lib/utils';
 
 declare global {
@@ -78,6 +79,8 @@ export function TelegramLoginButton({ nextPath, disabled = false }: TelegramLogi
         if (!response.ok) {
           throw new Error(payload?.error ?? 'Не удалось выполнить вход через Telegram.');
         }
+
+        window.dispatchEvent(new Event(MARKETPLACE_SESSION_REFRESH_EVENT));
 
         router.push(payload?.nextPath ?? '/account');
         router.refresh();

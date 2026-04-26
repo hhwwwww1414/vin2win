@@ -25,11 +25,21 @@ export async function GET(request: Request) {
   }
 
   const encoder = new TextEncoder();
+  let cleanupStream = () => {};
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
+      let closed = false;
       const send = (chunk: string) => {
-        controller.enqueue(encoder.encode(chunk));
+        if (closed) {
+          return;
+        }
+
+        try {
+          controller.enqueue(encoder.encode(chunk));
+        } catch {
+          cleanupStream();
+        }
       };
 
       send(encodeSseComment('connected'));
@@ -43,7 +53,13 @@ export async function GET(request: Request) {
       }, 25_000);
 
       const cleanup = () => {
+        if (closed) {
+          return;
+        }
+
+        closed = true;
         clearInterval(keepAliveId);
+        request.signal.removeEventListener('abort', cleanup);
         unsubscribe();
         try {
           controller.close();
@@ -52,7 +68,11 @@ export async function GET(request: Request) {
         }
       };
 
+      cleanupStream = cleanup;
       request.signal.addEventListener('abort', cleanup, { once: true });
+    },
+    cancel() {
+      cleanupStream();
     },
   });
 

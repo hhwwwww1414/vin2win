@@ -6,9 +6,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { BirthDatePicker } from '@/components/auth/birth-date-picker';
 import { PasswordField } from '@/components/auth/password-field';
-import { MarketplaceHeader } from '@/components/marketplace/header';
 import { TelegramLoginButton } from '@/components/auth/telegram-login-button';
 import { Button } from '@/components/ui/button';
+import { MARKETPLACE_SESSION_REFRESH_EVENT } from '@/components/marketplace/marketplace-runtime-events';
 import { BIRTH_DATE_REQUIRED_ERROR, isBirthDateErrorMessage } from '@/lib/birth-date';
 import { cn } from '@/lib/utils';
 
@@ -91,6 +91,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
       if (!response.ok) {
         throw new Error(parseString(payload?.error) || 'Authentication failed.');
       }
+
+      window.dispatchEvent(new Event(MARKETPLACE_SESSION_REFRESH_EVENT));
 
       startTransition(() => {
         router.push(parseString(payload?.nextPath) || '/account');
@@ -361,7 +363,6 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   return (
     <div className="min-h-full">
-      <MarketplaceHeader />
       <main id="page-main" className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <section className="relative overflow-hidden rounded-[34px] border border-border/70 bg-card/92 shadow-[0_20px_55px_rgba(0,0,0,0.14)] dark:bg-surface-elevated/92">
           <div

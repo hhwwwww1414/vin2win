@@ -101,6 +101,7 @@ export function CompareTray() {
               </p>
               <Link
                 href={`/compare?ids=${compare.ids.join(',')}`}
+                prefetch={false}
                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-teal-dark px-4 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-teal-medium dark:bg-teal-accent dark:text-[#09090B] dark:hover:bg-seafoam"
               >
                 Открыть сравнение

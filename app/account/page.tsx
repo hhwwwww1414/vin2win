@@ -5,7 +5,6 @@ import { Copy, Eye, FilePenLine } from 'lucide-react';
 import { NotificationDeliverySettings } from '@/components/account/notification-delivery-settings';
 import { AccountSellerProfilePanel } from '@/components/account/seller-profile-panel';
 import { SavedSearchesPanel } from '@/components/account/saved-searches-panel';
-import { MarketplaceHeader } from '@/components/marketplace/header';
 import { FavoriteToggle } from '@/components/marketplace/favorite-toggle';
 import { NotificationsPanel } from '@/components/account/notifications-panel';
 import { ListingStatusActions } from '@/components/account/listing-status-actions';
@@ -56,7 +55,6 @@ export default async function AccountPage() {
 
   return (
     <div className="min-h-full">
-      <MarketplaceHeader />
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <section>
           <AccountSellerProfilePanel sellerProfile={sellerProfile} />
@@ -103,7 +101,7 @@ export default async function AccountPage() {
                   return (
                     <div key={favorite.id} className="rounded-2xl border border-border/70 bg-background/60 p-4">
                       <div className="grid gap-4 md:grid-cols-[160px_1fr]">
-                        <Link href={`/listing/${listing.id}`} className="overflow-hidden rounded-xl border border-border/70 bg-muted/20">
+                        <Link href={`/listing/${listing.id}`} prefetch={false} className="overflow-hidden rounded-xl border border-border/70 bg-muted/20">
                           {cover ? (
                             <Image src={cover} alt={`${listing.make} ${listing.model}`} width={160} height={128} unoptimized className="h-32 w-full object-cover" />
                           ) : (
@@ -113,7 +111,7 @@ export default async function AccountPage() {
                         <div>
                           <div className="flex flex-wrap items-start justify-between gap-4">
                             <div>
-                              <Link href={`/listing/${listing.id}`} className="font-semibold text-foreground transition-colors hover:text-teal-accent">
+                              <Link href={`/listing/${listing.id}`} prefetch={false} className="font-semibold text-foreground transition-colors hover:text-teal-accent">
                                 {listing.make} {listing.model}, {listing.year}
                               </Link>
                               <p className="mt-1 text-sm text-muted-foreground">
@@ -156,7 +154,7 @@ export default async function AccountPage() {
                       key={listing.id}
                       className="rounded-2xl border border-border/70 bg-background/60 p-4 transition-colors hover:border-teal-accent/35 hover:bg-background/80"
                     >
-                      <Link href={`/listing/${listing.id}`} className="grid gap-4 md:grid-cols-[160px_1fr]">
+                      <Link href={`/listing/${listing.id}`} prefetch={false} className="grid gap-4 md:grid-cols-[160px_1fr]">
                         <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/20">
                           {cover ? (
                             <Image src={cover} alt={`${listing.make} ${listing.model}`} width={160} height={128} unoptimized className="h-32 w-full object-cover" />
@@ -197,6 +195,7 @@ export default async function AccountPage() {
                       <div className="mt-2 flex flex-wrap items-center gap-3">
                         <Link
                           href={`/listing/new?edit=${listing.id}`}
+                          prefetch={false}
                           className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                         >
                           <FilePenLine className="h-3.5 w-3.5" />
@@ -204,6 +203,7 @@ export default async function AccountPage() {
                         </Link>
                         <Link
                           href={`/listing/new?duplicate=${listing.id}`}
+                          prefetch={false}
                           className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                         >
                           <Copy className="h-3.5 w-3.5" />
@@ -232,6 +232,7 @@ export default async function AccountPage() {
                   <Link
                     key={listing.id}
                     href={`/wanted/${listing.id}`}
+                    prefetch={false}
                     className="block rounded-2xl border border-border/70 bg-background/60 p-4 transition-colors hover:border-teal-accent/35 hover:bg-background/80"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
