@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { ListingBenefitBadge } from '@/components/marketplace/listing-benefit-badge';
 import { ListingCardView } from '@/components/marketplace/listing-card-view';
+import { ListingCompactRow } from '@/components/marketplace/listing-compact-row';
 import type { SaleListing } from '@/lib/types';
 
 const listing: SaleListing = {
@@ -66,4 +67,18 @@ test('listing card seller row shows rating next to the verified badge', () => {
   assert.match(markup, /Проверенный/u);
   assert.match(markup, /4\.9/u);
   assert.match(markup, /M11\.525 2\.295/u);
+});
+
+test('listing card renders a static mobile cover before loading the interactive gallery', () => {
+  const markup = renderToStaticMarkup(<ListingCardView listing={listing} />);
+
+  assert.match(markup, /data-mobile-static-cover="true"/u);
+  assert.doesNotMatch(markup, /touch-pan-x/u);
+});
+
+test('compact listing row also avoids server-rendering the carousel for mobile', () => {
+  const markup = renderToStaticMarkup(<ListingCompactRow listing={listing} />);
+
+  assert.match(markup, /data-mobile-static-cover="true"/u);
+  assert.doesNotMatch(markup, /touch-pan-x/u);
 });

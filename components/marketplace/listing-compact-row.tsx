@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { AlertTriangle, CheckCircle, Clock3, Eye } from 'lucide-react';
 import type { SaleListing } from '@/lib/types';
 import { formatPrice, formatMileage } from '@/lib/marketplace-data';
@@ -10,13 +11,18 @@ import {
   getListingBadges,
   getListingTitle,
 } from '@/lib/listing-utils';
-import { ListingImageCarousel } from './listing-image-carousel';
+import { ListingStaticCover, useDesktopMediaQuery } from './listing-static-cover';
 import { ListingStatusBlock } from './listing-status-block';
 import { ListingChipsBlock } from './listing-chips-block';
 import { ListingBenefitBadge } from './listing-benefit-badge';
 import { CompareToggle } from './compare-toggle';
 import { FavoriteToggle } from './favorite-toggle';
 import { cn } from '@/lib/utils';
+
+const InteractiveListingImageCarousel = dynamic(
+  () => import('./listing-image-carousel').then((module) => module.ListingImageCarousel),
+  { ssr: false }
+);
 
 interface ListingCompactRowProps {
   listing: SaleListing;
@@ -35,6 +41,7 @@ export function ListingCompactRow({
 }: ListingCompactRowProps) {
   const title = getListingTitle(listing);
   const badges = getListingBadges(listing);
+  const showInteractiveMedia = useDesktopMediaQuery();
   const paintLabel =
     listing.paintCount === 0 ? 'без окрасов' : formatPaintCountValue(listing.paintCount).toLowerCase();
 
@@ -57,14 +64,33 @@ export function ListingCompactRow({
       <div className="relative z-[2] flex items-stretch gap-3 p-3 sm:gap-4">
         <div className="w-24 shrink-0 overflow-hidden rounded-lg sm:w-28">
           <div className="aspect-[4/3]">
-            <ListingImageCarousel
-              images={listing.images}
-              videoUrl={listing.videoUrl}
-              alt={title}
-              size="compact"
-              priority={priority}
-              className="h-full w-full rounded-lg"
-            />
+            {showInteractiveMedia ? (
+              <div className="relative h-full w-full">
+                <ListingStaticCover
+                  images={listing.images}
+                  alt={title}
+                  size="compact"
+                  priority={priority}
+                  className="absolute inset-0 h-full w-full rounded-lg"
+                />
+                <InteractiveListingImageCarousel
+                  images={listing.images}
+                  videoUrl={listing.videoUrl}
+                  alt={title}
+                  size="compact"
+                  priority={priority}
+                  className="relative h-full w-full rounded-lg"
+                />
+              </div>
+            ) : (
+              <ListingStaticCover
+                images={listing.images}
+                alt={title}
+                size="compact"
+                priority={priority}
+                className="h-full w-full rounded-lg"
+              />
+            )}
           </div>
         </div>
 

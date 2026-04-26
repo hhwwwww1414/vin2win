@@ -19,6 +19,24 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/main-hero-1600.webp',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/main-hero-mobile.webp',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
           {

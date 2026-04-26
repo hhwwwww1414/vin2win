@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { HomeHeroSpotlight } from '@/components/landing/home-hero-spotlight';
 
 export function HomeHero() {
@@ -8,14 +7,19 @@ export function HomeHero() {
       className="relative isolate overflow-hidden rounded-[36px] border border-white/10 bg-[#050608] shadow-[0_32px_90px_rgba(0,0,0,0.48)]"
     >
       <div className="relative min-h-[520px] sm:min-h-[580px] lg:min-h-[640px]">
-        <Image
-          src="/main.png"
-          alt="Премиальный автомобиль vin2win в студийном свете"
-          fill
-          priority
-          sizes="(min-width: 1280px) 1232px, (min-width: 1024px) calc(100vw - 64px), 100vw"
-          className="object-cover object-[72%_center] sm:object-[76%_center] lg:object-[79%_center]"
-        />
+        <picture className="absolute inset-0 block">
+          <source media="(max-width: 639px)" srcSet="/main-hero-mobile.webp" />
+          <source media="(min-width: 640px)" srcSet="/main-hero-1600.webp" />
+          <img
+            src="/main-hero-1600.webp"
+            alt="Премиальный автомобиль vin2win в студийном свете"
+            width={1672}
+            height={941}
+            fetchPriority="high"
+            decoding="async"
+            className="h-full w-full object-cover object-[72%_center] sm:object-[76%_center] lg:object-[79%_center]"
+          />
+        </picture>
 
         <div
           aria-hidden="true"

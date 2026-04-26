@@ -1,6 +1,7 @@
 'use client';
 
 import type { MouseEvent, ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -29,7 +30,12 @@ import { cn } from '@/lib/utils';
 import { CompareToggle } from './compare-toggle';
 import { FavoriteToggle } from './favorite-toggle';
 import { ListingBenefitBadge } from './listing-benefit-badge';
-import { ListingImageCarousel } from './listing-image-carousel';
+import { ListingStaticCover, useDesktopMediaQuery } from './listing-static-cover';
+
+const InteractiveListingImageCarousel = dynamic(
+  () => import('./listing-image-carousel').then((module) => module.ListingImageCarousel),
+  { ssr: false }
+);
 
 interface ListingCardViewProps {
   listing: SaleListing;
@@ -81,6 +87,7 @@ export function ListingCardView({
   const subtitle = [listing.trim, listing.color].filter(Boolean).join(' · ');
   const galleryImages = listing.images.slice(0, 4);
   const hiddenGalleryCount = Math.max(0, listing.images.length - galleryImages.length);
+  const showInteractiveMedia = useDesktopMediaQuery();
   const sellerLocation = listing.inspectionCity ?? listing.city;
   const sellerRating = listing.seller.averageRating ? listing.seller.averageRating.toFixed(1) : null;
   const mediaLabel = listing.videoUrl
@@ -159,14 +166,33 @@ export function ListingCardView({
       >
         <div className="flex flex-col gap-3 p-3 sm:grid sm:grid-cols-[220px_minmax(0,1fr)] sm:items-center sm:gap-4 sm:p-4">
           <div className="overflow-hidden rounded-[18px] border border-border/60 bg-muted/60">
-            <ListingImageCarousel
-              images={listing.images}
-              videoUrl={listing.videoUrl}
-              alt={title}
-              size="landscape"
-              priority={priority}
-              className="h-full w-full rounded-[18px]"
-            />
+            {showInteractiveMedia ? (
+              <div className="relative h-full w-full">
+                <ListingStaticCover
+                  images={listing.images}
+                  alt={title}
+                  size="landscape"
+                  priority={priority}
+                  className="absolute inset-0 h-full w-full rounded-[18px]"
+                />
+                <InteractiveListingImageCarousel
+                  images={listing.images}
+                  videoUrl={listing.videoUrl}
+                  alt={title}
+                  size="landscape"
+                  priority={priority}
+                  className="relative h-full w-full rounded-[18px]"
+                />
+              </div>
+            ) : (
+              <ListingStaticCover
+                images={listing.images}
+                alt={title}
+                size="landscape"
+                priority={priority}
+                className="h-full w-full rounded-[18px]"
+              />
+            )}
           </div>
 
           <div className="min-w-0">
@@ -198,14 +224,33 @@ export function ListingCardView({
         <div className="p-2.5 sm:p-3 lg:pr-3">
           <div className="flex flex-col gap-2">
             <div className="relative h-[168px] overflow-hidden rounded-[18px] bg-muted/65 sm:h-[178px] lg:h-[190px] xl:h-[202px]">
-              <ListingImageCarousel
-                images={listing.images}
-                videoUrl={listing.videoUrl}
-                alt={title}
-                size="landscape"
-                priority={priority}
-                className="h-full w-full rounded-[18px]"
-              />
+              {showInteractiveMedia ? (
+                <div className="relative h-full w-full">
+                  <ListingStaticCover
+                    images={listing.images}
+                    alt={title}
+                    size="landscape"
+                    priority={priority}
+                    className="absolute inset-0 h-full w-full rounded-[18px]"
+                  />
+                  <InteractiveListingImageCarousel
+                    images={listing.images}
+                    videoUrl={listing.videoUrl}
+                    alt={title}
+                    size="landscape"
+                    priority={priority}
+                    className="relative h-full w-full rounded-[18px]"
+                  />
+                </div>
+              ) : (
+                <ListingStaticCover
+                  images={listing.images}
+                  alt={title}
+                  size="landscape"
+                  priority={priority}
+                  className="h-full w-full rounded-[18px]"
+                />
+              )}
 
               <div className="absolute left-2 top-2 z-10 flex max-w-[74%] flex-wrap items-center gap-1">
                 {resourceBadge ? (
@@ -240,7 +285,7 @@ export function ListingCardView({
               </div>
             </div>
 
-            {galleryImages.length > 1 ? (
+            {showInteractiveMedia && galleryImages.length > 1 ? (
               <div className="hidden grid-cols-4 gap-2 md:grid">
                 {galleryImages.map((image, index) => {
                   const showOverflow = index === galleryImages.length - 1 && hiddenGalleryCount > 0;

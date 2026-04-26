@@ -44,6 +44,7 @@ const CHAT_EVENT_TYPES = [
   'chat.list.updated',
   'chat.unread.updated',
 ] as const;
+export const HEADER_SESSION_REFRESH_INTERVAL_MS = 60_000;
 
 function StableThemeToggle({ compact = false }: { compact?: boolean }) {
   const { resolvedTheme, setTheme } = useTheme();
@@ -431,7 +432,7 @@ export function MarketplaceHeader() {
       }
     };
 
-    const intervalId = window.setInterval(refreshSession, 6_000);
+    const intervalId = window.setInterval(refreshSession, HEADER_SESSION_REFRESH_INTERVAL_MS);
     window.addEventListener('focus', refreshSession);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 

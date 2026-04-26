@@ -362,7 +362,7 @@ function HomeContent({
           listings={result.items}
           sortKey={filters.sort}
           onSortChange={(sort) => updateSearch({ sort, page: 1 })}
-          priorityIndices={new Set([0, 1, 2])}
+          priorityIndices={new Set([0])}
           isAuthenticated={isAuthenticated}
           loginHref={loginHref}
           listingOffset={(result.page - 1) * result.limit}
@@ -387,7 +387,7 @@ function HomeContent({
               >
                 <ListingCardView
                   listing={listing}
-                  priority={index < 3}
+                  priority={index === 0}
                   isAuthenticated={isAuthenticated}
                   loginHref={loginHref}
                   className="w-full"
@@ -402,7 +402,7 @@ function HomeContent({
               >
                 <ListingCompactRow
                   listing={listing}
-                  priority={index < 3}
+                  priority={index === 0}
                   isAuthenticated={isAuthenticated}
                   loginHref={loginHref}
                   className="w-full"
